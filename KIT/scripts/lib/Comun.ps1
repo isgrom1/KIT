@@ -46,6 +46,7 @@ function Initialize-Contexto {
         EstadoForzado   = $null
         LogPendiente    = New-Object System.Collections.Generic.List[string]
         Reemplazos      = @()
+        AliasPerfiles   = @{}
         CodificacionOem = $null
         CacheEmpresa    = @{}
     }

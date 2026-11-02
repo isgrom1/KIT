@@ -32,7 +32,7 @@ En el PC (`X:\kitservicio`): `git pull` antes de trabajar; al terminar, commit y
 | C | Informes HTML cliente y técnico (`lib\Informe.ps1`) | entregada |
 | D | Interfaz WPF (`gui\kit.ps1`, `principal.xaml`, `tarea.ps1`) | entregada |
 | E | Portabilidad (cualquier letra, exFAT) y sincronización al maestro (`lib\Sincronizacion.ps1`, `sincronizar.ps1`, panel Expedientes, modo consulta) | entregada 2026-11-01 |
-| **F** | **Prueba completa** | **pendiente: esperar el OK de Isaac** |
+| **F** | **Prueba completa** | **en curso (pausada 2026-11-02 03:5x): pruebas 1 y 2 OK; faltan 3 (ARCHIVOS), 4 (CALOR+LENTO, que además verifica los arreglos de GPU y "Mostrar al cliente") y 6 (sincronizar). Banco: `pruebas\faseF_*.ps1`; respaldo de los expedientes de prueba en `X:\kitservicio_prueba\faseF\respaldo_K`** |
 
 **Fase F (especificación de Isaac):** simular atenciones completas con el kit copiado a otra letra.
 - **CALOR**, cliente nuevo.

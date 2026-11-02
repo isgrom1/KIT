@@ -38,7 +38,8 @@ try {
     switch ($Accion) {
         'analizar_archivos' {
             Write-Gui 'LOG' 'Analizando archivos (Temp, Descargas, duplicados, fotos...). Puede tardar unos minutos.'
-            $r = Invoke-AnalisisArchivos -Expediente $exp -Atencion $Atencion
+            # 'perfil' solo llega desde un escenario de prueba (carpeta de prueba en vez del perfil real).
+            $r = Invoke-AnalisisArchivos -Expediente $exp -Atencion $Atencion -Perfil $(if ($p['perfil']) { [string]$p['perfil'] } else { '' })
             $resultado = [ordered]@{ candidatos = @($r.candidatos).Count; marcados = @($r.candidatos | Where-Object { $_.seleccionado }).Count; parcial = $r.parcial; segundos = $r.duracion_seg }
         }
         'mover_archivos' {

@@ -7,6 +7,7 @@ param()
 
 function Initialize-Privacidad {
     $reemplazos = New-Object System.Collections.Generic.List[object]
+    $mapaAlias = @{}   # '<U1>' -> carpeta real del perfil, para ConvertFrom-RutaProtegida
     if ($script:Ctx.Config.enmascarar_perfiles) {
         $perfiles = New-Object System.Collections.Generic.List[string]
         $actual = [Environment]::GetFolderPath('UserProfile')
@@ -26,6 +27,7 @@ function Initialize-Privacidad {
             $reemplazo = (Split-Path -Parent $p) + '\' + $alias
             $reemplazos.Add(@([regex]::new('(?i)' + [regex]::Escape($p) + '(?=$|[\\/"'';,\s)\]])'), $reemplazo))
             $hojas.Add(@((Split-Path -Leaf $p), $alias))
+            $mapaAlias[$alias] = Split-Path -Leaf $p
             $i++
         }
         if ($env:USERNAME) { $hojas.Add(@($env:USERNAME, '<U1>')) }
@@ -38,6 +40,17 @@ function Initialize-Privacidad {
         }
     }
     $script:Ctx.Reemplazos = $reemplazos.ToArray()
+    $script:Ctx.AliasPerfiles = $mapaAlias
+}
+
+function ConvertFrom-RutaProtegida {
+    # Vuelve a poner el perfil real en una ruta enmascarada de ESTE equipo (C:\Users\<U1>\... ->
+    # C:\Users\Isaac\...). Solo para usarla en el momento (aplicar o deshacer una acción): lo que se
+    # guarda en el expediente sigue enmascarado.
+    param([AllowNull()][AllowEmptyString()][string]$Ruta)
+    if (-not $Ruta -or -not $script:Ctx.AliasPerfiles) { return $Ruta }
+    foreach ($k in @($script:Ctx.AliasPerfiles.Keys | Sort-Object Length -Descending)) { $Ruta = $Ruta.Replace($k, $script:Ctx.AliasPerfiles[$k]) }
+    $Ruta
 }
 
 function Protect-Texto {

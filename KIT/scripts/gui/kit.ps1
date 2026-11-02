@@ -20,10 +20,13 @@
     Con -RutaMaestro, además sincroniza, abre un expediente del maestro y regenera sus informes.
 .PARAMETER CapturaDiag
     Solo pruebas, con -Captura: además corre un diagnóstico ANTES sin recorrido de carpetas.
+.PARAMETER Escenario
+    Solo pruebas, con -Captura: archivo con los pasos a recorrer (en vez del recorrido por defecto). Al
+    relanzar como admin, la ventana nueva sigue el mismo escenario.
 #>
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '', Justification = 'Nombres en español: la regla pluraliza en inglés')]
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'Los parámetros de los manejadores de eventos los exige WPF')]
-param([string]$Atencion, [string]$Clientes, [string]$RutaExpediente, [string]$RutaMaestro, [string]$Captura, [switch]$CapturaDiag)
+param([string]$Atencion, [string]$Clientes, [string]$RutaExpediente, [string]$RutaMaestro, [string]$Captura, [switch]$CapturaDiag, [string]$Escenario)
 
 if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') { exit 10 }
 if ([Threading.Thread]::CurrentThread.GetApartmentState() -ne 'STA') { exit 10 }
@@ -526,7 +529,9 @@ function Show-VistaCliente {
         $va.Inlines.Add((New-Object Windows.Documents.Run((Format-ValorTarjeta $t.Antes $t.Unidad) + '  ')))
         $r2 = New-Object Windows.Documents.Run($flecha + '  '); $r2.Foreground = Get-Pincel $(if ($null -eq $t.Mejoro) { '#8C959F' } elseif ($t.Mejoro) { '#1A7F37' } else { '#CF222E' }); $va.Inlines.Add($r2)
         $va.Inlines.Add((New-Object Windows.Documents.Run((Format-ValorTarjeta $t.Despues $t.Unidad))))
-        [void]$c.Children.Add($ti); [void]$c.Children.Add($va); $b.Child = $c
+        # El valor se achica si no cabe en la tarjeta (nunca se agranda ni se corta).
+        $vb = New-Object Windows.Controls.Viewbox; $vb.StretchDirection = 'DownOnly'; $vb.HorizontalAlignment = 'Left'; $vb.Child = $va
+        [void]$c.Children.Add($ti); [void]$c.Children.Add($vb); $b.Child = $c
         [void]$wp.Children.Add($b)
     }
     [void]$sp.Children.Add($wp)
@@ -802,7 +807,9 @@ $ui.btnDeshacerLento.Add_Click({
 $ui.btnAnalizar.Add_Click({
         $p = Get-PermisoArchivos -Expediente $script:G.Exp -Atencion $script:G.At
         if (-not $p.PuedeAnalizar) { [void](Show-Aviso "Falta en la ficha: $($p.Falta -join ', ')."); return }
-        Invoke-TareaKit -Accion 'analizar_archivos' -Texto 'Analizando archivos...' -AlResultado { param($r) Show-ReporteArchivos }
+        # PerfilPrueba: solo lo pone un escenario de prueba, para analizar una carpeta de prueba y no el perfil real.
+        $param = if ($script:G.PerfilPrueba) { @{ perfil = $script:G.PerfilPrueba } } else { $null }
+        Invoke-TareaKit -Accion 'analizar_archivos' -Parametros $param -Texto 'Analizando archivos...' -AlResultado { param($r) Show-ReporteArchivos }
     })
 $ui.btnMover.Add_Click({
         $dt = $script:G.TablaArchivos
@@ -870,6 +877,13 @@ $ui.btnRelanzar.Add_Click({
             if ($Clientes) { $partes += @('-Clientes', ('"' + $Clientes + '"')) }
             if ($script:G.Ajeno) { $partes += @('-RutaExpediente', ('"' + $script:G.Exp.Ruta + '"')) }
             if ($RutaMaestro) { $partes += @('-RutaMaestro', ('"' + $RutaMaestro + '"')) }
+            if ($Captura) {
+                # Prueba: la ventana elevada sigue el mismo escenario y guarda sus capturas en <Captura>\admin.
+                $partes += @('-Captura', ('"' + (Join-Path $Captura 'admin') + '"'))
+                if ($Escenario) { $partes += @('-Escenario', ('"' + $Escenario + '"')) }
+                $script:G.Registro.Add("relanzar como admin: $($partes -join ' ')")
+                [IO.File]::WriteAllLines((Join-Path $Captura 'registro.txt'), $script:G.Registro)
+            }
             Start-Process -FilePath $script:PS -ArgumentList ($partes -join ' ') -Verb RunAs -ErrorAction Stop
             $script:Win.Close()
         } catch { [void](Show-Aviso 'No se elevó: se canceló el aviso o este usuario no es administrador.') }
@@ -899,6 +913,7 @@ if ($Captura) {
     $clic = { param($b) $script:Ui[$b].RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Primitives.ButtonBase]::ClickEvent))) }
     $colaCaptura = New-Object System.Collections.Generic.Queue[object]
     $paso = { param([double]$Espera, [scriptblock]$Accion, [scriptblock]$Hasta) $colaCaptura.Enqueue(@{ Espera = $Espera; Accion = $Accion; Hasta = $Hasta }) }
+    if ($Escenario) { . $Escenario } else {
     & $paso 1 { Save-Captura $script:Win.Content '01_inicio_vacio' }
     & $paso 0.5 { $script:Ui.tgCalor.IsChecked = $true; $script:Ui.tgLento.IsChecked = $true }
     & $paso 0.5 { Save-Captura $script:Win.Content '02_inicio_motivos' }
@@ -969,6 +984,7 @@ if ($Captura) {
             & $leer "vuelta: ajeno=$($script:G.Ajeno) exp=$(if ($script:G.Exp) { $script:G.Exp.Ruta }) at=$($script:G.At) | equipo='$($script:Ui.txtEquipo.Text)'"
             Save-Captura $script:Win.Content '17_vuelta_equipo'
         }
+    }
     }
     & $paso 0.3 { [IO.File]::WriteAllLines((Join-Path $Captura 'registro.txt'), $script:G.Registro); $script:Win.Close() }
     $script:PasoActual = $null; $script:InicioPaso = Get-Date

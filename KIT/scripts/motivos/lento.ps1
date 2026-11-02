@@ -223,11 +223,13 @@ function Invoke-CambioLento {
             return [ordered]@{ previo = 'on' }
         }
         'gpu' {
+            # La ruta viene enmascarada del diagnóstico (C:\Users\<U1>\...): el valor real lleva el perfil real.
+            $app = ConvertFrom-RutaProtegida $x.App
             $k = Open-ClaveEscritura -Colmena HKCU -Ruta $script:RutaGpu
             try {
-                $previo = $k.GetValue($x.App)
+                $previo = $k.GetValue($app)
                 $nuevo = if ($previo -and "$previo" -match 'GpuPreference=\d;') { "$previo" -replace 'GpuPreference=\d;', 'GpuPreference=2;' } else { "GpuPreference=2;$previo" }
-                $k.SetValue($x.App, $nuevo, [Microsoft.Win32.RegistryValueKind]::String)
+                $k.SetValue($app, $nuevo, [Microsoft.Win32.RegistryValueKind]::String)
             } finally { $k.Close() }
             return [ordered]@{ previo = $previo }
         }
@@ -257,8 +259,9 @@ function Undo-CambioLento {
         }
         'hibernacion' { Invoke-Powercfg '/hibernate on' }
         'gpu' {
+            $app = ConvertFrom-RutaProtegida $x['App']
             $k = Open-ClaveEscritura -Colmena HKCU -Ruta $script:RutaGpu
-            try { if ($null -ne $p['previo']) { $k.SetValue($x['App'], $p['previo'], [Microsoft.Win32.RegistryValueKind]::String) } else { $k.DeleteValue($x['App'], $false) } } finally { $k.Close() }
+            try { if ($null -ne $p['previo']) { $k.SetValue($app, $p['previo'], [Microsoft.Win32.RegistryValueKind]::String) } else { $k.DeleteValue($app, $false) } } finally { $k.Close() }
         }
     }
 }
