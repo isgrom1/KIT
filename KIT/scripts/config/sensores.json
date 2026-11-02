@@ -1,0 +1,66 @@
+﻿{
+  "_leeme": "Cómo reconocer las columnas del CSV de sensores. Patrones = expresiones regulares (sin distinguir mayúsculas) sobre el nombre de la columna: HWiNFO en inglés y español, y LibreHardwareMonitor (lhm_tipo = tipo del sensor en su primera fila: temperature, clock, power, load, data, smalldata). Gana la primera columna que calce; 'agregado_max' y 'agregado_prom' combinan varias columnas por fila; 'cualquiera' marca la fila si alguna columna dice Yes/Sí. Lo que no calce queda null: nunca se inventa.",
+  "umbral_alto_c": 90,
+  "tjmax_aviso_c": 95,
+  "tjmax_aviso_pct_tiempo": 5,
+  "throttling_aviso_pct": 1,
+  "puntos_serie": 300,
+  "metricas": {
+    "cpu_temp_paquete": {
+      "unidad": "°C",
+      "patrones": ["^(CPU Package|CPU Entera|Paquete de CPU)( \\[°C\\])?$"],
+      "lhm_tipo": "temperature"
+    },
+    "cpu_temp_nucleo_max": {
+      "unidad": "°C",
+      "patrones": ["^(Core Max|Máximo de Núcleo|Core Max(imum)?)( \\[°C\\])?$"],
+      "agregado_max": ["^Core \\d+ \\[°C\\]$", "^CPU Core #\\d+$"],
+      "lhm_tipo": "temperature"
+    },
+    "cpu_frec_efectiva": {
+      "unidad": "MHz",
+      "patrones": ["^(Average Effective Clock|Reloj efectivo promedio) \\[MHz\\]$"],
+      "agregado_prom": ["^CPU Core #\\d+$"],
+      "lhm_tipo": "clock"
+    },
+    "cpu_potencia": {
+      "unidad": "W",
+      "patrones": ["^(CPU Package Power|Potencia total de CPU)( \\[W\\])?$", "^CPU Package$"],
+      "lhm_tipo": "power"
+    },
+    "cpu_throttling": {
+      "unidad": "sí/no",
+      "cualquiera": [
+        "^(Package/Ring Thermal Throttling|Desaceleración térmica del paquete/anillo) \\[Yes/No\\]$",
+        "^(Core Thermal Throttling \\(avg\\)|Desaceleración térmica del núcleo \\(avg\\)) \\[Yes/No\\]$"
+      ]
+    },
+    "gpu_temp": {
+      "unidad": "°C",
+      "patrones": ["^(GPU Temperature|Temperatura de la GPU)( \\[°C\\])?$", "^GPU Core$"],
+      "lhm_tipo": "temperature"
+    },
+    "gpu_hotspot": {
+      "unidad": "°C",
+      "patrones": ["^(GPU Hot Spot Temperature|Temperatura de punto caliente de GPU)( \\[°C\\])?$", "^GPU Hot Spot$"],
+      "lhm_tipo": "temperature"
+    },
+    "gpu_uso": {
+      "unidad": "%",
+      "patrones": ["^(GPU Core Load|Carga de núcleo de GPU)( \\[%\\])?$", "^GPU Core$"],
+      "lhm_tipo": "load"
+    },
+    "vram_usada": {
+      "unidad": "MB",
+      "patrones": ["^(GPU Memory Allocated|Memoria de GPU asignada)( \\[MB\\])?$", "^GPU Memory Used$"],
+      "lhm_tipo": "smalldata"
+    },
+    "ram_usada": {
+      "unidad": "MB",
+      "patrones": ["^(Physical Memory Used|Memoria física utilizada)( \\[MB\\])?$"],
+      "lhm_patrones": ["^Memory Used$"],
+      "lhm_tipo": "data",
+      "lhm_factor": 1024
+    }
+  }
+}

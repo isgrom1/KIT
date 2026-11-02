@@ -1,0 +1,52 @@
+{
+  "_leeme": "Lista editable. 'patron' es una expresión regular (no distingue mayúsculas) que se busca en el nombre y el editor de programas, apps de la Store, servicios, tareas y entradas de arranque. 'categoria' debe existir en 'categorias'. 'planes_energia' se compara con el nombre del plan activo.",
+  "categorias": {
+    "optimizador":      { "severidad": "AVISO", "texto": "Optimizador detectado" },
+    "driver_updater":   { "severidad": "AVISO", "texto": "Actualizador de drivers detectado" },
+    "limpiador":        { "severidad": "AVISO", "texto": "Limpiador de registro/sistema detectado" },
+    "activador":        { "severidad": "AVISO", "texto": "Activador no oficial detectado" },
+    "pup":              { "severidad": "AVISO", "texto": "Programa potencialmente no deseado (PUP)" },
+    "antivirus_prueba": { "severidad": "INFO",  "texto": "Antivirus de prueba/OEM (verificar si el cliente lo paga)" },
+    "bloat":            { "severidad": "INFO",  "texto": "Bloatware o prueba preinstalada" },
+    "ajuste":           { "severidad": "INFO",  "texto": "Herramienta de ajuste de rendimiento" }
+  },
+  "programas": [
+    { "patron": "\\bHone\\b", "categoria": "optimizador" },
+    { "patron": "Razer Cortex", "categoria": "optimizador" },
+    { "patron": "Advanced SystemCare|IObit Advanced", "categoria": "optimizador" },
+    { "patron": "Wise Care 365|Wise Game Booster", "categoria": "optimizador" },
+    { "patron": "Auslogics BoostSpeed", "categoria": "optimizador" },
+    { "patron": "Glary Utilities", "categoria": "optimizador" },
+    { "patron": "Ashampoo WinOptimizer", "categoria": "optimizador" },
+    { "patron": "AVG TuneUp|Avast Cleanup|Norton Utilities", "categoria": "optimizador" },
+    { "patron": "Smart Game Booster|Game Fire|Game Booster", "categoria": "optimizador" },
+    { "patron": "Driver Booster", "categoria": "driver_updater" },
+    { "patron": "Driver ?Easy", "categoria": "driver_updater" },
+    { "patron": "DriverPack", "categoria": "driver_updater" },
+    { "patron": "Driver Genius|DriverMax|Driver Reviver|Smart Driver Care|Driver Updater|Driver Support\\b", "categoria": "driver_updater" },
+    { "patron": "Snappy Driver", "categoria": "driver_updater" },
+    { "patron": "CCleaner", "categoria": "limpiador" },
+    { "patron": "Registry Cleaner|Registry Mechanic|CleanMyPC", "categoria": "limpiador" },
+    { "patron": "KMSpico|KMSAuto|KMS ?Tools|\\bAAct\\b|AutoKMS|AutoPico|KMSELDI|HEU KMS|Microsoft Toolkit", "categoria": "activador" },
+    { "patron": "PC Optimizer Pro|SpeedUpMyPC|Reimage|Restoro|Fortect", "categoria": "pup" },
+    { "patron": "Wave ?Browser", "categoria": "pup" },
+    { "patron": "OneLaunch", "categoria": "pup" },
+    { "patron": "WebDiscover", "categoria": "pup" },
+    { "patron": "Segurazo|SAntivirus", "categoria": "pup" },
+    { "patron": "ByteFence", "categoria": "pup" },
+    { "patron": "Shift Browser|PC App Store|Search Protect", "categoria": "pup" },
+    { "patron": "^McAfee", "categoria": "antivirus_prueba" },
+    { "patron": "^Norton (360|Security|AntiVirus)", "categoria": "antivirus_prueba" },
+    { "patron": "WildTangent", "categoria": "bloat" },
+    { "patron": "^king\\.com\\.|Candy Crush|Bubble Witch|Farm Heroes", "categoria": "bloat" },
+    { "patron": "TikTok", "categoria": "bloat" },
+    { "patron": "ExpressVPN", "categoria": "bloat" },
+    { "patron": "Process Lasso", "categoria": "ajuste" }
+  ],
+  "planes_energia": [
+    { "patron": "Hone", "categoria": "optimizador" },
+    { "patron": "Razer|Cortex", "categoria": "optimizador" },
+    { "patron": "Bitsum", "categoria": "ajuste" },
+    { "patron": "Atlas|Revi|Khorvie", "categoria": "ajuste" }
+  ]
+}

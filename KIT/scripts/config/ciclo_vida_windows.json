@@ -1,0 +1,17 @@
+{
+  "_leeme": "Fin de actualizaciones por build (AAAA-MM-DD). fin_hogar = Home/Pro/Pro Education/Pro for Workstations; fin_empresa = Enterprise/Education/IoT Enterprise; fin_ltsc / fin_iot_ltsc = ediciones LTSC. Fuente: learn.microsoft.com/windows/release-health, revisado 2026-11-01. Agregar aquí las versiones nuevas.",
+  "revisado": "2026-11-01",
+  "versiones": [
+    { "producto": "Windows 11", "version": "26H2", "build": 26300, "fin_hogar": "2028-10-10", "fin_empresa": "2029-10-09" },
+    { "producto": "Windows 11", "version": "26H1", "build": 28000, "fin_hogar": "2028-03-14", "fin_empresa": "2029-03-13" },
+    { "producto": "Windows 11", "version": "25H2", "build": 26200, "fin_hogar": "2027-10-12", "fin_empresa": "2028-10-10" },
+    { "producto": "Windows 11", "version": "24H2", "build": 26100, "fin_hogar": "2026-10-13", "fin_empresa": "2027-10-12", "fin_ltsc": "2029-10-09", "fin_iot_ltsc": "2034-10-10" },
+    { "producto": "Windows 11", "version": "23H2", "build": 22631, "fin_hogar": "2025-11-11", "fin_empresa": "2026-11-10" },
+    { "producto": "Windows 11", "version": "22H2", "build": 22621, "fin_hogar": "2024-10-08", "fin_empresa": "2025-10-14" },
+    { "producto": "Windows 11", "version": "21H2", "build": 22000, "fin_hogar": "2023-10-10", "fin_empresa": "2024-10-08" },
+    { "producto": "Windows 10", "version": "22H2", "build": 19045, "fin_hogar": "2025-10-14", "fin_empresa": "2025-10-14", "nota": "ESU para hogares terminó el 2026-10-13; ESU pagado para empresas hasta 2028-10-10" },
+    { "producto": "Windows 10", "version": "21H2", "build": 19044, "fin_hogar": "2023-06-13", "fin_empresa": "2024-06-11", "fin_ltsc": "2027-01-12", "fin_iot_ltsc": "2032-01-13" },
+    { "producto": "Windows 10", "version": "1809", "build": 17763, "fin_hogar": "2020-11-10", "fin_empresa": "2021-05-11", "fin_ltsc": "2029-01-09", "fin_iot_ltsc": "2029-01-09" },
+    { "producto": "Windows 10", "version": "1607", "build": 14393, "fin_hogar": "2018-04-10", "fin_empresa": "2019-04-09", "fin_ltsc": "2026-10-13", "fin_iot_ltsc": "2026-10-13" }
+  ]
+}

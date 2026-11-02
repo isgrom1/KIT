@@ -1,0 +1,160 @@
+{
+    "generado":  "2026-11-01 19:41:22",
+    "herramientas":  [
+                         {
+                             "nombre":  "CrystalDiskInfo",
+                             "carpeta":  "CrystalDiskInfo",
+                             "automatica":  true,
+                             "version":  "9.9.3",
+                             "version_vigente":  "9.9.3",
+                             "publicada":  "2026-10-11",
+                             "descargada":  "2026-11-01",
+                             "revisada":  "2026-11-01",
+                             "fuente":  "https://downloads.sourceforge.net/project/crystaldiskinfo/9.9.3/CrystalDiskInfo9_9_3.zip",
+                             "archivo":  "CrystalDiskInfo9_9_3.zip",
+                             "hash":  {
+                                          "algoritmo":  "MD5",
+                                          "valor":  "7F33883C23BF93AD49C9969F2D5428EB",
+                                          "fuente":  "SourceForge (MD5, el único que publica)",
+                                          "verificado":  true,
+                                          "lista_proyecto":  false
+                                      },
+                             "licencia":  "MIT",
+                             "uso_comercial":  true,
+                             "ejecutable":  "DiskInfo64.exe",
+                             "nota":  "Lee SMART también detrás de Intel RST/VMD, donde Windows no lo entrega."
+                         },
+                         {
+                             "nombre":  "CrystalDiskMark",
+                             "carpeta":  "CrystalDiskMark",
+                             "automatica":  true,
+                             "version":  "9.0.3",
+                             "version_vigente":  "9.0.3",
+                             "publicada":  "2026-05-23",
+                             "descargada":  "2026-11-01",
+                             "revisada":  "2026-11-01",
+                             "fuente":  "https://downloads.sourceforge.net/project/crystaldiskmark/9.0.3/CrystalDiskMark9_0_3.zip",
+                             "archivo":  "CrystalDiskMark9_0_3.zip",
+                             "hash":  {
+                                          "algoritmo":  "MD5",
+                                          "valor":  "B93D7C56381D0D765A3FC8238DA611F0",
+                                          "fuente":  "SourceForge (MD5, el único que publica)",
+                                          "verificado":  true,
+                                          "lista_proyecto":  false
+                                      },
+                             "licencia":  "MIT",
+                             "uso_comercial":  true,
+                             "ejecutable":  "DiskMark64.exe",
+                             "nota":  "Escribe archivos de prueba en el disco que mide: úsalo con permiso y con espacio libre."
+                         },
+                         {
+                             "nombre":  "LibreHardwareMonitor",
+                             "carpeta":  "LibreHardwareMonitor",
+                             "automatica":  true,
+                             "version":  "0.9.6",
+                             "version_vigente":  "0.9.6",
+                             "publicada":  "2026-02-14",
+                             "descargada":  "2026-11-01",
+                             "revisada":  "2026-11-01",
+                             "fuente":  "https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases/download/v0.9.6/LibreHardwareMonitor.zip",
+                             "archivo":  "LibreHardwareMonitor.zip",
+                             "hash":  {
+                                          "algoritmo":  "SHA256",
+                                          "valor":  "086D9F1B5A99E643EDC2CFAAAC16051685B551E4C5AC0B32A57C58C0E529C001",
+                                          "fuente":  "GitHub (digest del archivo del release)",
+                                          "verificado":  true,
+                                          "lista_proyecto":  false
+                                      },
+                             "licencia":  "MPL-2.0",
+                             "uso_comercial":  true,
+                             "ejecutable":  "LibreHardwareMonitor.exe",
+                             "nota":  "Versión .NET Framework 4.7.2 (viene en Windows 10/11). Para leer sensores usa el driver PawnIO, que se instala en el equipo: pide permiso al cliente."
+                         },
+                         {
+                             "nombre":  "Czkawka",
+                             "carpeta":  "Czkawka",
+                             "automatica":  true,
+                             "version":  "12.0.2",
+                             "version_vigente":  "12.0.2",
+                             "publicada":  "2026-09-09",
+                             "descargada":  "2026-11-01",
+                             "revisada":  "2026-11-01",
+                             "fuente":  "https://github.com/qarmin/czkawka/releases/download/12.0.2/windows_czkawka_gui_gtk_412.zip",
+                             "archivo":  "windows_czkawka_gui_gtk_412.zip",
+                             "hash":  {
+                                          "algoritmo":  "SHA256",
+                                          "valor":  "DE7E8A01CF16CAF742A2DA350F5C9A49477CDC75A63D05D0EA18FD1C50737285",
+                                          "fuente":  "GitHub (digest del archivo del release)",
+                                          "verificado":  true,
+                                          "lista_proyecto":  false
+                                      },
+                             "licencia":  "MIT",
+                             "uso_comercial":  true,
+                             "ejecutable":  "czkawka_gui.exe",
+                             "nota":  "Interfaz GTK (czkawka_gui, MIT). Krokiet, la interfaz nueva del mismo autor, es GPL-3.0 y no se descarga."
+                         },
+                         {
+                             "nombre":  "WinDirStat",
+                             "carpeta":  "WinDirStat",
+                             "automatica":  true,
+                             "version":  "2.9.3",
+                             "version_vigente":  "2.9.3",
+                             "publicada":  "2026-10-11",
+                             "descargada":  "2026-11-01",
+                             "revisada":  "2026-11-01",
+                             "fuente":  "https://github.com/windirstat/windirstat/releases/download/release/v2.9.3/WinDirStat.zip",
+                             "archivo":  "WinDirStat.zip",
+                             "hash":  {
+                                          "algoritmo":  "SHA256",
+                                          "valor":  "C980FEE14389EB3A160415B0A07361900F3630F232501884863FEC40F369A4A4",
+                                          "fuente":  "GitHub (digest del archivo del release)",
+                                          "verificado":  true,
+                                          "lista_proyecto":  true
+                                      },
+                             "licencia":  "GPL-3.0",
+                             "uso_comercial":  true,
+                             "ejecutable":  "x64\\WinDirStat.exe",
+                             "nota":  "Zip portable; el exe de x64 está en su subcarpeta."
+                         },
+                         {
+                             "nombre":  "Rufus",
+                             "carpeta":  "Rufus",
+                             "automatica":  true,
+                             "version":  "4.15",
+                             "version_vigente":  "4.15",
+                             "publicada":  "2026-06-30",
+                             "descargada":  "2026-11-01",
+                             "revisada":  "2026-11-01",
+                             "fuente":  "https://github.com/pbatard/rufus/releases/download/v4.15/rufus-4.15p.exe",
+                             "archivo":  "rufus-4.15p.exe",
+                             "hash":  {
+                                          "algoritmo":  "SHA256",
+                                          "valor":  "84C8A437F8AF89257524478489E5C85F1EDF25F761D299E2BCDE46AC0AFBE106",
+                                          "fuente":  "GitHub (digest del archivo del release)",
+                                          "verificado":  true,
+                                          "lista_proyecto":  false
+                                      },
+                             "licencia":  "GPL-3.0",
+                             "uso_comercial":  true,
+                             "ejecutable":  "rufus-4.15p.exe",
+                             "nota":  "Versión portable: la \"p\" del nombre hace que guarde su configuración junto al exe."
+                         },
+                         {
+                             "nombre":  "DDU",
+                             "carpeta":  "DDU",
+                             "automatica":  false,
+                             "version":  "18.1.6.2",
+                             "version_vigente":  "18.1.6.2",
+                             "publicada":  null,
+                             "descargada":  null,
+                             "revisada":  "2026-11-01",
+                             "fuente":  "https://www.wagnardsoft.com/display-driver-uninstaller-ddu",
+                             "archivo":  null,
+                             "hash":  null,
+                             "licencia":  "Freeware (Wagnardsoft); la página de descarga no publica términos de uso comercial",
+                             "uso_comercial":  null,
+                             "ejecutable":  "Display Driver Uninstaller.exe",
+                             "nota":  "Se baja a mano: el enlace real está detrás de una verificación anti-bots (Cloudflare). Descomprímelo en KIT\\herramientas\\DDU\\."
+                         }
+                     ]
+}

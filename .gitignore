@@ -1,0 +1,22 @@
+# El repositorio es PÚBLICO: aquí va solo el código y la documentación del kit.
+
+# Datos de clientes (expedientes, diagnósticos, fotos, informes): nunca al repositorio.
+KIT/clientes/
+
+# Herramientas de terceros: tienen licencias propias y pesan; las baja actualizar_herramientas.ps1.
+KIT/herramientas/*
+!KIT/herramientas/versiones.json
+KIT/DDU/
+
+# Vistas previas, capturas y salidas de pruebas (traen datos del equipo).
+vista_previa_informe_*.pdf
+capturas_fase_*/
+pruebas/vista_previa/
+pruebas/*.txt
+pruebas/*.log
+
+# Temporales del kit.
+*.tmp
+*.bak
+*.sync_tmp
+_gui_parametros.json

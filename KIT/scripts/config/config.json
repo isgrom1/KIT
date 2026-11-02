@@ -1,0 +1,59 @@
+﻿{
+  "_leeme": "Configuración del diagnóstico. Umbrales en las unidades indicadas por el nombre (dias, meses, gb, pct, seg).",
+  "cim_timeout_seg": 20,
+  "externo_timeout_seg": 60,
+  "enmascarar_perfiles": true,
+  "equipos_tecnico": ["DESKTOP-5OEOR7A"],
+  "sincronizacion": { "_leeme": "Maestro de expedientes en tu PC. Sincronizar solo aparece en equipos_tecnico.", "ruta_maestro": "X:\\kitservicio_datos\\clientes" },
+  "tecnico": { "nombre": "Isaac", "contacto": "" },
+  "expediente": { "garantia_dias": 30, "proxima_mantencion_meses": 12, "dias_para_borrar": 30, "condiciones_garantia": "Cubre el trabajo realizado y las piezas cambiadas. No cubre golpes, líquidos, fallas de piezas no intervenidas ni cambios hechos por terceros." },
+  "archivos": {
+    "_leeme": "Motivo ARCHIVOS. Nunca se borra: todo se mueve a <unidad>:\\_PARA_BORRAR. Los patrones son expresiones regulares sobre la ruta completa.",
+    "dias_recientes": 7,
+    "duplicado_min_mb": 1,
+    "instalador_extensiones": [".exe", ".msi"],
+    "fotos_max": 1500,
+    "fotos_tiempo_seg": 60,
+    "fotos_distancia": 4,
+    "restos_dias": 180,
+    "restos_min_mb": 50,
+    "nunca_credenciales": "(?i)(recovery|recuperaci|private[ _-]?key|\\.pem$|\\.ppk$|\\.key$|\\.kdbx?$|wallet|seed|clave|password|contrase|id_rsa|\\.p12$|\\.pfx$|bitlocker)",
+    "nunca_partidas": "(?i)(\\\\saved games\\\\|\\\\my games\\\\|\\\\saves?\\\\|\\\\savegames?\\\\|\\\\savedata\\\\)",
+    "caches_juegos": ["AppData\\Local\\NVIDIA\\DXCache", "AppData\\Local\\NVIDIA\\GLCache", "AppData\\Local\\AMD\\DxCache", "AppData\\Local\\AMD\\GLCache", "AppData\\Local\\D3DSCache"]
+  },
+  "espacio": {
+    "tiempo_max_seg": 180,
+    "profundidad_top": 3,
+    "top_carpetas": 20,
+    "archivo_grande_gb": 1,
+    "log_grande_mb": 500,
+    "extensiones_log": [".log", ".etl", ".txt"],
+    "intervalo_avance_seg": 2
+  },
+  "uso": {
+    "top_procesos": 15,
+    "muestra_cpu_seg": 5
+  },
+  "umbrales": {
+    "uptime_dias": 7,
+    "bios_meses": 24,
+    "ram_min_gb": 8,
+    "ssd_desgaste_pct": 70,
+    "disco_temp_c": 60,
+    "gpu_driver_meses": 12,
+    "bateria_aviso_pct": 70,
+    "bateria_critico_pct": 50,
+    "soporte_aviso_dias": 90,
+    "defender_firmas_dias": 7,
+    "hiberfil_gb": 4,
+    "libre_aviso_pct": 20,
+    "libre_critico_pct": 10,
+    "libre_critico_gb": 15,
+    "arranque_max": 10,
+    "ram_uso_pct": 85,
+    "proceso_cpu_pct": 25,
+    "no_contabilizado_gb": 20,
+    "apagados_inesperados": 3,
+    "eventos_dias": 30
+  }
+}
