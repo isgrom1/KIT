@@ -47,7 +47,7 @@ En el PC (`X:\kitservicio`): `git pull` antes de trabajar; al terminar, commit y
 
 **Pendientes conocidos:**
 - El contacto del técnico vive en `KIT\scripts\config\config_local.json`, que está en `.gitignore`: solo existe en el PC de Isaac y en su pendrive. En una sesión en la nube ese archivo no existe y los informes piden el contacto; es lo esperado. **Nunca escribas su contacto en `config.json` ni en otro archivo del repo.**
-- Falta el CSV del DESPUÉS de CALOR (59/71 °C); el ANTES es `reg.CSV` (91/100 °C).
+- CALOR se mide con OCCT (CPU, 10 minutos) y HWiNFO grabando: la elección de esas herramientas ya la decidió Isaac. Van a mano en `KIT\herramientas` (fuera del repo). Falta una atención real con este método, antes y después, porque su Nitro ya tiene la pasta cambiada.
 - Probar en el USB Ventoy real (exFAT ya se probó con un disco virtual).
 - Crear un punto de restauración NUEVO no se ejercitó: en la Fase F Windows ya tenía uno de las últimas 24 h y el kit lo reutilizó.
 

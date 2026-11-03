@@ -6,8 +6,9 @@ Cómo atender un equipo con el kit: desde que lo recibes hasta que lo entregas y
 
 1. **Herramientas al día:** corre `actualizar_herramientas.ps1` (raíz del USB). Baja solo de las fuentes oficiales y verifica los hashes.
 2. **Tu contacto en `KIT\scripts\config\config_local.json` → `tecnico.contacto`** (ya está tu correo). Sin él no se generan informes. Ese archivo no se sube a GitHub: cópialo al pendrive junto con el kit.
-3. **Si vienes de atender, sincroniza primero** (punto 7).
-4. **Para actualizar el kit del USB** con una versión nueva, copia encima `INICIAR.cmd`, `KIT\scripts` y `KIT\docs`. **No borres `KIT\clientes` del USB**: ahí están las atenciones abiertas.
+3. **OCCT y HWiNFO** van en `KIT\herramientas\OCCT` y `KIT\herramientas\HWiNFO` (la versión portable). Aparecen solos como botones en **Herramientas** y no se suben a GitHub. Hay que copiarlos a mano: el actualizador no los baja.
+4. **Si vienes de atender, sincroniza primero** (punto 7).
+5. **Para actualizar el kit del USB** con una versión nueva, copia encima `INICIAR.cmd`, `KIT\scripts` y `KIT\docs`. **No borres `KIT\clientes` del USB**: ahí están las atenciones abiertas.
 
 ## 1. Recepción, con el cliente presente (10-15 min)
 
@@ -32,9 +33,10 @@ Cómo atender un equipo con el kit: desde que lo recibes hasta que lo entregas y
 
 **Con "Se calienta", mide antes de abrir el equipo:**
 
-1. **Herramientas → LibreHardwareMonitor** y activa el registro de sensores (*Options → Log Sensors*). El CSV queda en la carpeta de LibreHardwareMonitor, dentro del USB. También sirve un CSV de HWiNFO, en español o en inglés.
-2. Enchufado, pon la carga que uses siempre (un juego o un benchmark) entre 15 y 30 minutos.
-3. Detén el registro, toca **Importar CSV de sensores** y completa las **condiciones**: enchufado, plan de energía, modo de ventiladores, superficie, temperatura ambiente, tipo de carga y duración. **Guardar condiciones**.
+1. Enchufa el equipo y déjalo **5 minutos en reposo**, hasta que la temperatura deje de bajar.
+2. **Herramientas → HWiNFO**, en modo *Sensors only*, y parte el registro (el botón del documento con el "+" verde). Guarda el CSV con un nombre claro, por ejemplo `antes.csv`.
+3. **Herramientas → OCCT**: prueba de CPU por **10 minutos**, siempre con la misma configuración.
+4. Cuando OCCT termine, detén el registro de HWiNFO, toca **Importar CSV de sensores** y completa las **condiciones**: enchufado, plan de energía, modo de ventiladores, superficie, temperatura ambiente, tipo de carga ("OCCT CPU") y duración (10). **Guardar condiciones**.
 
 El DESPUÉS tiene que medirse igual: misma carga, duración y condiciones. El kit te propone las del ANTES y avisa si algo cambia o si la duración difiere más de un 20 %.
 
@@ -49,7 +51,7 @@ El DESPUÉS tiene que medirse igual: misma carga, duración y condiciones. El ki
 ## 4. Diagnóstico DESPUÉS
 
 1. **④ Después → Diagnosticar DESPUÉS**: queda en la misma atención, para comparar.
-2. Con **Se calienta**: repite la medición con la misma carga, duración y condiciones, e importa el CSV.
+2. Con **Se calienta**: repite la medición igual que en el ANTES (5 minutos de reposo, HWiNFO grabando y la misma prueba de OCCT por 10 minutos) e importa el CSV.
 
 ## 5. Informe y explicación al cliente
 
@@ -88,7 +90,7 @@ El kit lo reconoce solo por la serie (o por el UUID o la placa, si la serie es g
 |---|---|
 | Recepción y ficha | 10-15 min |
 | Diagnóstico ANTES o DESPUÉS | 20 s (con recorrido de carpetas: hasta 3 min más) |
-| Medición de temperatura (Se calienta) | 15-30 min, dos veces |
+| Medición de temperatura (Se calienta) | 15 min (5 de reposo y 10 de OCCT), dos veces |
 | Acciones de Está lento | 10-20 min |
 | Análisis de Archivos | 1-5 min, más tu revisión |
 | Informes | 1-2 min |
