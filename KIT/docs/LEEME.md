@@ -97,6 +97,7 @@ Solo aparece lo de los motivos marcados en la ficha. Nada se aplica sin confirma
   - *Solo se informan*: los posibles restos de desinstalaciones y las fotos parecidas.
   - *Nunca toca*: lo modificado en los últimos 7 días, partidas guardadas, archivos con credenciales, el Escritorio ni las carpetas protegidas.
   - *Mover* lleva lo marcado a `<unidad>:\_PARA_BORRAR\<fecha_hora>` en el mismo disco, con `_DESHACER.ps1` y `LEEME.txt` para el cliente. **Nunca borra.**
+  - *Deshacer* devuelve todo a su lugar. Si no quedó nada apartado, retira la carpeta del lote (solo tenía el LEEME y el `_DESHACER.ps1` del kit) para no dejarle al cliente una carpeta "para borrar" vacía.
 - **REVISION**: semáforo por área (temperatura si hay CSV, discos, batería, Windows y seguridad, rendimiento, espacio) con el motivo de cada color.
 
 - **I) Generar informes**: crea en la carpeta de la atención:

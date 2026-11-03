@@ -7,7 +7,7 @@ foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Expediente') { . (Join-Path $scr
 Initialize-Contexto -RaizScripts $scripts
 $script:Ctx.Config.espacio.log_grande_mb = 1      # en la prueba, "log gigante" = 1 MB
 $script:Ctx.Config.archivos.restos_min_mb = 1
-$base = 'X:\kitservicio_prueba'
+$base = 'X:\kitservicio_prueba\archivos'
 if (Test-Path $base) { throw "Ya existe ${base}: revisar a mano" }
 if (Test-Path 'X:\_PARA_BORRAR') { throw 'Ya existe X:\_PARA_BORRAR: la prueba no corre para no tocar nada real' }
 $perfil = "$base\Users\Ana"
@@ -99,7 +99,7 @@ $r = Move-ArchivosParaBorrar -Expediente $exp -Atencion $at
 $r.Saltados | ForEach-Object { "       saltado: $_" }
 $dest = $r.Destinos[0]
 Assert 'todo va a X:\_PARA_BORRAR\<fecha_hora>' ($dest -match '^X:\\_PARA_BORRAR\\\d{4}-\d{2}-\d{2}_\d{4}$') $dest
-Assert 'informe (1).pdf ya no está y quedó en _PARA_BORRAR' (-not (Test-Path "$perfil\Downloads\informe (1).pdf") -and (Test-Path "$dest\kitservicio_prueba\Users\Ana\Downloads\informe (1).pdf"))
+Assert 'informe (1).pdf ya no está y quedó en _PARA_BORRAR' (-not (Test-Path "$perfil\Downloads\informe (1).pdf") -and (Test-Path "$dest\kitservicio_prueba\archivos\Users\Ana\Downloads\informe (1).pdf"))
 Assert 'lo protegido, el Escritorio, credenciales y partidas siguen en su lugar' ((Test-Path "$perfil\Documents\Tesis\capitulo1.docx") -and (Test-Path "$perfil\Desktop\informe.pdf") -and (Test-Path "$perfil\Downloads\clave_banco (1).txt") -and (Test-Path "$perfil\Saved Games\Juego\save1.dat"))
 Assert 'fotos parecidas y restos no se movieron' ((Test-Path "$perfil\Pictures\Terreno\IMG_001.jpg") -and (Test-Path "$perfil\AppData\Roaming\Viejo\datos.bin"))
 Assert '_DESHACER.ps1 y LEEME.txt en _PARA_BORRAR y en el expediente' ((Test-Path "$dest\_DESHACER.ps1") -and (Test-Path "$dest\LEEME.txt") -and (Test-Path "$($exp.Ruta)\$at\archivos\_DESHACER.ps1"))
@@ -113,6 +113,7 @@ $u = Undo-MovimientoArchivos -Expediente $exp -Atencion $at
 $despues = @{}; Get-ChildItem $perfil -Recurse -File | ForEach-Object { $despues[$_.FullName] = (Get-FileHash -LiteralPath $_.FullName -Algorithm MD5).Hash }
 $iguales = @($antes.Keys | Where-Object { $despues[$_] -eq $antes[$_] }).Count
 Assert 'todos los archivos volvieron, mismo hash y misma ruta' ($iguales -eq $antes.Count -and $despues.Count -eq $antes.Count) "$iguales de $($antes.Count)"
+Assert 'la carpeta del lote, vacía, se retira (solo tenía lo del kit)' (-not (Test-Path $dest) -and -not (Test-Path 'X:\_PARA_BORRAR'))
 
 '== Mover otra vez y deshacer con el _DESHACER.ps1 autónomo (como lo haría el cliente)'
 Start-Sleep -Seconds 61   # marca de tiempo distinta para la carpeta del segundo lote
@@ -129,4 +130,4 @@ Get-Content -Encoding UTF8 "$($exp.Ruta)\$at\trabajo.log" | ForEach-Object { "  
 # Limpieza: solo lo creado por esta prueba
 Remove-Item $base -Recurse -Force
 if (Test-Path 'X:\_PARA_BORRAR') { Remove-Item 'X:\_PARA_BORRAR' -Recurse -Force }   # no existía antes de la prueba
-"Limpieza: kitservicio_prueba existe: $(Test-Path $base) | X:\_PARA_BORRAR existe: $(Test-Path 'X:\_PARA_BORRAR')"
+"Limpieza: kitservicio_prueba\archivos existe: $(Test-Path $base) | X:\_PARA_BORRAR existe: $(Test-Path 'X:\_PARA_BORRAR')"

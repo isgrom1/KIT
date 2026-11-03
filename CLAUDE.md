@@ -32,7 +32,7 @@ En el PC (`X:\kitservicio`): `git pull` antes de trabajar; al terminar, commit y
 | C | Informes HTML cliente y técnico (`lib\Informe.ps1`) | entregada |
 | D | Interfaz WPF (`gui\kit.ps1`, `principal.xaml`, `tarea.ps1`) | entregada |
 | E | Portabilidad (cualquier letra, exFAT) y sincronización al maestro (`lib\Sincronizacion.ps1`, `sincronizar.ps1`, panel Expedientes, modo consulta) | entregada 2026-11-01 |
-| **F** | **Prueba completa** | **en curso (pausada 2026-11-02 03:5x): pruebas 1 y 2 OK; faltan 3 (ARCHIVOS), 4 (CALOR+LENTO, que además verifica los arreglos de GPU y "Mostrar al cliente") y 6 (sincronizar). Banco: `pruebas\faseF_*.ps1`; respaldo de los expedientes de prueba en `X:\kitservicio_prueba\faseF\respaldo_K`** |
+| F | Prueba completa: 6 pruebas de punta a punta desde un "USB" exFAT de prueba (banco en `pruebas\faseF_*.ps1`) | entregada 2026-11-02; **esperando el OK de Isaac** |
 
 **Fase F (especificación de Isaac):** simular atenciones completas con el kit copiado a otra letra.
 - **CALOR**, cliente nuevo.
@@ -47,7 +47,7 @@ En el PC (`X:\kitservicio`): `git pull` antes de trabajar; al terminar, commit y
 - `tecnico.contacto` vacío en `config.json`: sin él no se generan informes. Lo tiene que dar Isaac.
 - Falta el CSV del DESPUÉS de CALOR (59/71 °C); el ANTES es `reg.CSV` (91/100 °C).
 - Probar en el USB Ventoy real (exFAT ya se probó con un disco virtual).
-- Las acciones reales de LENTO y el punto de restauración, con admin (para la Fase F).
+- Crear un punto de restauración NUEVO no se ejercitó: en la Fase F Windows ya tenía uno de las últimas 24 h y el kit lo reutilizó.
 
 ## Reglas duras del kit
 
@@ -87,7 +87,8 @@ En el PC (`X:\kitservicio`): `git pull` antes de trabajar; al terminar, commit y
 ## Cómo probar (en el PC de Isaac)
 
 - `pruebas\` tiene las baterías: `test_expediente.ps1` (45), `test_faseB.ps1` (20), `test_archivos.ps1`, `test_sensores.ps1`, `test_smart.ps1`, `test_sincronizacion.ps1` (50) y otras. Ver `pruebas\LEEME.md`.
-- La interfaz tiene modo captura: `powershell -STA -File KIT\scripts\gui\kit.ps1 -Captura <carpeta> [-CapturaDiag] [-RutaMaestro <maestro de prueba>]` recorre los paneles y guarda un PNG de cada uno.
+- La interfaz tiene modo captura: `powershell -STA -File KIT\scripts\gui\kit.ps1 -Captura <carpeta> [-CapturaDiag] [-RutaMaestro <maestro de prueba>] [-Escenario <archivo de pasos>]` recorre los paneles (o los pasos del escenario, con los botones reales) y guarda un PNG de cada uno.
+- La ventana guarda el expediente en memoria y los trabajos largos corren en otro proceso que también escribe `ficha.json`: **antes de guardar desde la ventana hay que releer** (`Initialize-AtencionGui`), o se pisa lo que escribió el otro proceso (bug encontrado en la Fase F).
 - PSScriptAnalyzer:
 
 ```powershell

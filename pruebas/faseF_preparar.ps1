@@ -6,6 +6,8 @@
 # - crea la entrada de inicio de prueba "KitPruebaInicio" (HKCU\...\Run, apunta a un .exe que no existe)
 #   para que LENTO tenga algo inocuo que desactivar; faseF_limpiar.ps1 la borra;
 # - guarda la foto inicial de lo que toca LENTO (faseF_estado.ps1).
+# -RestaurarClientes: para retomar una prueba pausada, copia esos expedientes a K:\KIT\clientes.
+param([string]$RestaurarClientes)
 $ErrorActionPreference = 'Stop'
 $base = 'X:\kitservicio_prueba\faseF'
 $origen = Join-Path (Split-Path -Parent $PSScriptRoot) 'KIT'
@@ -14,6 +16,10 @@ if ($vol.FileSystemType -ne 'exFAT') { throw "K: no es exFAT ($($vol.FileSystemT
 if (Test-Path 'K:\KIT') { throw 'Ya existe K:\KIT' }
 & robocopy.exe $origen 'K:\KIT' /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP /XD (Join-Path $origen 'clientes') | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "robocopy falló ($LASTEXITCODE)" }
+if ($RestaurarClientes) {
+    & robocopy.exe $RestaurarClientes 'K:\KIT\clientes' /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw "robocopy de los expedientes falló ($LASTEXITCODE)" }
+}
 $cfg = 'K:\KIT\scripts\config\config.json'
 $t = [IO.File]::ReadAllText($cfg)
 foreach ($par in @(@('"contacto": ""', '"contacto": "+56 9 0000 0000 (prueba)"'), @('"ruta_maestro": "X:\\kitservicio_datos\\clientes"', '"ruta_maestro": "X:\\kitservicio_prueba\\faseF\\maestro\\clientes"'))) {

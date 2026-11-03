@@ -395,6 +395,20 @@ function Undo-MovimientoArchivos {
             $ok++
         }
         $lote['deshecho'] = ConvertTo-TextoFecha (Get-Date)
+        # Si todo volvió, en la carpeta del lote solo quedan lo del kit (LEEME.txt y _DESHACER.ps1) y carpetas
+        # vacías: se retiran para no dejarle al cliente una carpeta "para borrar" vacía. Si queda cualquier
+        # otro archivo, no se toca nada. Nunca se borra un archivo del cliente.
+        foreach ($raiz in @($lote['items'] | ForEach-Object { $_['raiz'] } | Select-Object -Unique)) {
+            if (-not $raiz -or -not [IO.Directory]::Exists($raiz)) { continue }
+            $ajenos = @([IO.Directory]::GetFiles($raiz, '*', 'AllDirectories') | Where-Object { [IO.Path]::GetDirectoryName($_) -ne $raiz -or [IO.Path]::GetFileName($_) -notin '_DESHACER.ps1', 'LEEME.txt' })
+            if ($ajenos.Count -or -not $PSCmdlet.ShouldProcess($raiz, 'Retirar la carpeta vacía del lote')) { continue }
+            foreach ($f in '_DESHACER.ps1', 'LEEME.txt') { $r = Join-Path $raiz $f; if ([IO.File]::Exists($r)) { [IO.File]::Delete($r) } }
+            foreach ($d in @(@([IO.Directory]::GetDirectories($raiz, '*', 'AllDirectories') | Sort-Object Length -Descending) + $raiz)) {
+                if (@([IO.Directory]::GetFileSystemEntries($d)).Count -eq 0) { [IO.Directory]::Delete($d) }
+            }
+            $padre = [IO.Path]::GetDirectoryName($raiz)
+            if ([IO.Path]::GetFileName($padre) -eq '_PARA_BORRAR' -and [IO.Directory]::Exists($padre) -and @([IO.Directory]::GetFileSystemEntries($padre)).Count -eq 0) { [IO.Directory]::Delete($padre) }
+        }
     }
     [IO.File]::WriteAllText($archivoMovs, ($doc | ConvertTo-Json -Depth 6), $script:Utf8SinBom)
     Write-TrabajoLog -Expediente $Expediente -Atencion $Atencion -Texto ("ARCHIVOS | deshecho: devueltos $ok elementos$(if ($problemas.Count) { "; problemas: $($problemas.Count)" })")

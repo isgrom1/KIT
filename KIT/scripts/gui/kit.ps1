@@ -301,6 +301,9 @@ function Invoke-ScriptKit {
         if ($codigo -eq -1) { Write-Estado 'Cancelado.'; return }
         if ($script:G.ErrorTarea -or $codigo -ne 0) { Write-Estado 'No se pudo terminar.'; [void](Show-Aviso (Get-MensajeSimple $(if ($script:G.ErrorTarea) { $script:G.ErrorTarea } else { "El trabajo terminó con código $codigo. $err" })) -EsError); return }
         Write-Estado 'Listo.'
+        # El trabajo corrió en otro proceso y pudo cambiar ficha.json (acciones realizadas, archivos
+        # apartados...): se relee antes de seguir, para no guardar después una copia vieja encima.
+        if ($script:G.Exp) { try { $script:G.Exp = Read-Expediente $script:G.Exp.Ruta } catch { $script:G.Registro.Add("no se pudo releer el expediente: $($_.Exception.Message)") } }
         & $script:G.AlResultado $script:G.Resultado
     }
 }
@@ -726,6 +729,7 @@ $ui.btnEntregado.Add_Click({
         if (-not (Get-Entrada)) { return }
         if (-not (Show-Aviso '¿Marcar el equipo como entregado hoy? Cierra la atención y empieza la garantía.' -Pregunta)) { return }
         try {
+            Initialize-AtencionGui   # relee la ficha: otro proceso pudo cambiarla
             Set-Ficha -Expediente $script:G.Exp -Atencion $script:G.At -Valores @{ entregado = (Get-Date).ToString('yyyy-MM-dd') }
             Write-TrabajoLog -Expediente $script:G.Exp -Atencion $script:G.At -Texto 'FICHA | entregado'
             $g = (Get-Entrada)['garantia_hasta']
@@ -759,6 +763,7 @@ $ui.btnGuardarCondiciones.Add_Click({
 $ui.btnGuardarChecklist.Add_Click({
         $ui = $script:Ui
         try {
+            Initialize-AtencionGui   # relee la ficha: otro proceso pudo cambiarla
             Set-Ficha -Expediente $script:G.Exp -Atencion $script:G.At -Valores ([ordered]@{
                     'checklist_fisico.desarme' = [bool]$ui.chkDesarme.IsChecked; 'checklist_fisico.limpieza' = [bool]$ui.chkLimpieza.IsChecked
                     'checklist_fisico.fotos_disipador_antes' = [bool]$ui.chkFotosAntes.IsChecked; 'checklist_fisico.fotos_disipador_despues' = [bool]$ui.chkFotosDespues.IsChecked
@@ -830,6 +835,7 @@ $ui.btnDeshacerArchivos.Add_Click({
     })
 $ui.btnTrabajoTerminado.Add_Click({
         try {
+            Initialize-AtencionGui   # relee la ficha: otro proceso pudo cambiarla
             Set-Ficha -Expediente $script:G.Exp -Atencion $script:G.At -Valores @{ trabajo_terminado = $true }
             Write-TrabajoLog -Expediente $script:G.Exp -Atencion $script:G.At -Texto 'TRABAJO | terminado'
             Show-Estado
