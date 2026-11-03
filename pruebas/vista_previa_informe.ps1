@@ -14,7 +14,7 @@ $destino = Join-Path $PSScriptRoot 'vista_previa'
 if (Test-Path $destino) { Remove-Item $destino -Recurse -Force }
 $script:Ctx.CarpetaClientes = Join-Path $destino 'clientes'
 $null = New-Item -ItemType Directory $script:Ctx.CarpetaClientes
-$script:Ctx.Config.tecnico.contacto = '(tu contacto: config.json)'
+if (-not $script:Ctx.Config.tecnico.contacto) { $script:Ctx.Config.tecnico.contacto = '(tu contacto: config_local.json)' }
 
 $exp = New-Expediente -Identidad (Get-IdentidadEquipo)
 $at = New-Atencion -Expediente $exp

@@ -541,8 +541,8 @@ function Test-FichaCompleta {
     if (-not $cl['nombre']) { & $agregar 'cliente.nombre' 'Nombre del cliente' }
     if (-not $cl['contacto']) { & $agregar 'cliente.contacto' 'Contacto del cliente (WhatsApp o correo)' }
     $tec = $script:Ctx.Config.tecnico
-    if (-not $tec -or -not $tec.nombre) { & $agregar 'tecnico.nombre' 'Nombre del técnico (config.json: tecnico.nombre)' }
-    if (-not $tec -or -not $tec.contacto) { & $agregar 'tecnico.contacto' 'Contacto del técnico (config.json: tecnico.contacto)' }
+    if (-not $tec -or -not $tec.nombre) { & $agregar 'tecnico.nombre' 'Nombre del técnico (config_local.json o config.json: tecnico.nombre)' }
+    if (-not $tec -or -not $tec.contacto) { & $agregar 'tecnico.contacto' 'Contacto del técnico (config_local.json: tecnico.contacto)' }
     if (-not $Atencion) { $Atencion = Get-AtencionAbierta -Expediente $Expediente }
     $a = if ($Atencion) { Get-EntradaAtencion -Expediente $Expediente -Carpeta $Atencion } else { $null }
     if (-not $a) {

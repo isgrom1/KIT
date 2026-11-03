@@ -95,7 +95,10 @@ Assert 'respaldo no_sabe / teclado falla / clave sí' ($at3.respaldo -eq 'no_sab
 Assert 'ficha.json.bak existe' (Test-Path (Join-Path (Get-Expediente -Identidad $id3).Ruta 'ficha.json.bak'))
 
 '== 6. Test-FichaCompleta y garantía'
+$contactoTecnico = $script:Ctx.Config.tecnico.contacto
+$script:Ctx.Config.tecnico.contacto = ''   # la prueba no depende de config_local.json
 $faltan = @(Test-FichaCompleta -Expediente (Get-Expediente -Identidad $id3))
+$script:Ctx.Config.tecnico.contacto = $contactoTecnico
 "     falta: $(($faltan | ForEach-Object { $_.Campo }) -join ', ')"
 Assert 'faltan paquete y contacto del técnico' (($faltan.Campo -contains 'paquete') -and ($faltan.Campo -contains 'tecnico.contacto') -and -not ($faltan.Campo -contains 'cliente.nombre'))
 Set-Ficha -Expediente (Get-Expediente -Identidad $id3) -Valores @{ 'motivos' = 'ARCHIVOS'; 'paquete' = 'Mantención' }

@@ -3,6 +3,9 @@
 # Datos de clientes (expedientes, diagnósticos, fotos, informes): nunca al repositorio.
 KIT/clientes/
 
+# Datos propios del técnico (contacto...): van en el PC y en el pendrive, nunca al repositorio público.
+KIT/scripts/config/config_local.json
+
 # Herramientas de terceros: tienen licencias propias y pesan; las baja actualizar_herramientas.ps1.
 KIT/herramientas/*
 !KIT/herramientas/versiones.json

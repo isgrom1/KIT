@@ -18,9 +18,30 @@ function Read-JsonKitOpcional {
     if ($Ruta -and [IO.File]::Exists($Ruta)) { Read-JsonKit $Ruta } else { $null }
 }
 
+function Merge-ConfigLocal {
+    # Pone encima de config.json lo de config_local.json (los datos propios del técnico, como su contacto,
+    # que no se suben al repositorio). Solo pisa las claves que trae; las demás quedan como están.
+    param([Parameter(Mandatory)]$Base, [Parameter(Mandatory)]$Local)
+    foreach ($p in $Local.PSObject.Properties) {
+        if ($p.Name -like '_*') { continue }
+        $actual = $Base.PSObject.Properties[$p.Name]
+        if ($actual -and $actual.Value -is [System.Management.Automation.PSCustomObject] -and $p.Value -is [System.Management.Automation.PSCustomObject]) { Merge-ConfigLocal -Base $actual.Value -Local $p.Value }
+        elseif ($actual) { $actual.Value = $p.Value }
+        else { $Base | Add-Member -NotePropertyName $p.Name -NotePropertyValue $p.Value }
+    }
+}
+
 function Initialize-Contexto {
     param([Parameter(Mandatory)][string]$RaizScripts)
     $raizKit = Split-Path -Parent $RaizScripts
+    $config = Read-JsonKit (Join-Path $RaizScripts 'config\config.json')
+    try {
+        $local = Read-JsonKitOpcional (Join-Path $RaizScripts 'config\config_local.json')
+        if ($local) { Merge-ConfigLocal -Base $config -Local $local }
+    } catch {
+        # Un config_local.json roto no detiene el kit: solo faltan esos datos (los informes avisan qué).
+        Write-Warning "config_local.json no se pudo leer y se ignora: $($_.Exception.Message)"
+    }
     $script:Ctx = [ordered]@{
         Version         = '0.1.0'
         Inicio          = Get-Date
@@ -30,7 +51,7 @@ function Initialize-Contexto {
         CarpetaConfig   = Join-Path $RaizScripts 'config'
         CarpetaClientes = Join-Path $raizKit 'clientes'
         CarpetaCliente  = $null
-        Config          = Read-JsonKit (Join-Path $RaizScripts 'config\config.json')
+        Config          = $config
         Parametros      = $null
         Admin           = $null
         Identidad       = $null

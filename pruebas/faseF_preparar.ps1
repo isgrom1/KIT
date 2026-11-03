@@ -20,6 +20,7 @@ if ($RestaurarClientes) {
     & robocopy.exe $RestaurarClientes 'K:\KIT\clientes' /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
     if ($LASTEXITCODE -ge 8) { throw "robocopy de los expedientes falló ($LASTEXITCODE)" }
 }
+if ([IO.File]::Exists('K:\KIT\scripts\config\config_local.json')) { [IO.File]::Delete('K:\KIT\scripts\config\config_local.json') }   # contacto de relleno, no el real
 $cfg = 'K:\KIT\scripts\config\config.json'
 $t = [IO.File]::ReadAllText($cfg)
 foreach ($par in @(@('"contacto": ""', '"contacto": "+56 9 0000 0000 (prueba)"'), @('"ruta_maestro": "X:\\kitservicio_datos\\clientes"', '"ruta_maestro": "X:\\kitservicio_prueba\\faseF\\maestro\\clientes"'))) {

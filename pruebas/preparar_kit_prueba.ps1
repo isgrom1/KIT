@@ -12,6 +12,8 @@ if ([IO.Directory]::Exists($kit)) { throw "Ya existe $kit (bórralo antes)" }
 $xd = @(); if ($SinHerramientas) { $xd = @('/XD', (Join-Path $origen 'herramientas')) }
 & robocopy.exe $origen $kit /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP @xd | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "robocopy falló ($LASTEXITCODE)" }
+$local = Join-Path $kit 'scripts\config\config_local.json'
+if ([IO.File]::Exists($local)) { [IO.File]::Delete($local) }   # en la copia de prueba va el contacto de relleno, no el real
 $cfg = Join-Path $kit 'scripts\config\config.json'
 $t = [IO.File]::ReadAllText($cfg)
 if (-not $t.Contains('"contacto": ""')) { throw 'No encontré tecnico.contacto vacío en la copia' }

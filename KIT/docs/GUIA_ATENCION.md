@@ -5,7 +5,7 @@ Cómo atender un equipo con el kit: desde que lo recibes hasta que lo entregas y
 ## 0. Antes de salir (en tu PC)
 
 1. **Herramientas al día:** corre `actualizar_herramientas.ps1` (raíz del USB). Baja solo de las fuentes oficiales y verifica los hashes.
-2. **Tu contacto en `KIT\scripts\config\config.json` → `tecnico.contacto`** (WhatsApp o correo). Sin él no se generan informes.
+2. **Tu contacto en `KIT\scripts\config\config_local.json` → `tecnico.contacto`** (ya está tu correo). Sin él no se generan informes. Ese archivo no se sube a GitHub: cópialo al pendrive junto con el kit.
 3. **Si vienes de atender, sincroniza primero** (punto 7).
 4. **Para actualizar el kit del USB** con una versión nueva, copia encima `INICIAR.cmd`, `KIT\scripts` y `KIT\docs`. **No borres `KIT\clientes` del USB**: ahí están las atenciones abiertas.
 

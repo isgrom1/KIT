@@ -58,7 +58,7 @@ Pregunta los datos de la atención abierta. Enter deja el valor actual y `-` lo 
 - **Atención:** motivos* (CALOR, LENTO, ARCHIVOS, REVISION; se pueden escribir como letras: `CL`), síntoma* (en palabras del cliente), estado físico, respaldo, clave de BitLocker confirmada, checklist funcional, paquete* y precio*.
 - **Con motivo ARCHIVOS** también son obligatorios el consentimiento (solo leer, mover o borrar aprobado) y las carpetas protegidas.
 - Los datos del equipo y las mediciones los llena el diagnóstico.
-- El nombre y contacto del técnico van en `config.json` (`tecnico`).
+- El nombre del técnico va en `config.json` (`tecnico`). El contacto va en `config_local.json`, que no se sube a GitHub (ver "Configuración").
 
 (* = obligatorio para generar informes. El diagnóstico y la ficha avisan qué falta.)
 
@@ -273,6 +273,7 @@ Notas:
 ## Configuración
 
 - `config.json`: umbrales de las alertas, límite de tiempo del recorrido (`espacio.tiempo_max_seg`, 180 s), profundidad del top de carpetas (3), enmascarado de perfiles, `equipos_tecnico` y la carpeta maestra (`sincronizacion.ruta_maestro`).
+- `config_local.json`: tus datos propios, que pisan los de `config.json`. Hoy guarda `tecnico.contacto`, que sale en los informes. **No se sube a GitHub** (el repositorio es público), pero viaja con el kit cuando lo copias al pendrive. Si está roto, el kit sigue funcionando sin esos datos y los informes avisan qué falta.
 - `software_conocido.json`: optimizadores, actualizadores de drivers, activadores, PUP y bloatware que se detectan. Es una lista de expresiones regulares: agrega lo que vayas encontrando.
 - `ciclo_vida_windows.json`: fechas de fin de soporte por versión y edición (fuente: Microsoft Learn, "Windows release information"). Revísalas cada cierto tiempo.
 
