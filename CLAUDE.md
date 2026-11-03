@@ -32,7 +32,9 @@ En el PC (`X:\kitservicio`): `git pull` antes de trabajar; al terminar, commit y
 | C | Informes HTML cliente y técnico (`lib\Informe.ps1`) | entregada |
 | D | Interfaz WPF (`gui\kit.ps1`, `principal.xaml`, `tarea.ps1`) | entregada |
 | E | Portabilidad (cualquier letra, exFAT) y sincronización al maestro (`lib\Sincronizacion.ps1`, `sincronizar.ps1`, panel Expedientes, modo consulta) | entregada 2026-11-01 |
-| F | Prueba completa: 6 pruebas de punta a punta desde un "USB" exFAT de prueba (banco en `pruebas\faseF_*.ps1`) | entregada 2026-11-02; **esperando el OK de Isaac** |
+| F | Prueba completa: 6 pruebas de punta a punta desde un "USB" exFAT de prueba (banco en `pruebas\faseF_*.ps1`) | cerrada 2026-11-02 (OK de Isaac) |
+
+**Las 7 fases del prompt maestro están cerradas.** Lo que venga ahora son mejoras o arreglos que pida Isaac: cada cambio se prueba en su PC (baterías de `pruebas\` y PSScriptAnalyzer en 0) antes de darlo por hecho.
 
 **Fase F (especificación de Isaac):** simular atenciones completas con el kit copiado a otra letra.
 - **CALOR**, cliente nuevo.
