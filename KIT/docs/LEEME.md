@@ -103,7 +103,7 @@ Solo aparece lo de los motivos marcados en la ficha. Nada se aplica sin confirma
 - **I) Generar informes**: crea en la carpeta de la atención:
   - `informe_cliente.html`: 1 página A4, en lenguaje simple, con:
     - semáforo y una frase;
-    - tarjetas antes → después con flecha verde o roja;
+    - tarjetas antes → después con flecha verde o roja (gris si no cambió). En CALOR incluyen la **velocidad sostenida de la CPU**: si llega a su límite de temperatura antes y después, la mejora se ve ahí. Las tarjetas sin ningún dato no se le muestran al cliente;
     - qué se hizo (máximo 5) y recomendaciones (máximo 3);
     - próxima mantención, garantía y, con ARCHIVOS, dónde quedó lo apartado.
   - `informe_tecnico.html`, con todo el detalle:

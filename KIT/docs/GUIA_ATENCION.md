@@ -38,7 +38,7 @@ Cómo atender un equipo con el kit: desde que lo recibes hasta que lo entregas y
 3. **Herramientas → OCCT**: prueba de CPU por **10 minutos**, siempre con la misma configuración.
 4. Cuando OCCT termine, detén el registro de HWiNFO, toca **Importar CSV de sensores** y completa las **condiciones**: enchufado, plan de energía, modo de ventiladores, superficie, temperatura ambiente, tipo de carga ("OCCT CPU") y duración (10). **Guardar condiciones**.
 
-El DESPUÉS tiene que medirse igual: misma carga, duración y condiciones. El kit te propone las del ANTES y avisa si algo cambia o si la duración difiere más de un 20 %.
+El DESPUÉS tiene que medirse igual: misma carga, duración y condiciones. El kit te propone las del ANTES y avisa si algo cambia, si la duración difiere más de un 20 % o si la CPU trabajó mucho menos que en el ANTES (más de un 25 % menos de velocidad: la baja de temperatura no sería una mejora real). Esos avisos son para ti: al generar los informes, el del cliente no los muestra.
 
 ## 3. Trabajo (③ Trabajo)
 

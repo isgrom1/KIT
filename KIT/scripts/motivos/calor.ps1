@@ -133,7 +133,19 @@ function Get-MetricasCalor {
         Get-TarjetaMetrica -Titulo 'GPU, temperatura máxima' -Antes $(if ($ga) { $ga.max }) -Despues $(if ($gd) { $gd.max }) -Unidad '°C' -Mejor menor
         Get-TarjetaMetrica -Titulo 'Pierde velocidad por calor' -Antes $(if ($sa) { $sa.pierde_velocidad.valor }) -Despues $(if ($sd) { $sd.pierde_velocidad.valor }) -Unidad '' -Mejor si_no
     )
+    # Velocidad que sostuvo la CPU: si llega a su límite de temperatura antes y después, la mejora se ve
+    # aquí y no en los grados. Se redondea a 0,1 GHz para no llamar mejora al ruido.
+    $frec = { param($s) if ($s) { $s.metricas.cpu_frec_efectiva } else { $null } }
+    $fa = & $frec $sa; $fd = & $frec $sd
+    $velocidad = $null
+    if ($fa -or $fd) {
+        $velocidad = Get-TarjetaMetrica -Titulo 'CPU, velocidad sostenida' -Antes $(if ($fa) { [math]::Round($fa.media / 1000, 1) }) -Despues $(if ($fd) { [math]::Round($fd.media / 1000, 1) }) -Unidad 'GHz' -Mejor mayor
+        $tarjetas += $velocidad
+    }
     $advertencias = New-Object System.Collections.Generic.List[string]
+    if ($fa -and $fd -and $fa.media -gt 0 -and ($fa.media - $fd.media) / $fa.media -gt 0.25) {
+        $advertencias.Add(('La CPU trabajó mucho menos en el DESPUÉS ({0} -> {1} MHz): puede ser otra carga, y entonces la baja de temperatura no es una mejora real' -f (Format-Numero $fa.media 0), (Format-Numero $fd.media 0)))
+    }
     $a = Get-EntradaAtencion -Expediente $Expediente -Carpeta $Atencion
     foreach ($mo in 'antes', 'despues') {
         $falta = @(Get-CondicionesFaltantes -Condiciones $a['condiciones_medicion'][$mo])
@@ -158,6 +170,8 @@ function Get-MetricasCalor {
     [pscustomobject][ordered]@{
         Motivo       = 'CALOR'
         Tarjetas     = $tarjetas
+        # Las 4 de "Mostrar al cliente": la prueba de carga es de CPU, así que la GPU queda solo en el informe.
+        Pantalla     = @($tarjetas[0], $tarjetas[1], $(if ($velocidad) { $velocidad } else { $tarjetas[2] }), $tarjetas[4])
         Advertencias = $advertencias.ToArray()
         Antes        = $sa
         Despues      = $sd

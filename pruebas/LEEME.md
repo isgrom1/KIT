@@ -17,7 +17,8 @@ Todas encuentran el kit en `..\KIT` y **solo escriben en carpetas de prueba** (`
 | `test_sensores.ps1` | CSV de sensores HWiNFO (español e inglés) y LibreHardwareMonitor; usa CSV reales de `Documentos` y sintéticos | — |
 | `test_smart.ps1` | Alertas, resumen y métricas desde `discos.txt` de CrystalDiskInfo (usa la última medición con admin del equipo) | — |
 | `test_archivos.ps1` | Motivo ARCHIVOS completo en `X:\kitservicio_prueba\archivos`: analizar, mover a `_PARA_BORRAR`, deshacer (y retirar la carpeta vacía del lote) | 28/28 |
-| `test_faseB.ps1` | Integración de motivos (CALOR, LENTO solo con datos de prueba en HKCU, REVISIÓN) | 20/20 |
+| `test_faseB.ps1` | Integración de motivos (CALOR, LENTO solo con datos de prueba en HKCU, REVISIÓN) | 23/23 |
+| `test_velocidad.ps1` | Velocidad sostenida de CALOR con CSV sintéticos: frases, ruido de 10 MHz, tarjetas sin datos y flechas Sí/No. `-Conservar` deja el informe generado | 18/18 |
 | `test_sincronizacion.ps1` | Sincronización: nuevos, iguales, cambios en cada lado, conflictos, liberar el USB, copia imposible, candado, otro equipo. `-Kit` y `-Base` para correrla en otra unidad | 50/50 (NTFS y exFAT) |
 | `vista_previa_informe.ps1` | Genera los informes con datos reales del equipo en `pruebas\vista_previa` (no toca el expediente real) | — |
 | `preparar_kit_prueba.ps1` | Copia el kit a `-Destino` con datos de prueba (contacto de relleno, atención entregada y un cliente sintético) | — |

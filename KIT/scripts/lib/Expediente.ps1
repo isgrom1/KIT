@@ -572,7 +572,8 @@ function Get-TarjetaMetrica {
         $mejoro = switch ($Mejor) {
             'menor' { [double]$Despues -lt [double]$Antes }
             'mayor' { [double]$Despues -gt [double]$Antes }
-            'si_no' { ($Antes -eq $true) -and ($Despues -eq $false) }
+            # Si no cambió (No -> No o Sí -> Sí) no mejoró ni empeoró: queda en $null, sin color.
+            'si_no' { if ($Antes -eq $Despues) { $null } else { ($Antes -eq $true) -and ($Despues -eq $false) } }
         }
         if ($Mejor -ne 'si_no' -and [double]$Despues -eq [double]$Antes) { $mejoro = $null }
     }

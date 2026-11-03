@@ -521,7 +521,9 @@ function Show-VistaCliente {
     [void]$sp.Children.Add($fr)
     $wp = New-Object Windows.Controls.WrapPanel
     $principal = @($d.Metricas.Keys)[0]
-    $tarjetas = if ($principal) { @($d.Metricas[$principal].Tarjetas | Where-Object { $_ } | Select-Object -First 4) } else { @() }
+    $metPrincipal = if ($principal) { $d.Metricas[$principal] } else { $null }
+    $conDatos = { param($t) $t -and ($null -ne $t.Antes -or $null -ne $t.Despues) }
+    $tarjetas = if ($metPrincipal -and $metPrincipal.PSObject.Properties['Pantalla']) { @($metPrincipal.Pantalla | Where-Object { & $conDatos $_ }) } elseif ($metPrincipal) { @($metPrincipal.Tarjetas | Where-Object { & $conDatos $_ } | Select-Object -First 4) } else { @() }
     foreach ($t in $tarjetas) {
         $b = New-Object Windows.Controls.Border; $b.Width = 360; $b.Margin = '0,0,24,24'; $b.Padding = '24'; $b.CornerRadius = 12; $b.BorderThickness = 2; $b.BorderBrush = Get-Pincel '#D0D7DE'
         $c = New-Object Windows.Controls.StackPanel

@@ -86,10 +86,11 @@ function Get-DatosInforme {
     foreach ($m in $motivos) {
         switch ($m) {
             'CALOR' {
-                $c = $met['CALOR']; $max = $c.Tarjetas[1]; $pierde = $c.Tarjetas[4]
+                $c = $met['CALOR']; $max = $c.Tarjetas[1]; $pierde = $c.Tarjetas[4]; $vel = $c.Tarjetas[5]
                 if ($null -eq $max.Despues) { $frases.Add('Falta la medición final de temperatura') }
                 elseif ($pierde.Despues -ne $true -and [double]$max.Despues -lt 90) { $frases.Add('Tu equipo ya no se sobrecalienta') }
                 elseif ($max.Mejoro) { $frases.Add('Tu equipo trabaja más fresco') }
+                elseif ($vel -and $vel.Mejoro -and [double]$max.Despues -le [double]$max.Antes + 2) { $frases.Add('Tu equipo rinde más con una temperatura similar') }
                 else { $frases.Add('Tu equipo sigue calentándose: revisa las recomendaciones') }
             }
             'LENTO' {
@@ -222,7 +223,9 @@ footer { margin-top: 5mm; border-top: 1pt solid #d0d7de; padding-top: 2mm; font-
     $titulos = @{ CALOR = 'Temperatura'; LENTO = 'Rapidez'; ARCHIVOS = 'Espacio' }
     foreach ($k in $d.Metricas.Keys) {
         $m = $d.Metricas[$k]
-        $tarj = @($m.Tarjetas | Where-Object { $_ })
+        # Al cliente no se le muestran tarjetas sin ningún dato (GPU en un equipo sin GPU dedicada, arranque sin admin).
+        $tarj = @($m.Tarjetas | Where-Object { $_ -and ($null -ne $_.Antes -or $null -ne $_.Despues) })
+        if ($tarj.Count -eq 0 -and $k -ne 'ARCHIVOS') { continue }
         [void]$sb.AppendLine("<h2>$(Get-Html $titulos[$k]): antes → después</h2><div class=""tarjetas"">")
         foreach ($t in $tarj) {
             [void]$sb.AppendLine("<div class=""tarjeta""><div class=""t"">$(Get-Html $t.Titulo)</div><div class=""v""><span class=""antes"">$(Get-Html (Format-ValorTarjeta $t.Antes $t.Unidad))</span>$(Get-SvgFlecha $t)<span>$(Get-Html (Format-ValorTarjeta $t.Despues $t.Unidad))</span></div></div>")

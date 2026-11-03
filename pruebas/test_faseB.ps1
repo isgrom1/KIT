@@ -34,7 +34,10 @@ foreach ($t in $m.Tarjetas) { '     {0,-28} {1,8} -> {2,-8} mejoró: {3}' -f $t.
 foreach ($a in $m.Advertencias) { "     advertencia: $a" }
 Assert 'tarjeta CPU promedio 91,1 -> 35,2 (mejoró)' ($m.Tarjetas[0].Antes -eq 91.1 -and $m.Tarjetas[0].Despues -eq 35.2 -and $m.Tarjetas[0].Mejoro)
 Assert 'pierde velocidad: sí -> no (mejoró)' ($m.Tarjetas[4].Antes -eq $true -and $m.Tarjetas[4].Despues -eq $false -and $m.Tarjetas[4].Mejoro)
-Assert 'avisa que cambiaron ventiladores, ambiente y tipo de carga' (@($m.Advertencias | Where-Object { $_ -match 'ventiladores|ambiente|carga' }).Count -eq 3)
+Assert 'avisa que cambiaron ventiladores, ambiente y tipo de carga' (@($m.Advertencias | Where-Object { $_ -like 'Cambió*' -and $_ -match 'ventiladores|ambiente|carga' }).Count -eq 3)
+Assert 'tarjeta de velocidad sostenida en GHz: 1,9 -> 0,4 (empeoró)' ($m.Tarjetas[5].Unidad -eq 'GHz' -and $m.Tarjetas[5].Antes -eq 1.9 -and $m.Tarjetas[5].Despues -eq 0.4 -and $m.Tarjetas[5].Mejoro -eq $false)
+Assert 'avisa que la CPU trabajó mucho menos en el DESPUÉS' (@($m.Advertencias | Where-Object { $_ -like '*trabajó mucho menos*' }).Count -eq 1)
+Assert 'la pantalla del cliente lleva CPU, velocidad y pierde velocidad' ((@($m.Pantalla | ForEach-Object { $_.Titulo }) -join '|') -eq 'CPU, temperatura promedio|CPU, temperatura máxima|CPU, velocidad sostenida|Pierde velocidad por calor')
 Assert 'checklist y materiales en la métrica' ($m.Checklist.pasta -eq 'PTM7950' -and @($m.Materiales).Count -eq 2)
 # Sensores importados antes de correr el diagnóstico: pasan a la medición al completarla.
 $en = Initialize-Medicion -Expediente $exp -Atencion $at -Momento 'antes'
