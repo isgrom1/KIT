@@ -1,20 +1,20 @@
 {
-    "generado":  "2026-11-01 19:41:22",
+    "generado":  "2026-11-05 13:42:26",
     "herramientas":  [
                          {
                              "nombre":  "CrystalDiskInfo",
                              "carpeta":  "CrystalDiskInfo",
                              "automatica":  true,
-                             "version":  "9.9.3",
-                             "version_vigente":  "9.9.3",
-                             "publicada":  "2026-10-11",
-                             "descargada":  "2026-11-01",
-                             "revisada":  "2026-11-01",
-                             "fuente":  "https://downloads.sourceforge.net/project/crystaldiskinfo/9.9.3/CrystalDiskInfo9_9_3.zip",
-                             "archivo":  "CrystalDiskInfo9_9_3.zip",
+                             "version":  "9.9.4",
+                             "version_vigente":  "9.9.4",
+                             "publicada":  "2026-11-03",
+                             "descargada":  "2026-11-05",
+                             "revisada":  "2026-11-05",
+                             "fuente":  "https://downloads.sourceforge.net/project/crystaldiskinfo/9.9.4/CrystalDiskInfo9_9_4.zip",
+                             "archivo":  "CrystalDiskInfo9_9_4.zip",
                              "hash":  {
                                           "algoritmo":  "MD5",
-                                          "valor":  "7F33883C23BF93AD49C9969F2D5428EB",
+                                          "valor":  "C72F927E52ED562462B53C1D04366FAD",
                                           "fuente":  "SourceForge (MD5, el único que publica)",
                                           "verificado":  true,
                                           "lista_proyecto":  false
@@ -147,7 +147,7 @@
                              "version_vigente":  "18.1.6.2",
                              "publicada":  null,
                              "descargada":  null,
-                             "revisada":  "2026-11-01",
+                             "revisada":  "2026-11-05",
                              "fuente":  "https://www.wagnardsoft.com/display-driver-uninstaller-ddu",
                              "archivo":  null,
                              "hash":  null,
@@ -155,6 +155,23 @@
                              "uso_comercial":  null,
                              "ejecutable":  "Display Driver Uninstaller.exe",
                              "nota":  "Se baja a mano: el enlace real está detrás de una verificación anti-bots (Cloudflare). Descomprímelo en KIT\\herramientas\\DDU\\."
+                         },
+                         {
+                             "nombre":  "HWiNFO",
+                             "carpeta":  "HWiNFO",
+                             "automatica":  false,
+                             "version":  "8.55-6110",
+                             "version_vigente":  null,
+                             "publicada":  null,
+                             "descargada":  null,
+                             "revisada":  "2026-11-05",
+                             "fuente":  "agregada a mano",
+                             "archivo":  null,
+                             "hash":  null,
+                             "licencia":  "La versión gratuita es solo para uso personal: en servicio técnico se usa solo con licencia comercial",
+                             "uso_comercial":  false,
+                             "ejecutable":  "HWiNFO64.exe",
+                             "nota":  null
                          }
                      ]
 }
