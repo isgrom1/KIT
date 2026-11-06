@@ -407,11 +407,15 @@ function Invoke-PreInformeGui {
         # Los trabajos de fondo pudieron cambiar ficha.json: se relee antes de generar.
         $script:G.Exp = Read-Expediente $script:G.Exp.Ruta
         $r = Export-PreInforme -Expediente $script:G.Exp -Atencion $script:G.At
-        if (-not $r.Generado) { if ($Abrir) { [void](Show-Aviso 'Primero haz el diagnóstico ANTES.') }; return }
+        if (-not $r.Generado) {
+            $ui.txtMedicionEstado.Text = 'Pre-informe: todavía falta el diagnóstico ANTES. Toca "Diagnosticar ANTES".'
+            if ($Abrir) { [void](Show-Aviso 'Primero haz el diagnóstico ANTES.') }
+            return
+        }
         $falta = @($r.Falta)
-        $ui.txtMedicionEstado.Text = if ($falta.Count) { "Pre-informe parcial. Todavía falta: $($falta -join ' y ')." } else { 'Pre-informe listo.' }
+        $ui.txtMedicionEstado.Text = if ($falta.Count) { "Pre-informe parcial. Todavía falta: $($falta -join ' y ')." } else { "Pre-informe listo. Si no se abre en el navegador, está en: $($r.Ruta)" }
         if ($Abrir -or ($Auto -and $falta.Count -eq 0)) {
-            if ($Captura) { $script:G.Registro.Add("pre-informe: se abriría $($r.Ruta)") } else { Start-Process -FilePath $r.Ruta }
+            if ($Captura) { $script:G.Registro.Add("pre-informe: se abriría $($r.Ruta)") } else { Open-InformeNavegador -Ruta $r.Ruta }
         }
     } catch { [void](Show-Aviso (Get-MensajeSimple $_.Exception.Message) -EsError) }
 }
@@ -784,7 +788,10 @@ $ui.btnGuardarCondiciones.Add_Click({
                     temp_ambiente_c = $ui.txtCondAmbiente.Text; carga_tipo = $ui.txtCondCarga.Text; carga_duracion_min = $ui.txtCondDuracion.Text })
             $script:G.Exp = Read-Expediente $script:G.Exp.Ruta
             $ui.txtCondEstado.Foreground = Get-Pincel '#1A7F37'; $ui.txtCondEstado.Text = 'Condiciones guardadas.'
-            if ($script:G.Momento -eq 'antes') { Invoke-PreInformeGui -Auto }
+            if ($script:G.Momento -eq 'antes') {
+                Invoke-PreInformeGui -Auto
+                $ui.txtCondEstado.Text = "Condiciones guardadas. $($ui.txtMedicionEstado.Text)"
+            }
         } catch { $ui.txtCondEstado.Foreground = Get-Pincel '#CF222E'; $ui.txtCondEstado.Text = Get-MensajeSimple $_.Exception.Message }
     })
 
@@ -882,7 +889,7 @@ $ui.btnGenerar.Add_Click({
 foreach ($par in @(@{ B = 'btnAbrirCliente'; F = 'informe_cliente.html' }, @{ B = 'btnAbrirTecnico'; F = 'informe_tecnico.html' })) {
     $f = $par.F
     $ui[$par.B].Tag = $f
-    $ui[$par.B].Add_Click({ param($s, $e) $r = Join-Path (Join-Path $script:G.Exp.Ruta $script:G.At) $s.Tag; if ([IO.File]::Exists($r)) { Start-Process -FilePath $r } else { [void](Show-Aviso 'Todavía no se genera.') } })
+    $ui[$par.B].Add_Click({ param($s, $e) $r = Join-Path (Join-Path $script:G.Exp.Ruta $script:G.At) $s.Tag; if ([IO.File]::Exists($r)) { try { Open-InformeNavegador -Ruta $r } catch { [void](Show-Aviso $_.Exception.Message -EsError) } } else { [void](Show-Aviso 'Todavía no se genera.') } })
 }
 $ui.btnAbrirCarpeta.Add_Click({ if ($script:G.Exp) { Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$(Join-Path $script:G.Exp.Ruta $script:G.At)`"" } })
 

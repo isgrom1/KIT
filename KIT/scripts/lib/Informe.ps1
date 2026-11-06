@@ -21,6 +21,13 @@ $script:OrdenSeveridadInforme = @{ CRITICO = 0; AVISO = 1; INFO = 2 }
 
 function Get-Html { param($Texto) [Net.WebUtility]::HtmlEncode("$Texto") }
 
+function Open-InformeNavegador {
+    # Abre un informe a través de explorer.exe: con el kit en admin, un navegador lanzado directo queda
+    # elevado y puede no abrir nada si ya estaba abierto sin admin.
+    param([Parameter(Mandatory)][string]$Ruta)
+    Start-Process -FilePath (Join-Path $env:SystemRoot 'explorer.exe') -ArgumentList ('"' + $Ruta + '"') -ErrorAction Stop
+}
+
 function Format-Celda {
     # Sí/no para booleanos y números en formato chileno; lo demás como texto.
     param($Valor)

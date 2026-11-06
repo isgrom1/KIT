@@ -188,6 +188,10 @@ try {
     Assert 'trae las tarjetas de temperatura' ($h -match 'temperatura promedio' -and $h -match '85 °C')
     Assert 'no exige condiciones si no es CALOR' (@($r.Falta).Count -eq 0)
 
+    '== Los informes se abren por explorer.exe'
+    $codigoKit = [IO.File]::ReadAllText((Join-Path $scripts 'gui\kit.ps1')) + [IO.File]::ReadAllText((Join-Path $scripts 'trabajo.ps1'))
+    Assert 'ninguno lanza el navegador directo' ($codigoKit -notmatch 'Start-Process -FilePath \$(r|pre\.Ruta|inf\.Cliente|r\.Ruta)\b' -and $codigoKit -match 'Open-InformeNavegador')
+
     '== El diagnóstico suelto no le quita el lugar a la atención del día'
     $e = New-Expediente -Identidad ([pscustomobject]@{ Fabricante = 'Prueba'; Modelo = 'Abierta'; Serie = 'PRE005'; SerieOriginal = 'PRE005'; Uuid = $null; PlacaSerie = $null })
     $a1 = New-Atencion -Expediente $e

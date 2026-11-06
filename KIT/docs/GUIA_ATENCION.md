@@ -1,4 +1,4 @@
-﻿# Guía de atención paso a paso
+# Guía de atención paso a paso
 
 Cómo atender un equipo con el kit: desde que lo recibes hasta que lo entregas y queda archivado en tu PC. El detalle técnico de cada parte está en `LEEME.md`.
 
@@ -127,6 +127,7 @@ Abre una herramienta solo cuando el diagnóstico o el motivo de la atención lo 
 - **Se cortó la luz o sacaron el USB a mitad:** lo cortado queda como `_incompleto_` y la medición anterior queda intacta.
 - **Modo técnico:** diagnóstico suelto por secciones (en una atención aparte, que no reemplaza a la que estás trabajando), y abrir `resumen.txt`, `trabajo.log` o el menú de consola. El diagnóstico de la atención se hace en **② Antes**, no aquí.
 - **Sin admin:** el diagnóstico corre y marca qué quedó incompleto. Relanza como admin para completarlo.
+- **Un informe no se abre:** en **② Antes** dice dónde quedó `pre_informe.html`: ábrelo a mano con cualquier navegador. Revisa también si se abrió en una pestaña de fondo.
 - **OCCT no abre** (no sale la ventana, o en el Administrador de tareas aparece "Suspendido"):
   1. Ábrelo con **Herramientas → OCCT**, no con doble clic: el botón apaga la capa antigua de AMD solo para OCCT. Pasó en un notebook con AMD Vega 8 y GTX 1650. Desinstalar el antivirus no lo arregló, así que no se lo saques al cliente.
   2. Si el kit avisa que ya está corriendo y no ves la ventana, quedó colgado: ciérralo en el Administrador de tareas (`OCCT` y `OCCTGUI`) y prueba de nuevo.

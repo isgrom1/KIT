@@ -219,7 +219,7 @@ while ($true) {
                 else {
                     Write-Host "    Listo: $($pre.Ruta)" -ForegroundColor Green
                     if (@($pre.Falta).Count) { Write-Host "    Parcial, falta: $(@($pre.Falta) -join ' y ')" -ForegroundColor Yellow }
-                    if (Test-Si (Read-Linea -Pregunta '¿Abrir el pre-informe? (s/N)' -Actual $null)) { Start-Process -FilePath $pre.Ruta }
+                    if (Test-Si (Read-Linea -Pregunta '¿Abrir el pre-informe? (s/N)' -Actual $null)) { Open-InformeNavegador -Ruta $pre.Ruta }
                 }
             } catch { Show-Error $_.Exception.Message }
         }
@@ -233,7 +233,7 @@ while ($true) {
                     Write-Host "    Listos: $($inf.Cliente)" -ForegroundColor Green
                     Write-Host "            $($inf.Tecnico)" -ForegroundColor Green
                     foreach ($x in @($inf.Datos.Advertencias)) { Write-Host "    Ojo: $x" -ForegroundColor Yellow }
-                    if (Test-Si (Read-Linea -Pregunta '¿Abrir el informe del cliente? (s/N)' -Actual $null)) { Start-Process -FilePath $inf.Cliente }
+                    if (Test-Si (Read-Linea -Pregunta '¿Abrir el informe del cliente? (s/N)' -Actual $null)) { Open-InformeNavegador -Ruta $inf.Cliente }
                 }
             } catch { Show-Error $_.Exception.Message }
         }
