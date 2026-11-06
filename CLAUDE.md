@@ -49,6 +49,7 @@ En el PC (`X:\kitservicio`): `git pull` antes de trabajar; al terminar, commit y
 - El contacto del técnico vive en `KIT\scripts\config\config_local.json`, que está en `.gitignore`: solo existe en el PC de Isaac y en su pendrive. En una sesión en la nube ese archivo no existe y los informes piden el contacto; es lo esperado. **Nunca escribas su contacto en `config.json` ni en otro archivo del repo.**
 - CALOR se mide con OCCT (CPU, 10 minutos) y HWiNFO grabando: la elección de esas herramientas ya la decidió Isaac. Van a mano en `KIT\herramientas` (fuera del repo). Falta una atención real con este método, antes y después, porque su Nitro ya tiene la pasta cambiada.
 - El USB Ventoy real ya está armado y probado desde Windows (Kingston de 58 GB, 2026-11-05: ventana, diagnóstico con y sin admin, informes y consola). Falta arrancar una ISO desde él, si Isaac agrega ISOs.
+- OCCT en notebooks AMD + NVIDIA: se caía en `vulkan-1.dll` sin mostrar ventana (`vkGetPhysicalDeviceProperties2: Invalid physicalDevice`). Confirmado a mano en un equipo con Vega 8 y GTX 1650: abre con `DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1=1` desde un `cmd` con admin; las variables `VK_LOADER_*` no hicieron efecto con admin. El botón del kit lo hace con `Start-Herramienta`. Falta probar el botón con UAC (`pruebas\test_herramientas.ps1 -ConUac`) y desde el pendrive en un equipo con este problema.
 - Crear un punto de restauración NUEVO no se ejercitó: en la Fase F Windows ya tenía uno de las últimas 24 h y el kit lo reutilizó.
 
 ## Reglas duras del kit
@@ -88,7 +89,7 @@ En el PC (`X:\kitservicio`): `git pull` antes de trabajar; al terminar, commit y
 
 ## Cómo probar (en el PC de Isaac)
 
-- `pruebas\` tiene las baterías: `test_expediente.ps1` (45), `test_faseB.ps1` (23), `test_velocidad.ps1` (18), `test_archivos.ps1`, `test_sensores.ps1`, `test_smart.ps1`, `test_sincronizacion.ps1` (50) y otras. Ver `pruebas\LEEME.md`.
+- `pruebas\` tiene las baterías: `test_expediente.ps1` (45), `test_faseB.ps1` (23), `test_velocidad.ps1` (18), `test_archivos.ps1`, `test_sensores.ps1`, `test_smart.ps1`, `test_sincronizacion.ps1` (50), `test_herramientas.ps1` y otras. Ver `pruebas\LEEME.md`.
 - La interfaz tiene modo captura: `powershell -STA -File KIT\scripts\gui\kit.ps1 -Captura <carpeta> [-CapturaDiag] [-RutaMaestro <maestro de prueba>] [-Escenario <archivo de pasos>]` recorre los paneles (o los pasos del escenario, con los botones reales) y guarda un PNG de cada uno.
 - La ventana guarda el expediente en memoria y los trabajos largos corren en otro proceso que también escribe `ficha.json`: **antes de guardar desde la ventana hay que releer** (`Initialize-AtencionGui`), o se pisa lo que escribió el otro proceso (bug encontrado en la Fase F).
 - PSScriptAnalyzer:

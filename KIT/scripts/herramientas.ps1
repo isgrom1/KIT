@@ -47,7 +47,7 @@ while ($true) {
     Write-Host " $($o.Nombre) | licencia: $($o.Licencia)"
     if ($o.Nota) { Write-Host " Ojo: $($o.Nota)" -ForegroundColor Yellow }
     try {
-        Start-Process -FilePath $o.Exe -WorkingDirectory (Split-Path -Parent $o.Exe)
+        Start-Herramienta -Opcion $o
         Write-Host ' Abierta.' -ForegroundColor Green
     } catch {
         Write-Host " No se pudo abrir: $($_.Exception.Message)" -ForegroundColor Red

@@ -35,7 +35,7 @@ Cómo atender un equipo con el kit: desde que lo recibes hasta que lo entregas y
 
 1. Enchufa el equipo y déjalo **5 minutos en reposo**, hasta que la temperatura deje de bajar.
 2. **Herramientas → HWiNFO**, en modo *Sensors only*, y parte el registro (el botón del documento con el "+" verde). Guarda el CSV con un nombre claro, por ejemplo `antes.csv`.
-3. **Herramientas → OCCT**: prueba de CPU por **10 minutos**, siempre con la misma configuración.
+3. **Herramientas → OCCT**: prueba de CPU por **10 minutos**, siempre con la misma configuración. Pide permiso de administrador y la primera vez en cada equipo puede tardar un rato en abrir. Si no abre, mira "Si algo no anda".
 4. Cuando OCCT termine, detén el registro de HWiNFO, toca **Importar CSV de sensores** y completa las **condiciones**: enchufado, plan de energía, modo de ventiladores, superficie, temperatura ambiente, tipo de carga ("OCCT CPU") y duración (10). **Guardar condiciones**.
 
 El DESPUÉS tiene que medirse igual: misma carga, duración y condiciones. El kit te propone las del ANTES y avisa si algo cambia, si la duración difiere más de un 20 % o si la CPU trabajó mucho menos que en el ANTES (más de un 25 % menos de velocidad: la baja de temperatura no sería una mejora real). Esos avisos son para ti: al generar los informes, el del cliente no los muestra.
@@ -83,6 +83,11 @@ El kit lo reconoce solo por la serie (o por el UUID o la placa, si la serie es g
 - **Se cortó la luz o sacaron el USB a mitad:** lo cortado queda como `_incompleto_` y la medición anterior queda intacta.
 - **Modo técnico:** diagnóstico suelto por secciones (en una atención aparte), y abrir `resumen.txt`, `trabajo.log` o el menú de consola.
 - **Sin admin:** el diagnóstico corre y marca qué quedó incompleto. Relanza como admin para completarlo.
+- **OCCT no abre** (no sale la ventana, o en el Administrador de tareas aparece "Suspendido"):
+  1. Ábrelo con **Herramientas → OCCT**, no con doble clic: el botón apaga la capa antigua de AMD solo para OCCT. Pasó en un notebook con AMD Vega 8 y GTX 1650. Desinstalar el antivirus no lo arregló, así que no se lo saques al cliente.
+  2. Si el kit avisa que ya está corriendo y no ves la ventana, quedó colgado: ciérralo en el Administrador de tareas (`OCCT` y `OCCTGUI`) y prueba de nuevo.
+  3. Para ver el motivo: **Visor de eventos → Registros de Windows → Aplicación**, el error de `OCCTGUI.exe` y su "módulo con errores". Con `vulkan-1.dll` es este caso. Si es otro, revisa si hay un `CrashReport-*.log` en `%TEMP%\OCCT`.
+  4. A mano, en un `cmd` con admin: `set DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1=1` y corre `OCCT.exe` desde esa misma ventana. Las variables `VK_LOADER_...` no hicieron efecto con admin.
 
 ## Tiempos de referencia (aproximados)
 

@@ -28,13 +28,53 @@ function Get-OpcionesHerramientas {
                     Select-Object -First 1 | ForEach-Object { $_.FullName })
             if ($exe.Count -eq 0) { $exe = $null } else { $exe = $exe[0] }
         }
+        $esOcct = $nombre -match '(?i)^occt'
+        $nota = if ($e) { $e.nota } else { $null }
+        if (-not $nota -and $esOcct) { $nota = 'pide admin y la primera vez en cada equipo puede tardar un rato en abrir' }
         [pscustomobject]@{
-            Nombre   = $nombre
-            Version  = $(if ($e -and $e.version) { $e.version } elseif ($exe) { [Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion } else { $null })
-            Exe      = $exe
-            Licencia = $(if ($e) { $e.licencia } else { 'agregada a mano: revisa su licencia' })
-            Nota     = $(if ($e) { $e.nota } else { $null })
-            Personal = ($nombre -match '(?i)hwinfo|occt|wiztree' -or ($e -and $e.uso_comercial -eq $false))
+            Nombre    = $nombre
+            Version   = $(if ($e -and $e.version) { $e.version } elseif ($exe) { [Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion } else { $null })
+            Exe       = $exe
+            Licencia  = $(if ($e) { $e.licencia } else { 'agregada a mano: revisa su licencia' })
+            Nota      = $nota
+            Personal  = ($nombre -match '(?i)hwinfo|occt|wiztree' -or ($e -and $e.uso_comercial -eq $false))
+            # OCCT se cae en vulkan-1.dll en notebooks AMD + NVIDIA con la capa antigua de AMD: se apaga solo para este proceso.
+            Variables = $(if ($esOcct) { @{ DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1 = '1' } } else { $null })
+            # Si queda uno colgado ("Suspendido"), el nuevo no abre ni avisa.
+            Procesos  = $(if ($esOcct) { @('OCCT', 'OCCTGUI') } else { $null })
         }
     }
+}
+
+function Get-InicioHerramienta {
+    # Parámetros de Start-Process para abrir una herramienta. Sin variables propias, se abre tal cual.
+    # Con variables no se puede contar con que pasen por el UAC: un cmd elevado las fija y lanza el
+    # programa, que hereda el admin. Es un solo UAC y el cmd se cierra de inmediato.
+    param([Parameter(Mandatory)]$Opcion)
+    $dir = Split-Path -Parent $Opcion.Exe
+    if (-not $Opcion.Variables) { return @{ FilePath = $Opcion.Exe; WorkingDirectory = $dir } }
+    $sets = @($Opcion.Variables.GetEnumerator() | Sort-Object Name | ForEach-Object { 'set "{0}={1}"&&' -f $_.Name, $_.Value }) -join ' '
+    $inicio = @{
+        FilePath     = (Join-Path $env:SystemRoot 'System32\cmd.exe')
+        # cmd /c quita la primera y la última comilla y deja intactas las demás: así aguanta espacios y & en la ruta.
+        ArgumentList = ('/c "{0} start "" /d "{1}" "{2}""' -f $sets, $dir, $Opcion.Exe)
+        WindowStyle  = 'Hidden'
+    }
+    $esAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $esAdmin) { $inicio['Verb'] = 'RunAs' }
+    $inicio
+}
+
+function Start-Herramienta {
+    # Abre una opción de Get-OpcionesHerramientas. Lanza una excepción con el motivo si no se puede.
+    [CmdletBinding(SupportsShouldProcess)]
+    param([Parameter(Mandatory)]$Opcion)
+    if ($Opcion.Procesos) {
+        $vivos = @(Get-Process -Name $Opcion.Procesos -ErrorAction SilentlyContinue)
+        if ($vivos.Count) {
+            throw "$($Opcion.Nombre) ya está corriendo. Si no ves su ventana, quedó colgado: ciérralo en el Administrador de tareas ($($Opcion.Procesos -join ', ')) y prueba de nuevo."
+        }
+    }
+    $inicio = Get-InicioHerramienta -Opcion $Opcion
+    if ($PSCmdlet.ShouldProcess($Opcion.Exe, 'Abrir herramienta')) { Start-Process @inicio -ErrorAction Stop }
 }

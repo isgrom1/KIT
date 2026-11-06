@@ -498,7 +498,7 @@ function Show-Herramientas {
                 param($s, $e)
                 $o = $s.Tag
                 $script:Ui.txtHerramienta.Text = "$($o.Nombre) · licencia: $($o.Licencia)$(if ($o.Nota) { " · Ojo: $($o.Nota)" })"
-                try { Start-Process -FilePath $o.Exe -WorkingDirectory (Split-Path -Parent $o.Exe) } catch { [void](Show-Aviso "No se pudo abrir $($o.Nombre): $($_.Exception.Message)" -EsError) }
+                try { Start-Herramienta -Opcion $o } catch { [void](Show-Aviso "No se pudo abrir $($o.Nombre): $($_.Exception.Message)" -EsError) }
             })
         [void]$ui.wpHerramientas.Children.Add($b)
     }

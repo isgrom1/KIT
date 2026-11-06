@@ -20,6 +20,7 @@ Todas encuentran el kit en `..\KIT` y **solo escriben en carpetas de prueba** (`
 | `test_faseB.ps1` | Integración de motivos (CALOR, LENTO solo con datos de prueba en HKCU, REVISIÓN) | 23/23 |
 | `test_velocidad.ps1` | Velocidad sostenida de CALOR con CSV sintéticos: frases, ruido de 10 MHz, tarjetas sin datos y flechas Sí/No. `-Conservar` deja el informe generado | 18/18 |
 | `test_sincronizacion.ps1` | Sincronización: nuevos, iguales, cambios en cada lado, conflictos, liberar el USB, copia imposible, candado, otro equipo. `-Kit` y `-Base` para correrla en otra unidad | 50/50 (NTFS y exFAT) |
+| `test_herramientas.ps1` | Cómo se abren las herramientas: OCCT con la variable de AMD desde un `cmd`, aviso si quedó uno colgado y rutas con espacios, acentos y `&`, con programas falsos y sin elevar. `-ConUac` prueba además el paso por el UAC (el técnico lo acepta) | — |
 | `vista_previa_informe.ps1` | Genera los informes con datos reales del equipo en `pruebas\vista_previa` (no toca el expediente real) | — |
 | `preparar_kit_prueba.ps1` | Copia el kit a `-Destino` con datos de prueba (contacto de relleno, atención entregada y un cliente sintético) | — |
 | `prueba_exfat.ps1` | Con admin: crea un disco virtual exFAT (L:), corre el diagnóstico y la sincronización desde ahí, y al terminar lo desmonta y lo borra | — |

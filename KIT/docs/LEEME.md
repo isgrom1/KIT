@@ -268,6 +268,7 @@ Notas:
 - **CrystalDiskInfo** lee el SMART también detrás de Intel RST/VMD, donde Windows no lo entrega (el diagnóstico lo avisa).
 - **CrystalDiskMark** escribe archivos de prueba en el disco que mide.
 - **Herramientas agregadas a mano**: crea `KIT\herramientas\<nombre>\` con el programa adentro. Aparece en el menú y queda en `versiones.json` la próxima vez que corras el actualizador.
+- **OCCT** se abre con `DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1=1`, solo para ese programa: en un notebook con AMD Vega 8 y GTX 1650 se caía en `vulkan-1.dll` sin mostrar ventana. Como pide admin, el kit lo lanza desde un `cmd` elevado (un solo UAC). Si quedó uno colgado, avisa en vez de abrir otro. Ver "OCCT no abre" en `GUIA_ATENCION.md`.
 - **HWiNFO64, OCCT y WizTree**: su versión gratuita es solo para uso personal. En el servicio técnico úsalas solo si tienes licencia comercial. El menú las marca en amarillo.
 
 ## Configuración
