@@ -1,5 +1,8 @@
 ﻿{
-  "_leeme": "Cómo reconocer las columnas del CSV de sensores. Patrones = expresiones regulares (sin distinguir mayúsculas) sobre el nombre de la columna: HWiNFO en inglés y español, y LibreHardwareMonitor (lhm_tipo = tipo del sensor en su primera fila: temperature, clock, power, load, data, smalldata). Gana la primera columna que calce; 'agregado_max' y 'agregado_prom' combinan varias columnas por fila; 'cualquiera' marca la fila si alguna columna dice Yes/Sí. Lo que no calce queda null: nunca se inventa.",
+  "_leeme": "Cómo reconocer las columnas del CSV de sensores. Patrones = expresiones regulares (sin distinguir mayúsculas) sobre el nombre de la columna: HWiNFO en inglés y español, y LibreHardwareMonitor (lhm_tipo = tipo del sensor en su primera fila: temperature, clock, power, load, data, smalldata). Gana la primera columna que calce; 'agregado_max' y 'agregado_prom' combinan varias columnas por fila; 'cualquiera' marca la fila si alguna columna dice Yes/Sí. Lo que no calce queda null: nunca se inventa. Tramo bajo carga: si el uso total de CPU se mantiene sobre carga_uso_min_pct por al menos carga_min_minutos y el resto del archivo promedia carga_uso_reposo_pct o menos (reposo), las estadísticas salen solo de ese tramo. Si no (un juego, por ejemplo), o sin columna de uso, se usa todo el archivo.",
+  "carga_uso_min_pct": 80,
+  "carga_min_minutos": 3,
+  "carga_uso_reposo_pct": 30,
   "umbral_alto_c": 90,
   "tjmax_aviso_c": 95,
   "tjmax_aviso_pct_tiempo": 5,
@@ -8,13 +11,13 @@
   "metricas": {
     "cpu_temp_paquete": {
       "unidad": "°C",
-      "patrones": ["^(CPU Package|CPU Entera|Paquete de CPU)( \\[°C\\])?$"],
+      "patrones": ["^(CPU Package|CPU Entera|Paquete de CPU)( \\[°C\\])?$", "^CPU \\(Tctl/Tdie\\)( \\[°C\\])?$", "^Core \\(Tctl/Tdie\\)$"],
       "lhm_tipo": "temperature"
     },
     "cpu_temp_nucleo_max": {
       "unidad": "°C",
       "patrones": ["^(Core Max|Máximo de Núcleo|Core Max(imum)?)( \\[°C\\])?$"],
-      "agregado_max": ["^Core \\d+ \\[°C\\]$", "^CPU Core #\\d+$"],
+      "agregado_max": ["^Core ?\\d+ \\[°C\\]$", "^CPU Core #\\d+$"],
       "lhm_tipo": "temperature"
     },
     "cpu_frec_efectiva": {
@@ -32,8 +35,14 @@
       "unidad": "sí/no",
       "cualquiera": [
         "^(Package/Ring Thermal Throttling|Desaceleración térmica del paquete/anillo) \\[Yes/No\\]$",
-        "^(Core Thermal Throttling \\(avg\\)|Desaceleración térmica del núcleo \\(avg\\)) \\[Yes/No\\]$"
+        "^(Core Thermal Throttling \\(avg\\)|Desaceleración térmica del núcleo \\(avg\\)) \\[Yes/No\\]$",
+        "^(Thermal Throttling|Desaceleración térmica) \\((HTC|PROCHOT CPU|PROCHOT EXT)\\) \\[Yes/No\\]$"
       ]
+    },
+    "cpu_uso": {
+      "unidad": "%",
+      "patrones": ["^(Total CPU Usage|Uso total de CPU)( \\[%\\])?$", "^CPU Total$"],
+      "lhm_tipo": "load"
     },
     "gpu_temp": {
       "unidad": "°C",

@@ -221,9 +221,17 @@ function New-Atencion {
 
 function Get-AtencionAbierta {
     # La atención más reciente que no se ha entregado (la que se está trabajando). $null si no hay.
+    # El diagnóstico suelto del modo técnico abre una atención aparte, sin motivos: no le quita el
+    # lugar a la que se está trabajando ese mismo día.
     param([Parameter(Mandatory)]$Expediente)
-    $a = Get-ListaAtenciones -Expediente $Expediente | Where-Object { -not $_['entregado'] } | Select-Object -Last 1
-    if ($a) { $a['carpeta'] } else { $null }
+    $abiertas = @(Get-ListaAtenciones -Expediente $Expediente | Where-Object { -not $_['entregado'] })
+    if ($abiertas.Count -eq 0) { return $null }
+    $ultima = $abiertas[$abiertas.Count - 1]
+    if (@($ultima['motivos'] | Where-Object { $_ }).Count -eq 0) {
+        $delDia = @($abiertas | Where-Object { $_['fecha'] -eq $ultima['fecha'] -and @($_['motivos'] | Where-Object { $_ }).Count -gt 0 } | Select-Object -Last 1)
+        if ($delDia.Count -gt 0) { return $delDia[0]['carpeta'] }
+    }
+    $ultima['carpeta']
 }
 
 function Resolve-Atencion {

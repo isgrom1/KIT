@@ -169,25 +169,61 @@ function Read-SensoresCsv {
     if ($deltas.Count -gt 0) { [Array]::Sort($deltas); $intervalo = [math]::Round($deltas[[int][math]::Floor($deltas.Count / 2)], 2) }
     $duracion = [math]::Round(($tiempos[$tiempos.Count - 1] - $tiempos[0]).TotalMinutes, 1)
 
+    # Tramo bajo carga: el más largo con el uso total de CPU sobre el mínimo (se toleran bajones de hasta
+    # 30 s). Si HWiNFO grabó de más, el reposo no diluye los promedios ni inventa una mejora al comparar.
+    $tramo = $null
+    if ($series['cpu_uso']) {
+        $usoMin = [double]$cfg.carga_uso_min_pct
+        $mejorMin = 0.0; $mejorIni = -1; $mejorFin = -1
+        $ini = -1; $ult = -1
+        for ($i = 0; $i -le $datos.Count; $i++) {
+            $alto = $i -lt $datos.Count -and $null -ne $series['cpu_uso'][$i] -and $series['cpu_uso'][$i] -ge $usoMin
+            if ($ini -ge 0 -and ($i -eq $datos.Count -or ($alto -and ($tiempos[$i] - $tiempos[$ult]).TotalSeconds -gt 30) -or (-not $alto -and ($tiempos[$i] - $tiempos[$ult]).TotalSeconds -gt 30))) {
+                $largo = ($tiempos[$ult] - $tiempos[$ini]).TotalMinutes
+                if ($largo -gt $mejorMin) { $mejorMin = $largo; $mejorIni = $ini; $mejorFin = $ult }
+                $ini = -1
+            }
+            if ($alto) { if ($ini -lt 0) { $ini = $i }; $ult = $i }
+        }
+        if ($mejorIni -ge 0 -and $mejorMin -ge [double]$cfg.carga_min_minutos) {
+            # Solo es una prueba si lo demás es reposo. En un juego, un pico de varios minutos no
+            # representa la sesión: ahí se sigue usando todo el archivo.
+            $fuera = @(for ($i = 0; $i -lt $datos.Count; $i++) { if (($i -lt $mejorIni -or $i -gt $mejorFin) -and $null -ne $series['cpu_uso'][$i]) { $series['cpu_uso'][$i] } })
+            $usoFuera = if ($fuera.Count -gt 0) { ($fuera | Measure-Object -Average).Average } else { 0.0 }
+            if ($usoFuera -le [double]$cfg.carga_uso_reposo_pct) {
+                $tramo = [ordered]@{
+                    inicio_min  = [math]::Round(($tiempos[$mejorIni] - $tiempos[0]).TotalMinutes, 1)
+                    fin_min     = [math]::Round(($tiempos[$mejorFin] - $tiempos[0]).TotalMinutes, 1)
+                    minutos     = [math]::Round($mejorMin, 1)
+                    uso_min_pct = $usoMin
+                }
+            }
+        }
+    }
+    $enTramo = [ordered]@{}
+    foreach ($k in $series.Keys) {
+        $enTramo[$k] = $(if ($series[$k] -and $tramo) { $series[$k][$mejorIni..$mejorFin] } else { $series[$k] })
+    }
+
     $metricas = [ordered]@{}
     foreach ($k in $series.Keys) {
         if ($k -eq 'cpu_throttling') { continue }
-        $e = if ($series[$k]) { Get-EstadisticaSerie -Valores $series[$k] } else { $null }
+        $e = if ($enTramo[$k]) { Get-EstadisticaSerie -Valores $enTramo[$k] } else { $null }
         if ($e) { $e['unidad'] = $cfg.metricas.$k.unidad }
         $metricas[$k] = $e
     }
     $thr = $null
-    if ($series['cpu_throttling']) {
-        $marcas = @($series['cpu_throttling'] | Where-Object { $null -ne $_ })
+    if ($enTramo['cpu_throttling']) {
+        $marcas = @($enTramo['cpu_throttling'] | Where-Object { $null -ne $_ })
         if ($marcas.Count -gt 0) { $thr = [math]::Round(100 * ($marcas | Measure-Object -Sum).Sum / $marcas.Count, 1) }
     }
-    $temp = if ($series['cpu_temp_paquete']) { 'cpu_temp_paquete' } elseif ($series['cpu_temp_nucleo_max']) { 'cpu_temp_nucleo_max' } else { $null }
+    $temp = if ($enTramo['cpu_temp_paquete']) { 'cpu_temp_paquete' } elseif ($enTramo['cpu_temp_nucleo_max']) { 'cpu_temp_nucleo_max' } else { $null }
     $umbral = [double]$cfg.umbral_alto_c
     $tj = [double]$cfg.tjmax_aviso_c
     $minSobre = $null
     $pctTj = $null
     if ($temp -and $intervalo) {
-        $vals = @($series[$temp] | Where-Object { $null -ne $_ })
+        $vals = @($enTramo[$temp] | Where-Object { $null -ne $_ })
         $minSobre = [math]::Round(@($vals | Where-Object { $_ -gt $umbral }).Count * $intervalo / 60, 1)
         if ($vals.Count -gt 0) { $pctTj = [math]::Round(100 * @($vals | Where-Object { $_ -ge $tj }).Count / $vals.Count, 1) }
     }
@@ -229,6 +265,7 @@ function Read-SensoresCsv {
         inicio            = $tiempos[0].ToString('yyyy-MM-dd HH:mm:ss', $inv)
         fin               = $tiempos[$tiempos.Count - 1].ToString('yyyy-MM-dd HH:mm:ss', $inv)
         duracion_min      = $duracion
+        carga             = $tramo
         intervalo_seg     = $intervalo
         columnas          = $columnas
         metricas          = $metricas

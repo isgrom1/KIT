@@ -129,6 +129,76 @@ try {
     Assert 'no le falta nada' (@($r.Falta).Count -eq 0)
     Assert 'sin alertas no inventa consejos' ($h -match 'Por ahora, nada urgente')
     Assert 'semáforo verde' ($r.Datos.Color -eq 'verde' -and $h -match 'Tu equipo está en buen estado')
+
+    '== CSV de un Ryzen con reposo antes y después de la prueba'
+    $cabeza = 'Date,Time,"Uso total de CPU [%]","Reloj efectivo promedio [MHz]","CPU (Tctl/Tdie) [°C]","Core0 [°C]","Core1 [°C]","Potencia total de CPU [W]","Desaceleración térmica (HTC) [Yes/No]","Desaceleración térmica (PROCHOT CPU) [Yes/No]","Desaceleración térmica (PROCHOT EXT) [Yes/No]"'
+    $fila = { param([int]$Seg, [double]$Uso, [int]$Mhz, [int]$Temp, [string]$Htc) '5.11.2026,10:{0}:{1}.000,{2},{3},{4},{5},{6},22.0,{7},No,No' -f [int][math]::Floor($Seg / 60), ($Seg % 60), $Uso.ToString($script:Invariante), $Mhz, $Temp, ($Temp - 1), ($Temp - 2), $Htc }
+    $nuevoRyzen = {
+        param([string]$Ruta, [string]$Htc = 'No')
+        $l = @($cabeza)
+        for ($i = 0; $i -lt 150; $i++) { $l += & $fila ($i * 2) 5 400 50 'No' }             # 5 min de reposo
+        for ($i = 150; $i -lt 450; $i++) { $l += & $fila ($i * 2) 100 3000 85 $Htc }         # 10 min de OCCT
+        for ($i = 450; $i -lt 600; $i++) { $l += & $fila ($i * 2) 5 400 55 'No' }            # 5 min de reposo
+        [IO.File]::WriteAllLines($Ruta, $l, (New-Object Text.UTF8Encoding($true)))
+    }
+    & $nuevoRyzen "$tmp\ryzen.csv"
+    $s = Read-SensoresCsv -Ruta "$tmp\ryzen.csv"
+    Assert 'reconoce CPU (Tctl/Tdie)' ($s.columnas['cpu_temp_paquete'] -eq 'CPU (Tctl/Tdie) [°C]')
+    Assert 'reconoce los núcleos Core0, Core1' ("$($s.columnas['cpu_temp_nucleo_max'])" -match 'Core0')
+    Assert 'reconoce HTC y PROCHOT' ("$($s.columnas['cpu_throttling'])" -match 'HTC' -and "$($s.columnas['cpu_throttling'])" -match 'PROCHOT EXT')
+    Assert 'encuentra los 10 minutos bajo carga' ([math]::Abs($s.carga.minutos - 10) -le 0.2 -and [math]::Abs($s.carga.inicio_min - 5) -le 0.2) "tramo: $($s.carga | ConvertTo-Json -Compress)"
+    Assert 'la duración total sigue siendo la del archivo' ([math]::Abs($s.duracion_min - 20) -le 0.2)
+    Assert 'el promedio no se diluye con el reposo' ($s.metricas.cpu_temp_paquete.media -eq 85 -and $s.metricas.cpu_frec_efectiva.media -eq 3000) "media $($s.metricas.cpu_temp_paquete.media), frec $($s.metricas.cpu_frec_efectiva.media)"
+    Assert 'sin marcas: no pierde velocidad' ($s.pierde_velocidad.valor -eq $false -and $s.throttling_pct -eq 0)
+    & $nuevoRyzen "$tmp\ryzen_htc.csv" 'Yes'
+    $s2 = Read-SensoresCsv -Ruta "$tmp\ryzen_htc.csv"
+    Assert 'HTC marcado: pierde velocidad' ($s2.pierde_velocidad.valor -eq $true -and $s2.throttling_pct -eq 100)
+
+    '== Sin tramo de carga claro se usa todo el archivo'
+    New-CsvHwinfo -Ruta "$tmp\sin_uso.csv" -TempBase 60 -Mhz 2000
+    $s3 = Read-SensoresCsv -Ruta "$tmp\sin_uso.csv"
+    Assert 'sin columna de uso, no hay tramo' ($null -eq $s3.carga -and $s3.filas -eq 300)
+    $l = @($cabeza)
+    for ($i = 0; $i -lt 300; $i++) { $l += & $fila ($i * 2) $(if ($i -ge 100 -and $i -lt 130) { 100 } else { 5 }) 1000 60 'No' }   # solo 1 min arriba
+    [IO.File]::WriteAllLines("$tmp\pico.csv", $l, (New-Object Text.UTF8Encoding($true)))
+    Assert 'un pico corto no cuenta como prueba' ($null -eq (Read-SensoresCsv -Ruta "$tmp\pico.csv").carga)
+    $l = @($cabeza)
+    for ($i = 0; $i -lt 900; $i++) { $l += & $fila ($i * 2) $(if ($i -ge 300 -and $i -lt 420) { 100 } else { 55 }) 2000 70 'No' }   # juego: 30 min, con 4 min arriba
+    [IO.File]::WriteAllLines("$tmp\juego.csv", $l, (New-Object Text.UTF8Encoding($true)))
+    Assert 'en un juego, un pico de minutos no reemplaza a la sesión' ($null -eq (Read-SensoresCsv -Ruta "$tmp\juego.csv").carga)
+
+    '== Comparar sin que el reposo invente una mejora'
+    $z = New-Prueba 'PRE003'
+    Set-DiagnosticoFalso -Exp $z.Exp -At $z.At -Momento antes -Alertas @()
+    Set-DiagnosticoFalso -Exp $z.Exp -At $z.At -Momento despues -Alertas @()
+    $l = @($cabeza); for ($i = 0; $i -lt 300; $i++) { $l += & $fila ($i * 2) 100 3000 85 'No' }   # el DESPUÉS graba solo la prueba
+    [IO.File]::WriteAllLines("$tmp\solo_prueba.csv", $l, (New-Object Text.UTF8Encoding($true)))
+    $null = Import-SensoresMedicion -Expediente (Read-Expediente $z.Exp.Ruta) -Atencion $z.At -Momento antes -Ruta "$tmp\ryzen.csv"
+    $null = Import-SensoresMedicion -Expediente (Read-Expediente $z.Exp.Ruta) -Atencion $z.At -Momento despues -Ruta "$tmp\solo_prueba.csv"
+    $mc = Get-MetricasCalor -Expediente (Read-Expediente $z.Exp.Ruta) -Atencion $z.At
+    Assert 'misma carga, misma velocidad: no marca mejora' ($null -eq $mc.Tarjetas[5].Mejoro -and $null -eq $mc.Tarjetas[0].Mejoro) "vel $($mc.Tarjetas[5].Antes) -> $($mc.Tarjetas[5].Despues), temp $($mc.Tarjetas[0].Antes) -> $($mc.Tarjetas[0].Despues)"
+    Assert 'no avisa que duran distinto' (@($mc.Advertencias | Where-Object { $_ -like '*duran distinto*' }).Count -eq 0)
+
+    '== Con CSV, muestra la temperatura aunque falte el motivo CALOR'
+    $w = New-Prueba 'PRE004' 'REVISION'
+    Set-DiagnosticoFalso -Exp $w.Exp -At $w.At -Momento antes -Alertas @()
+    $null = Import-SensoresMedicion -Expediente (Read-Expediente $w.Exp.Ruta) -Atencion $w.At -Momento antes -Ruta "$tmp\ryzen.csv"
+    $r = Export-PreInforme -Expediente (Read-Expediente $w.Exp.Ruta) -Atencion $w.At
+    $h = Read-Hoja $r.Ruta
+    Assert 'trae las tarjetas de temperatura' ($h -match 'temperatura promedio' -and $h -match '85 °C')
+    Assert 'no exige condiciones si no es CALOR' (@($r.Falta).Count -eq 0)
+
+    '== El diagnóstico suelto no le quita el lugar a la atención del día'
+    $e = New-Expediente -Identidad ([pscustomobject]@{ Fabricante = 'Prueba'; Modelo = 'Abierta'; Serie = 'PRE005'; SerieOriginal = 'PRE005'; Uuid = $null; PlacaSerie = $null })
+    $a1 = New-Atencion -Expediente $e
+    Assert 'una sola atención sin motivos: es esa' ((Get-AtencionAbierta -Expediente (Read-Expediente $e.Ruta)) -eq $a1)
+    Set-Ficha -Expediente (Read-Expediente $e.Ruta) -Atencion $a1 -Valores ([ordered]@{ motivos = 'CALOR' })
+    $a2 = New-Atencion -Expediente (Read-Expediente $e.Ruta)
+    Assert 'la suelta del mismo día no gana' ((Get-AtencionAbierta -Expediente (Read-Expediente $e.Ruta)) -eq $a1) "ganó: $(Get-AtencionAbierta -Expediente (Read-Expediente $e.Ruta))"
+    Set-Ficha -Expediente (Read-Expediente $e.Ruta) -Atencion $a2 -Valores ([ordered]@{ motivos = 'LENTO' })
+    Assert 'si la nueva tiene motivos, gana la nueva' ((Get-AtencionAbierta -Expediente (Read-Expediente $e.Ruta)) -eq $a2)
+    $a3 = New-Atencion -Expediente (Read-Expediente $e.Ruta) -Fecha (Get-Date).AddDays(1)
+    Assert 'otro día sin motivos: gana la más reciente' ((Get-AtencionAbierta -Expediente (Read-Expediente $e.Ruta)) -eq $a3)
 } finally {
     if ($Conservar) { "Carpeta conservada: $tmp" } else { Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue }
 }

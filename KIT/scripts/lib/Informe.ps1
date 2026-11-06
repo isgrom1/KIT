@@ -280,9 +280,12 @@ function Get-DatosPreInforme {
     $grupos = [ordered]@{}
     $falta = New-Object System.Collections.Generic.List[string]
     $cond = $a['condiciones_medicion']['antes']
-    if ($motivos -contains 'CALOR') {
+    $sensores = Read-SensoresMedicion -Expediente $Expediente -Atencion $Atencion -Momento 'antes'
+    if ($motivos -contains 'CALOR' -or $sensores) {
         $grupos['Temperatura bajo carga'] = @((Get-MetricasCalor -Expediente $Expediente -Atencion $Atencion).Tarjetas | Where-Object { $_ -and $null -ne $_.Antes })
-        if (-not (Read-SensoresMedicion -Expediente $Expediente -Atencion $Atencion -Momento 'antes')) { $falta.Add('la medición de temperatura (CSV de sensores)') }
+    }
+    if ($motivos -contains 'CALOR') {
+        if (-not $sensores) { $falta.Add('la medición de temperatura (CSV de sensores)') }
         if (@(Get-CondicionesFaltantes -Condiciones $cond).Count -gt 0) { $falta.Add('las condiciones de la medición') }
     }
     if ($motivos -contains 'LENTO') {
@@ -519,7 +522,7 @@ code { background: #f6f8fa; padding: 0 3px; }
                 [void]$sb.AppendLine((& $fila @($n, (& $tx $m.Antes), (& $tx $m.Despues), $(if ($m.Antes) { $m.Antes.columnas.$n } else { '' }))))
             }
             foreach ($par in @(@{ S = $m.Antes; N = 'ANTES' }, @{ S = $m.Despues; N = 'DESPUÉS' })) {
-                if ($par.S) { [void]$sb.AppendLine("<p>$($par.N): $(Get-Html $par.S.archivo) ($(Get-Html $par.S.formato), $(Get-Html $par.S.codificacion)) · $(Format-Numero $par.S.duracion_min 1) min · throttling $(Get-Html $(if ($null -ne $par.S.throttling_pct) { "$(Format-Numero $par.S.throttling_pct 1) %" } else { 'sin sensor' })) · $(Format-Numero $par.S.minutos_sobre_umbral 1) min sobre $($par.S.umbral_c) °C · pierde velocidad: $(Get-Html (Format-Celda $par.S.pierde_velocidad.valor)) ($(Get-Html $par.S.pierde_velocidad.fuente))</p>") }
+                if ($par.S) { [void]$sb.AppendLine("<p>$($par.N): $(Get-Html $par.S.archivo) ($(Get-Html $par.S.formato), $(Get-Html $par.S.codificacion)) · $(Format-Numero $par.S.duracion_min 1) min$(if ($par.S.carga) { " ($(Format-Numero $par.S.carga.minutos 1) min bajo carga: las estadísticas salen de ese tramo)" }) · throttling$(Get-Html $(if ($null -ne $par.S.throttling_pct) { "$(Format-Numero $par.S.throttling_pct 1) %" } else { 'sin sensor' })) · $(Format-Numero $par.S.minutos_sobre_umbral 1) min sobre $($par.S.umbral_c) °C · pierde velocidad: $(Get-Html (Format-Celda $par.S.pierde_velocidad.valor)) ($(Get-Html $par.S.pierde_velocidad.fuente))</p>") }
             }
             [void]$sb.AppendLine('</table>' + (Get-SvgTemperaturas -Antes $m.Antes -Despues $m.Despues))
             $cf = $m.Checklist

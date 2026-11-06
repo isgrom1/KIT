@@ -36,7 +36,7 @@ Cómo atender un equipo con el kit: desde que lo recibes hasta que lo entregas y
 1. Enchufa el equipo y déjalo **5 minutos en reposo**, hasta que la temperatura deje de bajar.
 2. **Herramientas → HWiNFO**, en modo *Sensors only*, y parte el registro (el botón del documento con el "+" verde). Guarda el CSV con un nombre claro, por ejemplo `antes.csv`.
 3. **Herramientas → OCCT**: prueba de CPU por **10 minutos**, siempre con la misma configuración: **CPU**, `0h 10min`, Mode `Normal`, Load Type `Steady`, Start at cycle `1`, Instruction Set `Auto` y Threads `Auto`. Sácale una foto antes de partir. Pide permiso de administrador y la primera vez en cada equipo puede tardar un rato en abrir. Si no abre, mira "Si algo no anda".
-4. Cuando OCCT termine, detén el registro de HWiNFO, toca **Importar CSV de sensores** y completa las **condiciones**: enchufado, plan de energía, modo de ventiladores, superficie, temperatura ambiente, tipo de carga ("OCCT CPU") y duración (10). **Guardar condiciones**.
+4. Cuando OCCT termine, detén el registro de HWiNFO. Si grabó de más no hay problema: el kit calcula los promedios solo con el tramo bajo carga (CPU sobre 80 % de uso por al menos 3 minutos, con el resto en reposo). Toca **Importar CSV de sensores** y completa las **condiciones**: enchufado, plan de energía, modo de ventiladores, superficie, temperatura ambiente, tipo de carga ("OCCT CPU") y duración (10). **Guardar condiciones**.
 
 **Pre-informe:** cuando la medición ANTES queda completa (diagnóstico y, con "Se calienta", también el CSV y las condiciones), el kit abre `pre_informe.html`: una hoja para el cliente con el semáforo, las temperaturas, las recomendaciones y el trabajo y precio de la ficha. **Ver pre-informe** lo abre cuando quieras, aunque esté parcial; así avisa qué falta. Para entregarlo: **Ctrl+P → Guardar como PDF** y mándale ese PDF. No le mandes el `.html`: abajo trae un detalle de las alertas para ti, que no sale al imprimir.
 
@@ -125,7 +125,7 @@ Abre una herramienta solo cuando el diagnóstico o el motivo de la atención lo 
 - **"No hay diagnóstico ANTES":** el DESPUÉS necesita un ANTES en la misma atención.
 - **Cancelar:** botón de la barra de abajo. La medición anterior queda intacta.
 - **Se cortó la luz o sacaron el USB a mitad:** lo cortado queda como `_incompleto_` y la medición anterior queda intacta.
-- **Modo técnico:** diagnóstico suelto por secciones (en una atención aparte), y abrir `resumen.txt`, `trabajo.log` o el menú de consola.
+- **Modo técnico:** diagnóstico suelto por secciones (en una atención aparte, que no reemplaza a la que estás trabajando), y abrir `resumen.txt`, `trabajo.log` o el menú de consola. El diagnóstico de la atención se hace en **② Antes**, no aquí.
 - **Sin admin:** el diagnóstico corre y marca qué quedó incompleto. Relanza como admin para completarlo.
 - **OCCT no abre** (no sale la ventana, o en el Administrador de tareas aparece "Suspendido"):
   1. Ábrelo con **Herramientas → OCCT**, no con doble clic: el botón apaga la capa antigua de AMD solo para OCCT. Pasó en un notebook con AMD Vega 8 y GTX 1650. Desinstalar el antivirus no lo arregló, así que no se lo saques al cliente.

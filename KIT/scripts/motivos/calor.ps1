@@ -161,9 +161,12 @@ function Get-MetricasCalor {
             }
         }
     }
-    if ($sa -and $sd -and $sa.duracion_min -gt 0) {
-        $dif = [math]::Abs($sd.duracion_min - $sa.duracion_min) / $sa.duracion_min
-        if ($dif -gt 0.2) { $advertencias.Add(('Las mediciones duran distinto: antes {0} min, después {1} min ({2:N0} % de diferencia)' -f (Format-Numero $sa.duracion_min 1), (Format-Numero $sd.duracion_min 1), (100 * $dif))) }
+    # Se compara lo que duró la carga: el reposo que HWiNFO haya grabado de más no cuenta.
+    $largo = { param($s) if ($s.carga) { [double]$s.carga.minutos } else { [double]$s.duracion_min } }
+    if ($sa -and $sd -and (& $largo $sa) -gt 0) {
+        $la = & $largo $sa; $ld = & $largo $sd
+        $dif = [math]::Abs($ld - $la) / $la
+        if ($dif -gt 0.2) { $advertencias.Add(('Las mediciones duran distinto: antes {0} min, después {1} min ({2:N0} % de diferencia)' -f (Format-Numero $la 1), (Format-Numero $ld 1), (100 * $dif))) }
     }
     if (-not $sa) { $advertencias.Add('Falta el CSV de sensores ANTES') }
     if (-not $sd) { $advertencias.Add('Falta el CSV de sensores DESPUÉS') }

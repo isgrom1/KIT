@@ -383,7 +383,9 @@ function Show-Medicion {
     $s = if ($a) { Read-SensoresMedicion -Expediente $script:G.Exp -Atencion $script:G.At -Momento $m } else { $null }
     $ui.txtSensores.Text = if ($s) {
         $cpu = if ($s.metricas.cpu_temp_paquete) { $s.metricas.cpu_temp_paquete } else { $s.metricas.cpu_temp_nucleo_max }
-        "$($s.archivo) · $(Format-Numero $s.duracion_min 0) min · CPU $(Format-Numero $cpu.media 1) / $(Format-Numero $cpu.max 1) °C$(if ($s.metricas.gpu_temp) { " · GPU $(Format-Numero $s.metricas.gpu_temp.media 1) / $(Format-Numero $s.metricas.gpu_temp.max 1) °C" }) · pierde velocidad: $(if ($s.pierde_velocidad.valor) { 'sí' } elseif ($null -eq $s.pierde_velocidad.valor) { 'sin dato' } else { 'no' })"
+        $largoCsv = if ($s.carga) { "$(Format-Numero $s.duracion_min 0) min, $(Format-Numero $s.carga.minutos 0) bajo carga" } else { "$(Format-Numero $s.duracion_min 0) min" }
+        $tempCpu = if ($cpu) { "CPU $(Format-Numero $cpu.media 1) / $(Format-Numero $cpu.max 1) °C" } else { 'CPU sin temperatura en el CSV' }
+        "$($s.archivo) · $largoCsv · $tempCpu$(if ($s.metricas.gpu_temp) { " · GPU $(Format-Numero $s.metricas.gpu_temp.media 1) / $(Format-Numero $s.metricas.gpu_temp.max 1) °C" }) · pierde velocidad: $(if ($s.pierde_velocidad.valor) { 'sí' } elseif ($null -eq $s.pierde_velocidad.valor) { 'sin dato' } else { 'no' })"
     } else { 'Sin CSV todavía (HWiNFO o LibreHardwareMonitor).' }
     # Condiciones: el DESPUÉS propone las del ANTES.
     $cond = if ($a) { $a['condiciones_medicion'][$m] } else { $null }
