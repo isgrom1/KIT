@@ -195,6 +195,7 @@
           <TextBlock Name="txtMedicionTitulo" DockPanel.Dock="Top" Text="② Antes" Style="{StaticResource Titulo}"/>
           <WrapPanel DockPanel.Dock="Top">
             <Button Name="btnDiagnosticar" Content="Diagnosticar" Style="{StaticResource Primario}"/>
+            <Button Name="btnPreInforme" Content="Ver pre-informe"/>
             <CheckBox Name="chkEspacio" Content="Incluir recorrido de carpetas (hasta 3 min más)"/>
           </WrapPanel>
           <TextBlock Name="txtMedicionEstado" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,6"/>

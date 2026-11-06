@@ -89,7 +89,7 @@ En el PC (`X:\kitservicio`): `git pull` antes de trabajar; al terminar, commit y
 
 ## Cómo probar (en el PC de Isaac)
 
-- `pruebas\` tiene las baterías: `test_expediente.ps1` (45), `test_faseB.ps1` (23), `test_velocidad.ps1` (18), `test_archivos.ps1`, `test_sensores.ps1`, `test_smart.ps1`, `test_sincronizacion.ps1` (50), `test_herramientas.ps1` y otras. Ver `pruebas\LEEME.md`.
+- `pruebas\` tiene las baterías: `test_expediente.ps1` (45), `test_faseB.ps1` (23), `test_velocidad.ps1` (18), `test_archivos.ps1`, `test_sensores.ps1`, `test_smart.ps1`, `test_sincronizacion.ps1` (50), `test_herramientas.ps1` (22), `test_preinforme.ps1` (32) y otras. Ver `pruebas\LEEME.md`.
 - La interfaz tiene modo captura: `powershell -STA -File KIT\scripts\gui\kit.ps1 -Captura <carpeta> [-CapturaDiag] [-RutaMaestro <maestro de prueba>] [-Escenario <archivo de pasos>]` recorre los paneles (o los pasos del escenario, con los botones reales) y guarda un PNG de cada uno.
 - La ventana guarda el expediente en memoria y los trabajos largos corren en otro proceso que también escribe `ficha.json`: **antes de guardar desde la ventana hay que releer** (`Initialize-AtencionGui`), o se pisa lo que escribió el otro proceso (bug encontrado en la Fase F).
 - PSScriptAnalyzer:

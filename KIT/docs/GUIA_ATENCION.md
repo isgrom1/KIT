@@ -38,6 +38,8 @@ Cómo atender un equipo con el kit: desde que lo recibes hasta que lo entregas y
 3. **Herramientas → OCCT**: prueba de CPU por **10 minutos**, siempre con la misma configuración: **CPU**, `0h 10min`, Mode `Normal`, Load Type `Steady`, Start at cycle `1`, Instruction Set `Auto` y Threads `Auto`. Sácale una foto antes de partir. Pide permiso de administrador y la primera vez en cada equipo puede tardar un rato en abrir. Si no abre, mira "Si algo no anda".
 4. Cuando OCCT termine, detén el registro de HWiNFO, toca **Importar CSV de sensores** y completa las **condiciones**: enchufado, plan de energía, modo de ventiladores, superficie, temperatura ambiente, tipo de carga ("OCCT CPU") y duración (10). **Guardar condiciones**.
 
+**Pre-informe:** cuando la medición ANTES queda completa (diagnóstico y, con "Se calienta", también el CSV y las condiciones), el kit abre `pre_informe.html`: una hoja para el cliente con el semáforo, las temperaturas, las recomendaciones y el trabajo y precio de la ficha. **Ver pre-informe** lo abre cuando quieras, aunque esté parcial; así avisa qué falta. Para entregarlo: **Ctrl+P → Guardar como PDF** y mándale ese PDF. No le mandes el `.html`: abajo trae un detalle de las alertas para ti, que no sale al imprimir.
+
 El DESPUÉS tiene que medirse igual: misma carga, duración y condiciones. El kit te propone las del ANTES y avisa si algo cambia, si la duración difiere más de un 20 % o si la CPU trabajó mucho menos que en el ANTES (más de un 25 % menos de velocidad: la baja de temperatura no sería una mejora real). Esos avisos son para ti: al generar los informes, el del cliente no los muestra.
 
 ## 3. Trabajo (③ Trabajo)

@@ -68,6 +68,16 @@ function Get-HechoSimple {
     @($p | Select-Object -First 5)
 }
 
+function Get-RecomendacionesAlertas {
+    # Consejos para el cliente según las alertas de una medición: las críticas primero y sin repetir.
+    param([object[]]$Alertas)
+    $vistas = New-Object System.Collections.Generic.List[string]
+    foreach ($al in @($Alertas | Where-Object { $_ } | Sort-Object { $script:OrdenSeveridadInforme["$($_.Severidad)"] })) {
+        foreach ($k in $script:Recomendacion.Keys) { if ($al.Codigo -match $k -and -not $vistas.Contains($script:Recomendacion[$k])) { $vistas.Add($script:Recomendacion[$k]) } }
+    }
+    $vistas.ToArray()
+}
+
 function Get-DatosInforme {
     # Todo lo que usan ambos informes, en un objeto.
     param([Parameter(Mandatory)]$Expediente, [Parameter(Mandatory)][string]$Atencion)
@@ -107,9 +117,7 @@ function Get-DatosInforme {
     $diagFinal = Read-JsonKitOpcional (Join-Path (Join-Path (Join-Path $Expediente.Ruta $Atencion) $momentoFinal) 'diagnostico.json')
     $recs = New-Object System.Collections.Generic.List[string]
     if ($met['CALOR'] -and $met['CALOR'].Tarjetas[4].Despues -eq $true) { $recs.Add('Usa el equipo sobre una superficie dura y despejada, sin tapar las rejillas.') }
-    foreach ($al in @($(if ($diagFinal) { $diagFinal.alertas } else { @() }) | Sort-Object { $script:OrdenSeveridadInforme["$($_.Severidad)"] })) {
-        foreach ($k in $script:Recomendacion.Keys) { if ($al.Codigo -match $k -and -not $recs.Contains($script:Recomendacion[$k])) { $recs.Add($script:Recomendacion[$k]) } }
-    }
+    foreach ($x in @(Get-RecomendacionesAlertas -Alertas $(if ($diagFinal) { $diagFinal.alertas } else { @() }))) { if (-not $recs.Contains($x)) { $recs.Add($x) } }
     $cfgExp = $script:Ctx.Config.expediente
     $base = if ($a['entregado']) { [datetime]::ParseExact($a['entregado'], 'yyyy-MM-dd', $script:Invariante) } else { Get-Date }
     $garantia = if ($a['garantia_hasta']) { $a['garantia_hasta'] } else { $base.AddDays([int]$cfgExp.garantia_dias).ToString('yyyy-MM-dd', $script:Invariante) }
@@ -171,10 +179,9 @@ function Get-SvgFlecha {
     "<svg class=""flecha"" viewBox=""0 0 24 24"" aria-hidden=""true""><path d=""$camino"" fill=""none"" stroke=""$color"" stroke-width=""3"" stroke-linecap=""round"" stroke-linejoin=""round""/></svg>"
 }
 
-function ConvertTo-InformeCliente {
-    param([Parameter(Mandatory)]$Datos)
-    $d = $Datos
-    $css = @'
+function Get-CssCliente {
+    # Estilo de las hojas para el cliente: informe final y pre-informe.
+    @'
 @page { size: A4; margin: 12mm; }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; color: #1f2328; font-size: 10.5pt; line-height: 1.35; background: #fff; }
@@ -204,6 +211,12 @@ ul { margin: 0; padding-left: 5mm; } li { margin: .6mm 0; }
 footer { margin-top: 5mm; border-top: 1pt solid #d0d7de; padding-top: 2mm; font-size: 9pt; color: #57606a; display: flex; justify-content: space-between; }
 @media print { .hoja { width: auto; padding: 0; } }
 '@
+}
+
+function ConvertTo-InformeCliente {
+    param([Parameter(Mandatory)]$Datos)
+    $d = $Datos
+    $css = Get-CssCliente
     $sb = New-Object System.Text.StringBuilder
     $eq = $d.Equipo
     $equipoTxt = "$($eq['fabricante']) $($eq['modelo'])"
@@ -251,6 +264,157 @@ footer { margin-top: 5mm; border-top: 1pt solid #d0d7de; padding-top: 2mm; font-
     [void]$sb.AppendLine("<footer><div><b>Garantía hasta $(Get-Html $d.Garantia).</b> $(Get-Html $d.Condiciones)</div></footer>")
     [void]$sb.AppendLine('</div></body></html>')
     $sb.ToString()
+}
+
+# ---------------------------------------------------------------- pre-informe
+
+function Get-DatosPreInforme {
+    # Lo que muestra el pre-informe: siempre la medición ANTES, aunque ya exista un DESPUÉS.
+    param([Parameter(Mandatory)]$Expediente, [Parameter(Mandatory)][string]$Atencion)
+    $f = $Expediente.Ficha
+    $a = Get-EntradaAtencion -Expediente $Expediente -Carpeta $Atencion
+    $motivos = @($a['motivos'] | Where-Object { $_ })
+    $sem = Get-SemaforoRevision -Expediente $Expediente -Atencion $Atencion -Momento 'antes'
+    $diag = Read-JsonKitOpcional (Join-Path (Join-Path (Join-Path $Expediente.Ruta $Atencion) 'antes') 'diagnostico.json')
+
+    $grupos = [ordered]@{}
+    $falta = New-Object System.Collections.Generic.List[string]
+    $cond = $a['condiciones_medicion']['antes']
+    if ($motivos -contains 'CALOR') {
+        $grupos['Temperatura bajo carga'] = @((Get-MetricasCalor -Expediente $Expediente -Atencion $Atencion).Tarjetas | Where-Object { $_ -and $null -ne $_.Antes })
+        if (-not (Read-SensoresMedicion -Expediente $Expediente -Atencion $Atencion -Momento 'antes')) { $falta.Add('la medición de temperatura (CSV de sensores)') }
+        if (@(Get-CondicionesFaltantes -Condiciones $cond).Count -gt 0) { $falta.Add('las condiciones de la medición') }
+    }
+    if ($motivos -contains 'LENTO') {
+        $grupos['Rapidez'] = @((Get-MetricasLento -Expediente $Expediente -Atencion $Atencion).Tarjetas | Where-Object { $_ -and $null -ne $_.Antes })
+    }
+
+    $prueba = @()
+    if ($cond) {
+        if ($cond['carga_tipo']) { $prueba += "$($cond['carga_tipo'])" }
+        if ($null -ne $cond['carga_duracion_min']) { $prueba += "$(Format-Numero ([double]$cond['carga_duracion_min']) 0) min" }
+        if ($cond['enchufado'] -eq $true) { $prueba += 'enchufado' } elseif ($cond['enchufado'] -eq $false) { $prueba += 'a batería' }
+        if ($null -ne $cond['temp_ambiente_c']) { $prueba += "$(Format-Numero ([double]$cond['temp_ambiente_c']) 0) °C de ambiente" }
+        if ($cond['superficie']) { $prueba += "sobre $($cond['superficie'])" }
+    }
+
+    $recs = New-Object System.Collections.Generic.List[string]
+    $temp = @($sem.Areas | Where-Object { $_.Area -eq 'Temperatura' }) | Select-Object -First 1
+    if ($temp -and $temp.Color -in 'amarillo', 'rojo') { $recs.Add('Una limpieza interna y renovar la pasta térmica podrían bajar la temperatura.') }
+    foreach ($x in @(Get-RecomendacionesAlertas -Alertas $(if ($diag) { $diag.alertas } else { @() }))) { if (-not $recs.Contains($x)) { $recs.Add($x) } }
+
+    $medicion = $a['mediciones']['antes']
+    [pscustomobject][ordered]@{
+        Tecnico         = $script:Ctx.Config.tecnico
+        Cliente         = $f['cliente']
+        Equipo          = $f['equipo']
+        Fecha           = $(if ($a['fecha']) { $a['fecha'] } else { (Get-Date).ToString('yyyy-MM-dd', $script:Invariante) })
+        Motivos         = $motivos
+        Sintoma         = $a['sintoma']
+        Semaforo        = $sem
+        Color           = $sem.General
+        Frase           = @{ verde = 'Tu equipo está en buen estado'; amarillo = 'Tu equipo funciona, pero hay cosas que conviene atender'; rojo = 'Tu equipo necesita atención'; gris = 'Revisamos tu equipo' }[$sem.General]
+        Grupos          = $grupos
+        Prueba          = ($prueba -join ' · ')
+        Recomendaciones = @($recs | Select-Object -First 4)
+        Paquete         = $a['paquete']
+        Precio          = $a['precio']
+        Falta           = $falta.ToArray()
+        SinAdmin        = [bool]($medicion -and $medicion['admin'] -eq $false)
+        Alertas         = @($(if ($diag) { $diag.alertas }))
+    }
+}
+
+function ConvertTo-PreInforme {
+    param([Parameter(Mandatory)]$Datos)
+    $d = $Datos
+    $css = (Get-CssCliente) + @'
+
+.aviso { background: #f6f8fa; border-left: 2pt solid #0b6bcb; padding: 2mm 3mm; margin: 3mm 0; }
+.falta { background: #fff8c5; border-left: 2pt solid #d4a72c; padding: 2mm 3mm; margin: 3mm 0; }
+table.areas { width: 100%; border-collapse: collapse; }
+.areas td { padding: 1.2mm 2mm; border-bottom: .5pt solid #e6e8eb; vertical-align: top; }
+.areas .a { width: 42mm; font-weight: 600; white-space: nowrap; }
+.punto { display: inline-block; width: 3.2mm; height: 3.2mm; border-radius: 50%; margin-right: 1.5mm; vertical-align: -.3mm; }
+.punto.rojo { background: #cf222e; } .punto.amarillo { background: #d4a72c; } .punto.verde { background: #2da44e; }
+.tecnico { margin-top: 8mm; border-top: 2pt dashed #8c959f; padding-top: 2mm; font-size: 9.5pt; }
+.tecnico .CRITICO { color: #cf222e; font-weight: 600; } .tecnico .AVISO { color: #9a6700; font-weight: 600; } .tecnico .INFO { color: #57606a; }
+@media print { .tecnico { display: none; } }
+'@
+    $sb = New-Object System.Text.StringBuilder
+    $eq = $d.Equipo
+    $equipoTxt = "$($eq['fabricante']) $($eq['modelo'])".Trim()
+    [void]$sb.AppendLine('<!doctype html><html lang="es"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge">')
+    [void]$sb.AppendLine("<title>Pre-informe - $(Get-Html $equipoTxt)</title><style>$css</style></head><body><div class=""hoja"">")
+    $tecnico = @($d.Tecnico.nombre, $d.Tecnico.contacto | Where-Object { $_ }) -join ' · '
+    [void]$sb.AppendLine("<header><div><h1>Pre-informe</h1><div class=""sub"">$(Get-Html $tecnico)</div></div><div class=""sub"">$(Get-Html $d.Fecha)</div></header>")
+    [void]$sb.AppendLine('<p class="aviso">Así está tu equipo <b>antes de cualquier trabajo</b>.</p>')
+    [void]$sb.AppendLine('<div class="datos">')
+    [void]$sb.AppendLine("<div><b>Cliente:</b> $(Get-Html $(if ($d.Cliente['nombre']) { $d.Cliente['nombre'] } else { '—' }))$(if ($d.Cliente['comuna']) { ' · ' + (Get-Html $d.Cliente['comuna']) })</div>")
+    [void]$sb.AppendLine("<div><b>Equipo:</b> $(Get-Html $equipoTxt)</div>")
+    [void]$sb.AppendLine("<div><b>Motivo:</b> $(Get-Html ((@($d.Motivos | ForEach-Object { @{ CALOR = 'se calienta'; LENTO = 'está lento'; ARCHIVOS = 'archivos y espacio'; REVISION = 'revisión completa' }[$_] }) -join ', ')))</div>")
+    [void]$sb.AppendLine("<div><b>N.º de serie:</b> $(Get-Html $(if ($eq['serie']) { $eq['serie'] } else { '—' }))</div>")
+    if ($d.Sintoma) { [void]$sb.AppendLine("<div style=""width:100%""><b>Síntoma:</b> $(Get-Html $d.Sintoma)</div>") }
+    [void]$sb.AppendLine('</div>')
+    [void]$sb.AppendLine('<div class="estado"><div class="luces">')
+    foreach ($c in 'rojo', 'amarillo', 'verde') { [void]$sb.AppendLine("<div class=""luz $c$(if ($d.Color -eq $c) { ' on' })""></div>") }
+    [void]$sb.AppendLine("</div><div class=""frase"">$(Get-Html $d.Frase)</div></div>")
+    if (@($d.Falta).Count -gt 0) { [void]$sb.AppendLine("<p class=""falta""><b>Pre-informe parcial.</b> Todavía falta: $(Get-Html (@($d.Falta) -join ' y ')).</p>") }
+
+    foreach ($titulo in $d.Grupos.Keys) {
+        $tarjetas = @($d.Grupos[$titulo])
+        if ($tarjetas.Count -eq 0) { continue }
+        [void]$sb.AppendLine("<h2>$(Get-Html $titulo)</h2><div class=""tarjetas"">")
+        foreach ($t in $tarjetas) { [void]$sb.AppendLine("<div class=""tarjeta""><div class=""t"">$(Get-Html $t.Titulo)</div><div class=""v""><span>$(Get-Html (Format-ValorTarjeta $t.Antes $t.Unidad))</span></div></div>") }
+        [void]$sb.AppendLine('</div>')
+        if ($titulo -like 'Temperatura*' -and $d.Prueba) { [void]$sb.AppendLine("<p class=""nota"">Prueba: $(Get-Html $d.Prueba).</p>") }
+    }
+
+    [void]$sb.AppendLine('<h2>Revisión por área</h2><table class="areas">')
+    foreach ($f in @($d.Semaforo.Areas | Where-Object { $_.Color -ne 'gris' })) {
+        [void]$sb.AppendLine("<tr><td class=""a""><span class=""punto $($f.Color)""></span>$(Get-Html $f.Area)</td><td>$(Get-Html $f.Frase)</td></tr>")
+    }
+    [void]$sb.AppendLine('</table>')
+
+    [void]$sb.AppendLine('<div class="dos"><div><h2>Te recomendamos</h2><ul>')
+    foreach ($r in @($d.Recomendaciones)) { [void]$sb.AppendLine("<li>$(Get-Html $r)</li>") }
+    if (@($d.Recomendaciones).Count -eq 0) { [void]$sb.AppendLine('<li>Por ahora, nada urgente.</li>') }
+    [void]$sb.AppendLine('</ul></div><div>')
+    if ($d.Paquete -or $null -ne $d.Precio) {
+        [void]$sb.AppendLine('<h2>Trabajo propuesto</h2>')
+        if ($d.Paquete) { [void]$sb.AppendLine("<p>$(Get-Html $d.Paquete)</p>") }
+        if ($null -ne $d.Precio) { [void]$sb.AppendLine("<p class=""caja"">Precio: <b>`$$(Get-Html (Format-Numero $d.Precio 0))</b></p>") }
+    }
+    [void]$sb.AppendLine('</div></div>')
+    if ($d.SinAdmin) { [void]$sb.AppendLine('<p class="nota">Medido sin permisos de administrador: la salud detallada de los discos y otros datos pueden estar incompletos.</p>') }
+    [void]$sb.AppendLine('<footer><div>Al terminar el trabajo recibirás el informe final, con la comparación de antes y después.</div></footer>')
+    # Los textos de las alertas están escritos para el técnico: se ven en pantalla, pero no salen al imprimir.
+    $alertas = @($d.Alertas | Where-Object { $_ } | Sort-Object { $script:OrdenSeveridadInforme["$($_.Severidad)"] })
+    if ($alertas.Count -gt 0) {
+        [void]$sb.AppendLine('<section class="tecnico"><h2>Detalle para el técnico (no se imprime)</h2><table class="areas">')
+        foreach ($al in $alertas) {
+            $sev = @{ CRITICO = 'CRÍTICO'; AVISO = 'AVISO'; INFO = 'INFO' }["$($al.Severidad)"]
+            [void]$sb.AppendLine("<tr><td class=""$(Get-Html $al.Severidad)"">$(Get-Html $sev)</td><td>$(Get-Html $al.Texto)</td></tr>")
+        }
+        [void]$sb.AppendLine('</table></section>')
+    }
+    [void]$sb.AppendLine('</div></body></html>')
+    $sb.ToString()
+}
+
+function Export-PreInforme {
+    # Genera pre_informe.html en la carpeta de la atención con lo que haya hasta ahora: basta el
+    # diagnóstico ANTES. Falta dice qué le queda para estar completo. No exige la ficha completa.
+    [CmdletBinding(SupportsShouldProcess)]
+    param([Parameter(Mandatory)]$Expediente, [Parameter(Mandatory)][string]$Atencion)
+    if (-not (Test-Medicion -Expediente $Expediente -Atencion $Atencion -Momento 'antes')) { return [pscustomobject]@{ Generado = $false; Ruta = $null; Falta = @('el diagnóstico ANTES'); Datos = $null } }
+    $datos = Get-DatosPreInforme -Expediente $Expediente -Atencion $Atencion
+    $carpeta = Join-Path $Expediente.Ruta $Atencion
+    $ruta = Join-Path $carpeta 'pre_informe.html'
+    if (-not $PSCmdlet.ShouldProcess($carpeta, 'Generar pre-informe')) { return }
+    [IO.File]::WriteAllText($ruta, (ConvertTo-PreInforme -Datos $datos), $script:Utf8Bom)
+    Write-TrabajoLog -Expediente $Expediente -Atencion $Atencion -Texto "PRE-INFORME | generado (semáforo $($datos.Color)$(if (@($datos.Falta).Count) { ', parcial' }))"
+    [pscustomobject]@{ Generado = $true; Ruta = $ruta; Falta = @($datos.Falta); Datos = $datos }
 }
 
 # ---------------------------------------------------------------- informe técnico

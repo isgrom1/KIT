@@ -192,6 +192,7 @@ while ($true) {
     if ($motivos -contains 'LENTO') { $op['7'] = 'LENTO: acciones sugeridas'; $op['8'] = 'LENTO: deshacer acciones'; $op['9'] = 'LENTO: ver métricas' }
     if ($motivos -contains 'ARCHIVOS') { $op['A'] = 'ARCHIVOS: analizar'; $op['M'] = 'ARCHIVOS: mover lo marcado a _PARA_BORRAR'; $op['D'] = 'ARCHIVOS: deshacer movimiento'; $op['V'] = 'ARCHIVOS: ver resultado' }
     $op['S'] = 'Semáforo de revisión'
+    $op['P'] = 'Generar pre-informe (cómo está antes del trabajo)'
     $op['I'] = 'Generar informes (cliente y técnico)'
     $op['0'] = 'Volver'
     foreach ($k in $op.Keys) { Write-Host ('  {0}) {1}' -f $k, $op[$k]) }
@@ -211,6 +212,17 @@ while ($true) {
         'M' { Invoke-ArchivosConsola -Exp $exp -At $at -Accion 'mover' }
         'D' { Invoke-ArchivosConsola -Exp $exp -At $at -Accion 'deshacer' }
         'V' { $m = Get-MetricasArchivos -Expediente $exp -Atencion $at; Show-Tarjetas $m; Write-Host "   Apartado: $($m.GBApartados) GB en $($m.Elementos) elementos ($($m.Duplicados) duplicados) | $($m.Ubicaciones -join ', ')"; Write-Host "   Cómo recuperar: $($m.ComoRecuperar)" -ForegroundColor DarkGray }
+        'P' {
+            try {
+                $pre = Export-PreInforme -Expediente (Read-Expediente $exp.Ruta) -Atencion $at
+                if (-not $pre.Generado) { Write-Host '    Primero haz el diagnóstico ANTES.' -ForegroundColor Yellow }
+                else {
+                    Write-Host "    Listo: $($pre.Ruta)" -ForegroundColor Green
+                    if (@($pre.Falta).Count) { Write-Host "    Parcial, falta: $(@($pre.Falta) -join ' y ')" -ForegroundColor Yellow }
+                    if (Test-Si (Read-Linea -Pregunta '¿Abrir el pre-informe? (s/N)' -Actual $null)) { Start-Process -FilePath $pre.Ruta }
+                }
+            } catch { Show-Error $_.Exception.Message }
+        }
         'I' {
             try {
                 $inf = Export-Informes -Expediente $exp -Atencion $at

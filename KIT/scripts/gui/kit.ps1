@@ -370,6 +370,8 @@ function Show-Medicion {
     $a = Get-Entrada
     $carpeta = if ($a) { Join-Path (Join-Path $script:G.Exp.Ruta $script:G.At) $m } else { $null }
     $diag = if ($carpeta) { Read-JsonKitOpcional (Join-Path $carpeta 'diagnostico.json') } else { $null }
+    $ui.btnPreInforme.Visibility = if ($m -eq 'antes') { 'Visible' } else { 'Collapsed' }
+    $ui.btnPreInforme.IsEnabled = [bool]$diag
     if (-not $script:G.Tarea) {
         $ui.txtMedicionEstado.Text = if ($diag) { "Medición del $($diag.kit.generado) (admin: $(if ($diag.kit.admin.Elevado) { 'sí' } else { 'no' })). Puedes repetirla: la anterior queda de respaldo." } else { 'Todavía no hay diagnóstico.' }
         $ui.prgDiag.Value = if ($diag) { $ui.prgDiag.Maximum } else { 0 }
@@ -391,6 +393,25 @@ function Show-Medicion {
     $ui.txtCondPlan.Text = "$($cond['plan'])"; $ui.txtCondVentiladores.Text = "$($cond['ventiladores'])"; $ui.txtCondSuperficie.Text = "$($cond['superficie'])"
     $ui.txtCondAmbiente.Text = "$($cond['temp_ambiente_c'])"; $ui.txtCondCarga.Text = "$($cond['carga_tipo'])"; $ui.txtCondDuracion.Text = "$($cond['carga_duracion_min'])"
     $ui.txtCondEstado.Text = ''
+}
+
+function Invoke-PreInformeGui {
+    # Genera el pre-informe con lo que haya. -Abrir lo muestra siempre (botón); -Auto lo muestra solo
+    # cuando la medición ANTES ya está completa, para no abrirlo a medias.
+    param([switch]$Abrir, [switch]$Auto)
+    $ui = $script:Ui
+    if (-not $script:G.Exp -or -not $script:G.At) { return }
+    try {
+        # Los trabajos de fondo pudieron cambiar ficha.json: se relee antes de generar.
+        $script:G.Exp = Read-Expediente $script:G.Exp.Ruta
+        $r = Export-PreInforme -Expediente $script:G.Exp -Atencion $script:G.At
+        if (-not $r.Generado) { if ($Abrir) { [void](Show-Aviso 'Primero haz el diagnóstico ANTES.') }; return }
+        $falta = @($r.Falta)
+        $ui.txtMedicionEstado.Text = if ($falta.Count) { "Pre-informe parcial. Todavía falta: $($falta -join ' y ')." } else { 'Pre-informe listo.' }
+        if ($Abrir -or ($Auto -and $falta.Count -eq 0)) {
+            if ($Captura) { $script:G.Registro.Add("pre-informe: se abriría $($r.Ruta)") } else { Start-Process -FilePath $r.Ruta }
+        }
+    } catch { [void](Show-Aviso (Get-MensajeSimple $_.Exception.Message) -EsError) }
 }
 
 function Invoke-Diagnostico {
@@ -431,6 +452,7 @@ function Invoke-Diagnostico {
             4 { $ui.txtMedicionEstado.Text = 'No hay un diagnóstico ANTES: hazlo primero.' }
             default { $ui.txtMedicionEstado.Text = "El diagnóstico terminó con un problema (código $codigo). Revisa el registro de abajo."; if ($err) { $ui.txtLog.AppendText($err) } }
         }
+        if ($codigo -eq 0 -and -not $script:G.DiagSuelto -and $script:G.Momento -eq 'antes') { Invoke-PreInformeGui -Auto }
     }
 }
 
@@ -747,9 +769,10 @@ $ui.btnImportarCsv.Add_Click({
             Initialize-AtencionGui
             $dlg = New-Object Microsoft.Win32.OpenFileDialog; $dlg.Filter = 'CSV de sensores (*.csv)|*.csv'
             if (-not $dlg.ShowDialog($script:Win)) { return }
-            Invoke-TareaKit -Accion 'importar_sensores' -Parametros @{ momento = $script:G.Momento; ruta = $dlg.FileName } -Texto 'Leyendo el CSV de sensores...' -AlResultado { param($r) Show-Medicion; Show-Estado }
+            Invoke-TareaKit -Accion 'importar_sensores' -Parametros @{ momento = $script:G.Momento; ruta = $dlg.FileName } -Texto 'Leyendo el CSV de sensores...' -AlResultado { param($r) Show-Medicion; Show-Estado; if ($script:G.Momento -eq 'antes') { Invoke-PreInformeGui -Auto } }
         } catch { [void](Show-Aviso (Get-MensajeSimple $_.Exception.Message) -EsError) }
     })
+$ui.btnPreInforme.Add_Click({ Invoke-PreInformeGui -Abrir })
 $ui.btnGuardarCondiciones.Add_Click({
         $ui = $script:Ui
         try {
@@ -759,6 +782,7 @@ $ui.btnGuardarCondiciones.Add_Click({
                     temp_ambiente_c = $ui.txtCondAmbiente.Text; carga_tipo = $ui.txtCondCarga.Text; carga_duracion_min = $ui.txtCondDuracion.Text })
             $script:G.Exp = Read-Expediente $script:G.Exp.Ruta
             $ui.txtCondEstado.Foreground = Get-Pincel '#1A7F37'; $ui.txtCondEstado.Text = 'Condiciones guardadas.'
+            if ($script:G.Momento -eq 'antes') { Invoke-PreInformeGui -Auto }
         } catch { $ui.txtCondEstado.Foreground = Get-Pincel '#CF222E'; $ui.txtCondEstado.Text = Get-MensajeSimple $_.Exception.Message }
     })
 

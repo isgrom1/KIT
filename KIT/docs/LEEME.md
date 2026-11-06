@@ -160,6 +160,7 @@ El USB lleva las atenciones en curso; el historial completo vive en el **maestro
   - acciones sugeridas con casillas y "Aplicar seleccionadas" (LENTO);
   - Analizar → revisar (desmarcar lo que no se mueve) → Mover, con el total antes de confirmar, y Deshacer (ARCHIVOS);
   - semáforo (REVISIÓN).
+- **Pre-informe:** `pre_informe.html`, en la carpeta de la atención. Muestra cómo está el equipo antes del trabajo, siempre con la medición ANTES y sin exigir la ficha completa. Se actualiza después del diagnóstico ANTES, al importar el CSV y al guardar las condiciones, y se abre solo cuando la medición queda completa. **② Antes → Ver pre-informe** lo abre en cualquier momento; en consola es la opción P de Trabajo. Lo que imprime es una hoja A4 para el cliente; el detalle de las alertas se ve en pantalla, pero no sale al imprimir.
 - **Informe:** vista previa de ambos informes, Generar, Abrir y Abrir carpeta.
 - **Mostrar al cliente:** pantalla completa con el semáforo y las tarjetas antes → después del motivo principal. Esc para salir.
 - **Expedientes:** lista los expedientes del USB (o del maestro, en tus equipos) con buscador; se elige la atención y **Abrir**. El de otro equipo, o cualquiera del maestro, se abre en **modo consulta** (barra ámbar): no se mide ni se aplican acciones, pero se puede completar la ficha y **regenerar los informes**. **Volver a este equipo** regresa al flujo normal. En tus equipos, abajo está **Sincronizar** (ver "Sincronizar con el maestro").
