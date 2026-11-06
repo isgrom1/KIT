@@ -29,13 +29,13 @@ Cómo atender un equipo con el kit: desde que lo recibes hasta que lo entregas y
 ## 2. Diagnóstico ANTES (1-4 min)
 
 1. **② Antes → Diagnosticar ANTES**. Tarda 15-20 segundos. Con **recorrido de carpetas** son hasta 3 minutos más: úsalo con Archivos o si el disco está lleno.
-2. Revisa las alertas: rojo = crítico, naranjo = aviso. Doble clic muestra el detalle. Lo crítico (un disco fallando, por ejemplo) conviene contárselo al cliente antes de tocar nada.
+2. Revisa las alertas: rojo = crítico, naranjo = aviso. Doble clic muestra el detalle. Lo crítico (un disco fallando, por ejemplo) conviene contárselo al cliente antes de tocar nada. Qué herramienta usar según lo que salga: "Herramientas y drivers, paso a paso", más abajo.
 
 **Con "Se calienta", mide antes de abrir el equipo:**
 
 1. Enchufa el equipo y déjalo **5 minutos en reposo**, hasta que la temperatura deje de bajar.
 2. **Herramientas → HWiNFO**, en modo *Sensors only*, y parte el registro (el botón del documento con el "+" verde). Guarda el CSV con un nombre claro, por ejemplo `antes.csv`.
-3. **Herramientas → OCCT**: prueba de CPU por **10 minutos**, siempre con la misma configuración. Pide permiso de administrador y la primera vez en cada equipo puede tardar un rato en abrir. Si no abre, mira "Si algo no anda".
+3. **Herramientas → OCCT**: prueba de CPU por **10 minutos**, siempre con la misma configuración: **CPU**, `0h 10min`, Mode `Normal`, Load Type `Steady`, Start at cycle `1`, Instruction Set `Auto` y Threads `Auto`. Sácale una foto antes de partir. Pide permiso de administrador y la primera vez en cada equipo puede tardar un rato en abrir. Si no abre, mira "Si algo no anda".
 4. Cuando OCCT termine, detén el registro de HWiNFO, toca **Importar CSV de sensores** y completa las **condiciones**: enchufado, plan de energía, modo de ventiladores, superficie, temperatura ambiente, tipo de carga ("OCCT CPU") y duración (10). **Guardar condiciones**.
 
 El DESPUÉS tiene que medirse igual: misma carga, duración y condiciones. El kit te propone las del ANTES y avisa si algo cambia, si la duración difiere más de un 20 % o si la CPU trabajó mucho menos que en el ANTES (más de un 25 % menos de velocidad: la baja de temperatura no sería una mejora real). Esos avisos son para ti: al generar los informes, el del cliente no los muestra.
@@ -74,6 +74,48 @@ El DESPUÉS tiene que medirse igual: misma carga, duración y condiciones. El ki
 ## Cliente que vuelve
 
 El kit lo reconoce solo por la serie (o por el UUID o la placa, si la serie es genérica). La ficha ya trae sus datos y se abre una atención nueva. El informe compara con la visita anterior. Si esa atención ya pasó al maestro, el detalle está allá.
+
+## Herramientas y drivers, paso a paso
+
+Abre una herramienta solo cuando el diagnóstico o el motivo de la atención lo pidan. Varias piden permiso de administrador. Salvo HWiNFO y OCCT, estos pasos todavía no se prueban en una atención real.
+
+**Paso 1. Lee las alertas del ANTES.** Te dicen qué revisar: discos, temperatura, espacio o drivers. No cambies drivers ni piezas antes de terminar el ANTES.
+
+**Paso 2. Salud de los discos.**
+1. Corre el diagnóstico con **admin**: el kit lee el SMART con CrystalDiskInfo y deja `discos.txt` en la medición.
+2. Abre **Herramientas → CrystalDiskInfo** solo si necesitas ver más detalle. Desde el botón, el historial de los discos del cliente puede quedar guardado en el USB.
+3. Si un disco sale en **Precaución** o **Malo**, detente, cuéntaselo al cliente y asegura su respaldo antes de seguir.
+
+**Paso 3. Velocidad del disco, solo con "Está lento".**
+1. Hazlo solo si el paso 2 salió bien: la prueba exige al disco y escribe archivos de prueba.
+2. Abre **Herramientas → CrystalDiskMark**, elige la unidad, deja `1GiB` y toca **All**.
+3. Sácale una foto al resultado y repite igual en el DESPUÉS.
+
+**Paso 4. Temperatura, con "Se calienta".** Usa HWiNFO y OCCT como dice el punto 2.
+
+**Paso 5. Espacio, con "Archivos y espacio".**
+1. Abre **Herramientas → WinDirStat** y elige la unidad para ver qué ocupa más.
+2. Abre **Herramientas → Czkawka** si necesitas buscar duplicados en una carpeta puntual.
+3. Usa estas dos solo para mirar. Lo que haya que sacar va por **③ Trabajo → Archivos**, que mueve en vez de borrar y se puede deshacer.
+
+**Paso 6. Drivers, al final.** Si vas a medir el DESPUÉS, actualízalos cuando termines de medir: así sabes que la mejora vino del trabajo.
+1. Actualiza solo lo que el diagnóstico marque: driver de video genérico, driver de video de más de 12 meses o un dispositivo con error.
+2. Pídele el OK al cliente.
+3. Baja el driver del sitio del fabricante del notebook o del componente. **No uses actualizadores de drivers:** el kit los marca como aviso.
+4. Crea un punto de restauración si el equipo lo permite, instala el driver y reinicia.
+5. Comprueba que todo siga funcionando y anótalo en **Notas**, en la ficha.
+
+**Paso 7. DDU, solo si el driver de video está dañado** y reinstalarlo encima no resultó.
+1. Pídele el OK al cliente, asegura su respaldo y, si tiene BitLocker, ten la clave de recuperación a mano.
+2. Baja primero el instalador del driver nuevo.
+3. Desconecta internet, para que Windows Update no instale otro driver.
+4. Reinicia en modo seguro y abre DDU desde `KIT\herramientas\DDU`.
+5. Elige GPU y el fabricante, y toca **Clean and restart**.
+6. Instala el driver nuevo, reinicia y vuelve a conectar internet.
+
+**Para casos puntuales:**
+- **LibreHardwareMonitor:** úsalo solo si HWiNFO no sirve en ese equipo. Instala el driver PawnIO, así que pide permiso al cliente. **Options → Log Sensors** guarda un CSV para importar, y el ANTES y el DESPUÉS tienen que usar la misma herramienta. Con un CSV real todavía no se prueba: solo con uno de ejemplo.
+- **Rufus:** úsalo en tu PC para crear un USB de arranque, cuando una ISO no parte con Ventoy. **Borra el USB de destino: nunca elijas el pendrive del kit.**
 
 ## Si algo no anda
 
