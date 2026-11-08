@@ -32,7 +32,7 @@ function Merge-ConfigLocal {
 }
 
 # Versión del kit. La copia que hace actualizar_pendrive.ps1 agrega el commit y la fecha (KIT\version.json).
-$script:VersionBase = '0.3.0'
+$script:VersionBase = '0.4.0'
 
 function Get-VersionKit {
     # "0.2.0 · 2f98fd2 · 2026-11-08" si el kit vino de actualizar_pendrive.ps1; si no, la versión base.

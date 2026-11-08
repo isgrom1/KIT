@@ -759,6 +759,8 @@ function Invoke-SincronizarGui {
     $args2 = @('-Maestro', $maestro, '-ProgresoGui')
     if ($liberar) { $args2 += '-LiberarUsb' }
     if ($Clientes) { $args2 += @('-Clientes', $Clientes) }
+    # Con un maestro de prueba (-RutaMaestro) no se respalda: el respaldo real es solo del maestro real.
+    if ($RutaMaestro) { $args2 += '-SinRespaldo' }
     $ui.txtSync.Text = 'Sincronizando...'
     Invoke-ScriptKit -Script (Join-Path $script:Raiz 'sincronizar.ps1') -Argumentos $args2 -Texto 'Sincronizando con el maestro...' -AlResultado {
         param($r)

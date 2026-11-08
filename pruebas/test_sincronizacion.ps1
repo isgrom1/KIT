@@ -176,23 +176,28 @@ Test-Caso '11 unidad del maestro ausente: se niega' ($msg -match 'No está la un
 # ---------------------------------------------------------------- 12. sincronizar.ps1 (como lo llaman INICIAR y la interfaz)
 $ps = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
 $script = Join-Path $scripts 'sincronizar.ps1'
-& $ps -NoProfile -ExecutionPolicy Bypass -File $script -EsTecnico; $c1 = $LASTEXITCODE
+# Se simula ser un equipo del técnico (el primero de equipos_tecnico) para que corra igual en cualquier PC,
+# también en GitHub. -SinRespaldo: el respaldo real (Z:) nunca se toca desde las pruebas.
 $guardado = $env:COMPUTERNAME
+$tecnico = @((Get-Content (Join-Path $scripts 'config\config.json') -Raw -Encoding UTF8 | ConvertFrom-Json).equipos_tecnico)[0]
+$env:COMPUTERNAME = $tecnico
+& $ps -NoProfile -ExecutionPolicy Bypass -File $script -EsTecnico; $c1 = $LASTEXITCODE
 try {
     $env:COMPUTERNAME = 'OTRO-PC'
     & $ps -NoProfile -ExecutionPolicy Bypass -File $script -EsTecnico; $c2 = $LASTEXITCODE
-    $salidaOtro = & $ps -NoProfile -ExecutionPolicy Bypass -File $script -Clientes $usb -Maestro $maestro -ProgresoGui; $c3 = $LASTEXITCODE
-} finally { $env:COMPUTERNAME = $guardado }
+    $salidaOtro = & $ps -NoProfile -ExecutionPolicy Bypass -File $script -Clientes $usb -Maestro $maestro -ProgresoGui -SinRespaldo; $c3 = $LASTEXITCODE
+} finally { $env:COMPUTERNAME = $tecnico }
 Test-Caso '12 -EsTecnico: este PC sí (0), otro no (1)' ($c1 -eq 0 -and $c2 -eq 1) "c1=$c1 c2=$c2"
 Test-Caso '12 otro PC: se niega con ##ERROR' ($c3 -eq 1 -and (@($salidaOtro) -join "`n") -match '##ERROR\|Sincronizar es solo para tus equipos') "$(@($salidaOtro) -join ' / ')"
 $psi = New-Object Diagnostics.ProcessStartInfo $ps
-$psi.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -Clientes "{1}" -Maestro "{2}" -ProgresoGui -LiberarUsb' -f $script, $usb, $maestro
+$psi.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -Clientes "{1}" -Maestro "{2}" -ProgresoGui -LiberarUsb -SinRespaldo' -f $script, $usb, $maestro
 $psi.UseShellExecute = $false; $psi.RedirectStandardOutput = $true; $psi.StandardOutputEncoding = New-Object Text.UTF8Encoding($false)
 $p = [Diagnostics.Process]::Start($psi); $salida = $p.StandardOutput.ReadToEnd(); $p.WaitForExit()
 $res = ($salida -split "`r?`n" | Where-Object { $_ -like '##RESULTADO|*' } | Select-Object -First 1)
 $obj = if ($res) { $res.Substring(12) | ConvertFrom-Json } else { $null }
 Test-Caso '12 -ProgresoGui: ##LOG y ##RESULTADO legibles (UTF-8)' ($p.ExitCode -eq 0 -and $salida -match '##LOG\|' -and $obj -and $obj.Usb -eq [IO.Path]::GetFullPath($usb)) "exit=$($p.ExitCode) $($salida.Substring(0, [Math]::Min(300, $salida.Length)))"
-$salidaConsola = & $ps -NoProfile -ExecutionPolicy Bypass -File $script -Clientes $usb -Maestro $maestro 6>&1 2>&1 | Out-String
+$salidaConsola = & $ps -NoProfile -ExecutionPolicy Bypass -File $script -Clientes $usb -Maestro $maestro -SinRespaldo 6>&1 2>&1 | Out-String
+$env:COMPUTERNAME = $guardado
 Test-Caso '12 consola: resumen' ($LASTEXITCODE -eq 0 -and $salidaConsola -match 'archivos revisados') ($salidaConsola.Substring(0, [Math]::Min(300, $salidaConsola.Length)))
 
 Write-Host ''
