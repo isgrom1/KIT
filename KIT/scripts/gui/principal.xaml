@@ -208,6 +208,8 @@
           <WrapPanel DockPanel.Dock="Top">
             <Button Name="btnDiagnosticar" Content="Diagnosticar" Style="{StaticResource Primario}"/>
             <Button Name="btnPreInforme" Content="Ver pre-informe"/>
+            <Button Name="btnPdfPre" Content="PDF del pre-informe"/>
+            <Button Name="btnMensajePre" Content="Copiar mensaje"/>
             <CheckBox Name="chkEspacio" Content="Incluir recorrido de carpetas (hasta 3 min más)"/>
           </WrapPanel>
           <TextBlock Name="txtMedicionEstado" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,6"/>
@@ -225,6 +227,12 @@
           <StackPanel Name="spCalorMedicion">
             <GroupBox Header="CALOR: sensores bajo carga">
               <StackPanel>
+                <Border Name="bdCsvDetectado" Background="#E3EFFB" BorderBrush="#B6D4F5" BorderThickness="1" Padding="8" Margin="0,0,0,8" Visibility="Collapsed">
+                  <StackPanel>
+                    <TextBlock Name="txtCsvDetectado" TextWrapping="Wrap" Foreground="#0B3D75" Margin="0,0,0,6"/>
+                    <Button Name="btnImportarDetectado" Content="Importar este CSV" HorizontalAlignment="Left" Style="{StaticResource Primario}"/>
+                  </StackPanel>
+                </Border>
                 <Button Name="btnImportarCsv" Content="Importar CSV de sensores..." HorizontalAlignment="Left"/>
                 <TextBlock Name="txtSensores" TextWrapping="Wrap" Foreground="#57606A"/>
               </StackPanel>
@@ -328,6 +336,8 @@
           <Button Name="btnAbrirCliente" Content="Abrir informe del cliente"/>
           <Button Name="btnAbrirTecnico" Content="Abrir informe técnico"/>
           <Button Name="btnAbrirCarpeta" Content="Abrir carpeta"/>
+          <Button Name="btnPdfCliente" Content="Guardar PDF del cliente"/>
+          <Button Name="btnMensaje" Content="Copiar mensaje para WhatsApp"/>
         </WrapPanel>
         <TextBlock Name="txtInforme" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,8"/>
         <TabControl>
@@ -358,6 +368,14 @@
               <Button Name="btnAbrirLeeme" Content="Abrir LEEME"/>
               <Button Name="btnConsola" Content="Menú de consola"/>
             </WrapPanel>
+          </GroupBox>
+          <GroupBox Header="Paquete de soporte">
+            <StackPanel>
+              <TextBlock Text="Arma un .zip chico en KIT\soporte con los registros, las alertas y el estado de las atenciones de este equipo, sin nombre, contacto ni comuna del cliente. Sirve para revisar después en tu PC qué pasó." TextWrapping="Wrap" Style="{StaticResource Etiqueta}"/>
+              <WrapPanel>
+                <Button Name="btnSoporte" Content="Armar paquete de soporte"/>
+              </WrapPanel>
+            </StackPanel>
           </GroupBox>
         </StackPanel>
       </ScrollViewer>

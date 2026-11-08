@@ -42,6 +42,8 @@ function Get-OpcionesHerramientas {
             Variables = $(if ($esOcct) { @{ DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1 = '1' } } else { $null })
             # Si queda uno colgado ("Suspendido"), el nuevo no abre ni avisa.
             Procesos  = $(if ($esOcct) { @('OCCT', 'OCCTGUI') } else { $null })
+            # Prueba fija de CALOR (CPU, 10 min, Normal, Steady): se aplica a su configuración al abrirlo.
+            ConfigBase = $(if ($esOcct) { Join-Path (Split-Path -Parent $PSScriptRoot) 'config\occt_prueba.json' } else { $null })
         }
     }
 }
@@ -75,6 +77,68 @@ function Start-Herramienta {
             throw "$($Opcion.Nombre) ya está corriendo. Si no ves su ventana, quedó colgado: ciérralo en el Administrador de tareas ($($Opcion.Procesos -join ', ')) y prueba de nuevo."
         }
     }
+    # Devuelve una nota para el técnico (la prueba fija de OCCT) o $null.
+    $nota = $null
+    if ($Opcion.PSObject.Properties['ConfigBase'] -and $Opcion.ConfigBase -and [IO.File]::Exists($Opcion.ConfigBase)) {
+        try {
+            $c = Set-ConfigOcct -Carpeta (Split-Path -Parent $Opcion.Exe) -Base $Opcion.ConfigBase -WhatIf:$WhatIfPreference
+            $nota = switch ($c.Estado) {
+                'ok' { 'Prueba fijada: CPU, 10 min, Normal, Steady. Revísala y acepta la licencia si la pide.' }
+                'parcial' { "Esta versión de OCCT no tiene $(@($c.NoEncontrados) -join ', '): revisa la prueba antes de partir (CPU, 10 min, Normal, Steady)." }
+                default { 'Primera vez de OCCT en este pendrive: elige CPU, 10 min, Normal, Steady. Desde la próxima vez, el kit la deja fija.' }
+            }
+        } catch { $nota = "No se pudo fijar la prueba de OCCT ($($_.Exception.Message)): revísala antes de partir." }
+    }
     $inicio = Get-InicioHerramienta -Opcion $Opcion
     if ($PSCmdlet.ShouldProcess($Opcion.Exe, 'Abrir herramienta')) { Start-Process @inicio -ErrorAction Stop }
+    $nota
+}
+
+function Set-ConfigOcct {
+    # Copia en OCCT.config.json la prueba fija de config\occt_prueba.json y quita los datos del último equipo.
+    # Solo cambia valores que ya existen: si OCCT cambió el formato, no inventa campos y los devuelve en
+    # NoEncontrados. Sin OCCT.config.json (OCCT nunca se abrió en este pendrive) no hace nada. La prueba
+    # anterior queda en OCCT.config.json.bak (sin los datos del equipo). No toca la aceptación de la licencia.
+    [CmdletBinding(SupportsShouldProcess)]
+    param([Parameter(Mandatory)][string]$Carpeta, [Parameter(Mandatory)][string]$Base)
+    $ruta = Join-Path $Carpeta 'OCCT.config.json'
+    if (-not [IO.File]::Exists($ruta)) { return [pscustomobject]@{ Estado = 'sin_config'; Cambios = 0; NoEncontrados = @() } }
+    $b = [IO.File]::ReadAllText($Base, [Text.Encoding]::UTF8) | ConvertFrom-Json
+    $original = [IO.File]::ReadAllText($ruta, [Text.Encoding]::UTF8)
+    $cfg = $original | ConvertFrom-Json
+    $faltan = New-Object System.Collections.Generic.List[string]
+    $cambios = 0
+    foreach ($par in $b.valores.PSObject.Properties) {
+        $obj = $cfg
+        $partes = $par.Name -split '\.'
+        $encontrado = $false
+        for ($i = 0; $i -lt $partes.Count; $i++) {
+            $nombre = $partes[$i]
+            $indice = $null
+            if ($nombre -match '^(.+)\[(\d+)\]$') { $nombre = $Matches[1]; $indice = [int]$Matches[2] }
+            $prop = if ($obj -is [Management.Automation.PSCustomObject]) { $obj.PSObject.Properties[$nombre] } else { $null }
+            if (-not $prop) { break }
+            if ($i -eq $partes.Count - 1 -and $null -eq $indice) {
+                if ("$($prop.Value)" -ne "$($par.Value)") { $prop.Value = $par.Value; $cambios++ }
+                $encontrado = $true
+                break
+            }
+            $obj = $prop.Value
+            if ($null -ne $indice) {
+                $arr = @($obj)
+                if ($indice -ge $arr.Count) { break }
+                $obj = $arr[$indice]
+            }
+        }
+        if (-not $encontrado) { $faltan.Add($par.Name) }
+    }
+    foreach ($q in @($b.quitar)) { if ($cfg.PSObject.Properties[$q]) { $cfg.PSObject.Properties.Remove($q); $cambios++ } }
+    if ($cambios -and $PSCmdlet.ShouldProcess($ruta, 'Fijar la prueba de OCCT')) {
+        # El respaldo guarda la prueba anterior, pero tampoco los datos del equipo anterior.
+        $respaldo = $original | ConvertFrom-Json
+        foreach ($q in @($b.quitar)) { if ($respaldo.PSObject.Properties[$q]) { $respaldo.PSObject.Properties.Remove($q) } }
+        [IO.File]::WriteAllText("$ruta.bak", ($respaldo | ConvertTo-Json -Depth 100), (New-Object Text.UTF8Encoding($false)))
+        [IO.File]::WriteAllText($ruta, ($cfg | ConvertTo-Json -Depth 100), (New-Object Text.UTF8Encoding($false)))
+    }
+    [pscustomobject]@{ Estado = $(if ($faltan.Count) { 'parcial' } else { 'ok' }); Cambios = $cambios; NoEncontrados = $faltan.ToArray() }
 }

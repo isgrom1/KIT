@@ -35,7 +35,7 @@ try { Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBas
 $ErrorActionPreference = 'Stop'
 $script:Raiz = Split-Path -Parent $PSScriptRoot
 try {
-    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe', 'Herramientas', 'Sincronizacion', 'Flujo') { . (Join-Path $script:Raiz "lib\$lib.ps1") }
+    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe', 'Herramientas', 'Sincronizacion', 'Flujo', 'Soporte') { . (Join-Path $script:Raiz "lib\$lib.ps1") }
     foreach ($m in 'calor', 'lento', 'archivos', 'revision') { . (Join-Path $script:Raiz "motivos\$m.ps1") }
     Initialize-Contexto -RaizScripts $script:Raiz
     if ($Clientes) { $script:Ctx.CarpetaClientes = $Clientes }
@@ -402,8 +402,10 @@ function Show-Medicion {
     $a = Get-Entrada
     $carpeta = if ($a) { Join-Path (Join-Path $script:G.Exp.Ruta $script:G.At) $m } else { $null }
     $diag = if ($carpeta) { Read-JsonKitOpcional (Join-Path $carpeta 'diagnostico.json') } else { $null }
-    $ui.btnPreInforme.Visibility = if ($m -eq 'antes') { 'Visible' } else { 'Collapsed' }
-    $ui.btnPreInforme.IsEnabled = [bool]$diag
+    foreach ($b in 'btnPreInforme', 'btnPdfPre', 'btnMensajePre') {
+        $ui[$b].Visibility = if ($m -eq 'antes') { 'Visible' } else { 'Collapsed' }
+        $ui[$b].IsEnabled = [bool]$diag
+    }
     if (-not $script:G.Tarea) {
         $ui.txtMedicionEstado.Text = if ($diag) { "Medición del $($diag.kit.generado) (admin: $(if ($diag.kit.admin.Elevado) { 'sí' } else { 'no' })). Puedes repetirla: la anterior queda de respaldo." } else { 'Todavía no hay diagnóstico.' }
         $ui.prgDiag.Value = if ($diag) { $ui.prgDiag.Maximum } else { 0 }
@@ -427,6 +429,53 @@ function Show-Medicion {
     $ui.txtCondPlan.Text = "$($cond['plan'])"; $ui.txtCondVentiladores.Text = "$($cond['ventiladores'])"; $ui.txtCondSuperficie.Text = "$($cond['superficie'])"
     $ui.txtCondAmbiente.Text = "$($cond['temp_ambiente_c'])"; $ui.txtCondCarga.Text = "$($cond['carga_tipo'])"; $ui.txtCondDuracion.Text = "$($cond['carga_duracion_min'])"
     $ui.txtCondEstado.Text = ''
+    Show-CsvDetectado
+}
+
+function Show-CsvDetectado {
+    # Con CALOR y el CSV de este momento pendiente, busca el que dejó HWiNFO (raíz del pendrive, carpeta de
+    # HWiNFO, Escritorio, Documentos, Descargas) y ofrece importarlo con un botón.
+    $ui = $script:Ui
+    $ui.bdCsvDetectado.Visibility = 'Collapsed'
+    $ui.btnImportarDetectado.Tag = $null
+    if ($script:G.Ajeno -or $script:G.Tarea -or -not $script:G.Exp -or -not $script:G.At) { return }
+    $a = Get-Entrada
+    if (-not $a -or @($a['motivos']) -notcontains 'CALOR') { return }
+    $c = @()
+    try { $c = @(Find-CsvSensores -Expediente $script:G.Exp -Atencion $script:G.At -Momento $script:G.Momento) } catch { Write-Verbose "Sin búsqueda de CSV: $($_.Exception.Message)" }
+    if (-not $c.Count) { return }
+    $x = $c[0]
+    $texto = "Encontré un CSV de $($x.Formato) en $($x.Donde): $($x.Nombre) ($($x.Fecha.ToString('dd-MM HH:mm')), $($x.KB) KB)."
+    if ($x.EnCurso) { $texto += ' Todavía se está grabando: detén el registro en HWiNFO y vuelve a esta ventana.' }
+    if ($c.Count -gt 1) { $texto += " Hay $($c.Count - 1) más: si no es este, usa Importar CSV de sensores." }
+    $ui.txtCsvDetectado.Text = $texto
+    $ui.btnImportarDetectado.Tag = $x
+    $ui.btnImportarDetectado.IsEnabled = -not $x.EnCurso
+    $ui.bdCsvDetectado.Visibility = 'Visible'
+}
+
+function Invoke-PdfGui {
+    # Guarda el PDF (pre-informe o informe del cliente) con Edge en segundo plano y lo muestra en su carpeta.
+    param([ValidateSet('pre', 'cliente')][string]$Cual)
+    if (-not $script:G.Exp -or -not $script:G.At) { return }
+    Invoke-TareaKit -Accion 'guardar_pdf' -Parametros @{ cual = $Cual } -Texto 'Guardando el PDF...' -AlResultado {
+        param($r)
+        $script:Ui.txtEstado.Text = "PDF guardado: $($r.pdf)"
+        if ($Captura) { $script:G.Registro.Add("pdf: $($r.pdf)") } else { Start-Process -FilePath (Join-Path $env:SystemRoot 'explorer.exe') -ArgumentList ('/select,"{0}"' -f $r.pdf) }
+    }
+}
+
+function Copy-MensajeGui {
+    # Deja en el portapapeles el mensaje para WhatsApp y lo muestra para revisarlo.
+    param([ValidateSet('pre', 'final')][string]$Tipo)
+    if (-not $script:G.Exp -or -not $script:G.At) { return }
+    try {
+        $script:G.Exp = Read-Expediente $script:G.Exp.Ruta
+        $texto = Get-MensajeWhatsApp -Expediente $script:G.Exp -Atencion $script:G.At -Tipo $Tipo
+        if ($Captura) { $script:G.Registro.Add("mensaje ($Tipo): $($texto -replace "`r`n", ' / ')"); return }
+        [Windows.Clipboard]::SetText($texto)
+        [void](Show-Aviso "Copié este mensaje. Pégalo en WhatsApp y adjunta el PDF:`n`n$texto")
+    } catch { [void](Show-Aviso (Get-MensajeSimple $_.Exception.Message) -EsError) }
 }
 
 function Invoke-PreInformeGui {
@@ -559,7 +608,7 @@ function Show-Herramientas {
                 param($s, $e)
                 $o = $s.Tag
                 $script:Ui.txtHerramienta.Text = "$($o.Nombre) · licencia: $($o.Licencia)$(if ($o.Nota) { " · Ojo: $($o.Nota)" })"
-                try { Start-Herramienta -Opcion $o } catch { [void](Show-Aviso "No se pudo abrir $($o.Nombre): $($_.Exception.Message)" -EsError) }
+                try { $nota = Start-Herramienta -Opcion $o; if ($nota) { $script:Ui.txtHerramienta.Text += " · $nota" } } catch { [void](Show-Aviso "No se pudo abrir $($o.Nombre): $($_.Exception.Message)" -EsError) }
             })
         [void]$ui.wpHerramientas.Children.Add($b)
     }
@@ -835,6 +884,41 @@ $ui.btnImportarCsv.Add_Click({
         } catch { [void](Show-Aviso (Get-MensajeSimple $_.Exception.Message) -EsError) }
     })
 $ui.btnPreInforme.Add_Click({ Invoke-PreInformeGui -Abrir })
+$ui.btnPdfPre.Add_Click({ Invoke-PdfGui -Cual 'pre' })
+$ui.btnMensajePre.Add_Click({ Copy-MensajeGui -Tipo 'pre' })
+$ui.btnPdfCliente.Add_Click({ Invoke-PdfGui -Cual 'cliente' })
+$ui.btnMensaje.Add_Click({ Copy-MensajeGui -Tipo 'final' })
+$ui.btnImportarDetectado.Add_Click({
+        $x = $script:Ui.btnImportarDetectado.Tag
+        if (-not $x) { return }
+        try {
+            Initialize-AtencionGui
+            # El resultado llega después, en otro contexto: lo que necesita queda en $script:G.
+            $script:G.CsvDetectado = [pscustomobject]@{ Ruta = $x.Ruta; Nombre = $x.Nombre; Donde = $x.Donde; Momento = $script:G.Momento }
+            Invoke-TareaKit -Accion 'importar_sensores' -Parametros @{ momento = $script:G.Momento; ruta = $x.Ruta } -Texto 'Leyendo el CSV de sensores...' -AlResultado {
+                param($r)
+                $c = $script:G.CsvDetectado
+                $script:G.Exp = Read-Expediente $script:G.Exp.Ruta
+                Show-Medicion; Show-Estado
+                if ($c -and (Show-Aviso "Listo: $($c.Nombre) quedó copiado en el expediente ($($r.minutos) min, CPU $($r.cpu_media) °C promedio).`n`n¿Lo saco de $($c.Donde) para no dejarlo en el equipo?" -Pregunta)) {
+                    try {
+                        if (Remove-CsvSensoresOrigen -Expediente $script:G.Exp -Atencion $script:G.At -Momento $c.Momento -Ruta $c.Ruta) { $script:Ui.txtEstado.Text = "CSV importado y sacado de $($c.Donde)." }
+                    } catch { [void](Show-Aviso (Get-MensajeSimple $_.Exception.Message) -EsError) }
+                }
+                if ($c.Momento -eq 'antes') { Invoke-PreInformeGui -Auto }
+            }
+        } catch { [void](Show-Aviso (Get-MensajeSimple $_.Exception.Message) -EsError) }
+    })
+$ui.btnSoporte.Add_Click({
+        if (-not $script:G.Exp) { [void](Show-Aviso 'No hay expediente abierto para este equipo.'); return }
+        try {
+            $zip = Export-PaqueteSoporte -Expediente (Read-Expediente $script:G.Exp.Ruta) -Atencion $script:G.At
+            $script:Ui.txtEstado.Text = "Paquete de soporte: $zip"
+            if ($Captura) { $script:G.Registro.Add("soporte: $zip") } else { Start-Process -FilePath (Join-Path $env:SystemRoot 'explorer.exe') -ArgumentList ('/select,"{0}"' -f $zip) }
+        } catch { [void](Show-Aviso (Get-MensajeSimple $_.Exception.Message) -EsError) }
+    })
+# Al volver a la ventana (por ejemplo, después de grabar con HWiNFO), se busca de nuevo el CSV.
+$script:Win.Add_Activated({ if ($script:G.Panel -eq 'pnlMedicion') { Show-CsvDetectado } })
 $ui.btnGuardarCondiciones.Add_Click({
         $ui = $script:Ui
         try {

@@ -22,6 +22,9 @@ pruebas/*.log
 KIT/version.json
 KIT/_obsoletos/
 
+# Paquetes de soporte: llevan series y registros de equipos de clientes.
+KIT/soporte/
+
 # Temporales del kit.
 *.tmp
 *.bak

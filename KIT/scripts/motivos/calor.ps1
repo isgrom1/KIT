@@ -182,3 +182,110 @@ function Get-MetricasCalor {
         Materiales   = @($a['materiales'])
     }
 }
+
+# ------------------------------------------------------------------------------ CSV de sensores detectado solo
+
+function Get-CarpetasCsvSensores {
+    # Dónde suele quedar el CSV de HWiNFO: la raíz del pendrive, la carpeta KIT y la de HWiNFO del kit, y el
+    # Escritorio, Documentos y Descargas del usuario. Solo se mira el primer nivel de cada una.
+    $raizKit = $script:Ctx.RaizKit
+    $c = [ordered]@{}
+    $c['la raíz del pendrive'] = [IO.Path]::GetPathRoot($raizKit)
+    $c['la carpeta KIT'] = $raizKit
+    $c['la carpeta de HWiNFO del kit'] = Join-Path $raizKit 'herramientas\HWiNFO'
+    $c['el Escritorio'] = [Environment]::GetFolderPath('Desktop')
+    $c['Documentos'] = [Environment]::GetFolderPath('MyDocuments')
+    $c['Descargas'] = Join-Path $env:USERPROFILE 'Downloads'
+    $c
+}
+
+function Get-FormatoEncabezadoSensores {
+    # HWiNFO, LibreHardwareMonitor o $null, leyendo solo la primera línea (aunque HWiNFO lo tenga abierto).
+    param([Parameter(Mandatory)][string]$Ruta)
+    $linea = $null
+    try {
+        $fs = [IO.File]::Open($Ruta, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+        try { $sr = New-Object IO.StreamReader($fs, [Text.Encoding]::UTF8, $true); $linea = $sr.ReadLine() } finally { $fs.Dispose() }
+    } catch { return $null }
+    if (-not $linea) { return $null }
+    $linea = $linea.TrimStart([char]0xFEFF)
+    if ($linea -match '^"?Date"?,"?Time"?,') { return 'HWiNFO' }
+    if ($linea -match '^,"/') { return 'LibreHardwareMonitor' }
+    $null
+}
+
+function Find-CsvSensores {
+    # CSV de sensores que pueden ser de esta medición, el más nuevo primero: de HWiNFO o LibreHardwareMonitor,
+    # modificados desde el día de la atención (en el DESPUÉS, desde que se importó el ANTES) y distintos de
+    # los ya importados. Si el momento ya tiene sensores, no busca. Solo mira nombres y fechas de los .csv y
+    # la primera línea de los recientes; no guarda nada.
+    param(
+        [Parameter(Mandatory)]$Expediente,
+        [Parameter(Mandatory)][string]$Atencion,
+        [Parameter(Mandatory)][ValidateSet('antes', 'despues')][string]$Momento,
+        [System.Collections.IDictionary]$Carpetas = (Get-CarpetasCsvSensores),
+        [datetime]$Ahora = (Get-Date)
+    )
+    $dirAt = Join-Path $Expediente.Ruta $Atencion
+    if ([IO.File]::Exists((Join-Path (Join-Path $dirAt $Momento) 'sensores_resumen.json'))) { return @() }
+    $desde = [datetime]::MinValue
+    if ($Atencion -match '^(\d{4}-\d{2}-\d{2})') { $desde = [datetime]::ParseExact($Matches[1], 'yyyy-MM-dd', $script:Invariante) }
+    $importados = @()
+    $csvAntes = Join-Path (Join-Path $dirAt 'antes') 'sensores.csv'
+    if ($Momento -eq 'despues') {
+        $resAntes = Join-Path (Join-Path $dirAt 'antes') 'sensores_resumen.json'
+        if (-not [IO.File]::Exists($resAntes)) { return @() }
+        $t = [IO.File]::GetLastWriteTime($resAntes)
+        if ($t -gt $desde) { $desde = $t }
+    }
+    if ([IO.File]::Exists($csvAntes)) { $importados += Get-Item -LiteralPath $csvAntes }
+    $vistos = @{}
+    $lista = foreach ($k in $Carpetas.Keys) {
+        $dir = $Carpetas[$k]
+        if (-not $dir -or -not [IO.Directory]::Exists($dir)) { continue }
+        foreach ($f in @(Get-ChildItem -LiteralPath $dir -File -Filter '*.csv' -ErrorAction SilentlyContinue)) {
+            if ($vistos[$f.FullName.ToLowerInvariant()] -or $f.LastWriteTime -lt $desde -or $f.Length -lt 200) { continue }
+            $vistos[$f.FullName.ToLowerInvariant()] = $true
+            $formato = Get-FormatoEncabezadoSensores -Ruta $f.FullName
+            if (-not $formato) { continue }
+            $igual = $false
+            foreach ($i in $importados) {
+                if ($i.Length -eq $f.Length -and (Get-FileHash -LiteralPath $i.FullName -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash) { $igual = $true }
+            }
+            if ($igual) { continue }
+            [pscustomobject][ordered]@{
+                Ruta    = $f.FullName
+                Nombre  = $f.Name
+                Donde   = $k
+                Fecha   = $f.LastWriteTime
+                KB      = [math]::Round($f.Length / 1KB)
+                Formato = $formato
+                # HWiNFO escribe cada 2 segundos: si cambió hace poco, todavía está grabando.
+                EnCurso = (($Ahora - $f.LastWriteTime).TotalSeconds -lt 15)
+            }
+        }
+    }
+    @($lista | Sort-Object Fecha -Descending)
+}
+
+function Remove-CsvSensoresOrigen {
+    # Saca del equipo el CSV original ya importado, solo si es idéntico (SHA-256) al sensores.csv que quedó en
+    # el expediente. Devuelve $true si lo sacó. Es el registro del técnico, no un archivo del cliente.
+    [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)]$Expediente,
+        [Parameter(Mandatory)][string]$Atencion,
+        [Parameter(Mandatory)][ValidateSet('antes', 'despues')][string]$Momento,
+        [Parameter(Mandatory)][string]$Ruta
+    )
+    $copia = Join-Path (Join-Path (Join-Path $Expediente.Ruta $Atencion) $Momento) 'sensores.csv'
+    if (-not [IO.File]::Exists($copia) -or -not [IO.File]::Exists($Ruta)) { return $false }
+    if ((Get-FileHash -LiteralPath $copia -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $Ruta -Algorithm SHA256).Hash) {
+        throw 'El CSV cambió desde que se importó: no se saca (¿HWiNFO sigue grabando?)'
+    }
+    if (-not $PSCmdlet.ShouldProcess($Ruta, 'Sacar el CSV original del equipo')) { return $false }
+    [IO.File]::Delete($Ruta)
+    Write-TrabajoLog -Expediente $Expediente -Atencion $Atencion -Texto ('CALOR {0} | CSV original {1} sacado del equipo (copia idéntica en sensores.csv)' -f $Momento.ToUpperInvariant(), [IO.Path]::GetFileName($Ruta))
+    $true
+}

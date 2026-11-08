@@ -36,11 +36,14 @@ Cómo atender un equipo con el kit: desde que lo recibes hasta que lo entregas y
 **Con "Se calienta", mide antes de abrir el equipo:**
 
 1. Enchufa el equipo y déjalo **5 minutos en reposo**, hasta que la temperatura deje de bajar.
-2. **Herramientas → HWiNFO**, en modo *Sensors only*, y parte el registro (el botón del documento con el "+" verde). Guarda el CSV con un nombre claro, por ejemplo `antes.csv`.
-3. **Herramientas → OCCT**: prueba de CPU por **10 minutos**, siempre con la misma configuración: **CPU**, `0h 10min`, Mode `Normal`, Load Type `Steady`, Start at cycle `1`, Instruction Set `Auto` y Threads `Auto`. Sácale una foto antes de partir. Pide permiso de administrador y la primera vez en cada equipo puede tardar un rato en abrir. Si no abre, mira "Si algo no anda".
-4. Cuando OCCT termine, detén el registro de HWiNFO. Si grabó de más no hay problema: el kit calcula los promedios solo con el tramo bajo carga (CPU sobre 80 % de uso por al menos 3 minutos, con el resto en reposo). Toca **Importar CSV de sensores** y completa las **condiciones**: enchufado, plan de energía, modo de ventiladores, superficie, temperatura ambiente, tipo de carga ("OCCT CPU") y duración (10). **Guardar condiciones**.
+2. **Herramientas → HWiNFO**, en modo *Sensors only*, y parte el registro (el botón del documento con el "+" verde). Guarda el CSV con un nombre claro, por ejemplo `antes.csv`, en la raíz del pendrive, el Escritorio o Documentos: ahí lo busca el kit.
+3. **Herramientas → OCCT**: prueba de CPU por **10 minutos**, siempre la misma: **CPU**, `0h 10min`, Mode `Normal`, Load Type `Steady`, Start at cycle `1`, Instruction Set `Auto` y Threads `Auto`. **El botón del kit la deja fijada** antes de abrir OCCT (y lo dice abajo, en Herramientas): igual revísala y sácale una foto antes de partir. La primera vez que OCCT se abre desde un pendrive todavía no hay configuración: elígela a mano y desde la siguiente queda fija. Pide permiso de administrador y la primera vez en cada equipo puede tardar un rato en abrir. Si no abre, mira "Si algo no anda".
+4. Cuando OCCT termine, detén el registro de HWiNFO y **vuelve a la ventana del kit**: en **② Antes** aparece "Encontré un CSV de HWiNFO en …" con el botón **Importar este CSV**. Al importarlo te pregunta si lo saca de ahí, para no dejarlo en el equipo del cliente (solo lo saca si quedó una copia idéntica en el expediente). Si es otro archivo, usa **Importar CSV de sensores...**. Si grabó de más no hay problema: el kit calcula los promedios solo con el tramo bajo carga (CPU sobre 80 % de uso por al menos 3 minutos, con el resto en reposo). Completa las **condiciones**: enchufado, plan de energía, modo de ventiladores, superficie, temperatura ambiente, tipo de carga ("OCCT CPU") y duración (10). **Guardar condiciones**.
 
-**Pre-informe:** al terminar el diagnóstico ANTES, el kit abre `pre_informe.html`: una hoja para el cliente con el semáforo, las temperaturas, las recomendaciones y el trabajo y precio de la ficha. Si todavía falta algo (con "Se calienta", el CSV y las condiciones), lo dice, y se vuelve a abrir cuando queda completo. **Ver pre-informe** lo abre cuando quieras. Para entregarlo: **Ctrl+P → Guardar como PDF** y mándale ese PDF. No le mandes el `.html`: abajo trae un detalle de las alertas para ti, que no sale al imprimir.
+**Pre-informe:** al terminar el diagnóstico ANTES, el kit abre `pre_informe.html`: una hoja para el cliente con el semáforo, las temperaturas, las recomendaciones y el trabajo y precio de la ficha. Si todavía falta algo (con "Se calienta", el CSV y las condiciones), lo dice, y se vuelve a abrir cuando queda completo. **Ver pre-informe** lo abre cuando quieras. Para mandárselo:
+- **PDF del pre-informe** lo imprime con Edge, sin abrir ventanas, y te muestra `pre_informe.pdf` en su carpeta, listo para arrastrarlo a WhatsApp Web o al correo.
+- **Copiar mensaje** deja en el portapapeles un texto corto para WhatsApp (saludo, cómo está el equipo, la temperatura y el trabajo y precio propuestos) y te lo muestra para revisarlo.
+- No le mandes el `.html`: abajo trae un detalle de las alertas para ti, que no sale en el PDF.
 
 El DESPUÉS tiene que medirse igual: misma carga, duración y condiciones. El kit te propone las del ANTES y avisa si algo cambia, si la duración difiere más de un 20 % o si la CPU trabajó mucho menos que en el ANTES (más de un 25 % menos de velocidad: la baja de temperatura no sería una mejora real). Esos avisos son para ti: al generar los informes, el del cliente no los muestra.
 
@@ -55,12 +58,12 @@ El DESPUÉS tiene que medirse igual: misma carga, duración y condiciones. El ki
 ## 4. Diagnóstico DESPUÉS
 
 1. **④ Después → Diagnosticar DESPUÉS**: queda en la misma atención, para comparar.
-2. Con **Se calienta**: repite la medición igual que en el ANTES (5 minutos de reposo, HWiNFO grabando y la misma prueba de OCCT por 10 minutos) e importa el CSV.
+2. Con **Se calienta**: repite la medición igual que en el ANTES (5 minutos de reposo, HWiNFO grabando y la misma prueba de OCCT por 10 minutos) e importa el CSV: al volver a la ventana, **④ Después** lo ofrece igual que en el ANTES (solo los grabados después de importar el ANTES).
 
 ## 5. Informe y explicación al cliente
 
 1. **⑤ Informe → Generar informes**. Si falta algo de la ficha, dice qué.
-2. **Informe del cliente** (una página A4): semáforo, frase principal, antes → después, lo que se hizo, hasta 3 recomendaciones, garantía y próxima mantención. **Abrir informe del cliente → Ctrl+P → Guardar como PDF**, y se lo mandas por WhatsApp o correo.
+2. **Informe del cliente** (una página A4): semáforo, frase principal, antes → después, lo que se hizo, hasta 3 recomendaciones, garantía y próxima mantención. **Guardar PDF del cliente** deja `informe_cliente.pdf` en la carpeta de la atención y te la muestra. **Copiar mensaje para WhatsApp** prepara el texto: que está listo, el antes → después principal y la garantía. Pega el mensaje y adjunta el PDF. Si el equipo no tiene Edge, el kit lo dice: **Abrir informe del cliente → Ctrl+P → Guardar como PDF**.
 3. **Informe técnico**: todo el detalle, para ti.
 4. **Mostrar al cliente**: pantalla completa. Arriba, el **estado general del equipo** (las luces por área y, si hay algo en rojo o naranjo, cuáles son). Abajo, separado, el **resultado de lo que vino a hacer** (temperatura, rapidez o espacio) con las tarjetas antes → después. Así no se confunde "el equipo está en buen estado" con "la temperatura bajó". **Esc** para salir.
 
@@ -126,6 +129,7 @@ Abre una herramienta solo cuando el diagnóstico o el motivo de la atención lo 
 - **La ventana no abre:** el equipo tiene PowerShell restringido (AppLocker, WDAC o Smart App Control). INICIAR muestra el menú de consola. Si el diagnóstico dice "código 3", no puede correr en ese equipo. **Nunca desactives la seguridad del cliente.**
 - **"No hay diagnóstico ANTES":** el DESPUÉS necesita un ANTES en la misma atención.
 - **Cancelar:** botón de la barra de abajo. La medición anterior queda intacta.
+- **Algo raro en una atención y no tienes el pendrive a mano para revisarlo:** **Modo técnico → Armar paquete de soporte** (en consola, Trabajo → Z). Deja en `KIT\soporte` un .zip chico con los registros, las alertas y el estado de todas las atenciones del equipo, sin el nombre, el contacto ni la comuna del cliente. Tráelo a tu PC para revisarlo.
 - **Franja ámbar "Ojo: … archivos del kit no coinciden":** un script del pendrive no es igual al que se copió (pendrive dañado o archivo cambiado). Termina la atención si quieres, pero al volver corre `actualizar_pendrive.ps1`. Si abajo dice "copia de trabajo", el kit se copió a mano (o corre desde el repositorio) y no hay contra qué verificarlo.
 - **Se cortó la luz o sacaron el USB a mitad:** lo cortado queda como `_incompleto_` y la medición anterior queda intacta.
 - **Modo técnico:** diagnóstico suelto por secciones, y abrir `resumen.txt`, `trabajo.log` o el menú de consola. Si la atención en curso todavía no tiene ANTES y marcas todas las secciones, cuenta como su ANTES. Si no, pregunta antes de abrir una atención aparte, que no reemplaza a la que estás trabajando. Lo normal es medir en **② Antes**.

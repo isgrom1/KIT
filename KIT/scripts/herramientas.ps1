@@ -47,8 +47,9 @@ while ($true) {
     Write-Host " $($o.Nombre) | licencia: $($o.Licencia)"
     if ($o.Nota) { Write-Host " Ojo: $($o.Nota)" -ForegroundColor Yellow }
     try {
-        Start-Herramienta -Opcion $o
+        $nota = Start-Herramienta -Opcion $o
         Write-Host ' Abierta.' -ForegroundColor Green
+        if ($nota) { Write-Host " $nota" -ForegroundColor Yellow }
     } catch {
         Write-Host " No se pudo abrir: $($_.Exception.Message)" -ForegroundColor Red
     }

@@ -25,6 +25,7 @@ Corre con el Windows PowerShell 5.1 que trae Windows: no instala nada en el equi
    │  ├─ lib\                    Comun, Log, Privacidad, Salidas, Alertas, Expediente, Flujo, Sincronizacion...
    │  └─ config\                 config.json, software_conocido.json, ciclo_vida_windows.json
    ├─ herramientas\              una carpeta por herramienta + versiones.json
+   ├─ soporte\                   paquetes de soporte (.zip sin datos del cliente, ver Modo técnico)
    ├─ clientes\                  un expediente por equipo (ver "Expedientes")
    └─ docs\                     LEEME.md (esto) y GUIA_ATENCION.md (una atención paso a paso)
 ```
@@ -73,6 +74,7 @@ Solo aparece lo de los motivos marcados en la ficha. Nada se aplica sin confirma
     - media, p95 y máximo de cada métrica;
     - % del tiempo con throttling y minutos sobre 90 °C;
     - "pierde velocidad por calor", diciendo de dónde lo saca.
+  - *CSV encontrado solo*: con el CSV de ese momento pendiente, la ventana (y la consola, al pedir la ruta) busca el de HWiNFO o LibreHardwareMonitor en la raíz del pendrive, la carpeta `KIT`, la de HWiNFO del kit y el Escritorio, Documentos y Descargas del usuario (solo el primer nivel). Ofrece los modificados desde el día de la atención (en el DESPUÉS, desde que se importó el ANTES) que no sean uno ya importado, y avisa si HWiNFO todavía lo está grabando. Solo mira nombres, fechas y la primera línea. Después de importarlo pregunta si lo saca de ahí: lo borra solo si es idéntico (SHA-256) al `sensores.csv` del expediente, y lo anota en `trabajo.log`.
   - Lo que el CSV no tenga queda vacío: nunca se inventa. Los patrones de columnas están en `config\sensores.json`.
   - *Checklist físico*: desarme, limpieza, pasta/PTM, putty/pads, fotos del disipador y materiales.
   - *Métricas*: temperatura promedio y máxima de CPU y GPU, y si pierde velocidad por calor. Avisa si las mediciones duran más de un 20 % distinto o si cambiaron las condiciones.
@@ -112,7 +114,7 @@ Solo aparece lo de los motivos marcados en la ficha. Nada se aplica sin confirma
     - condiciones de medición, alertas, discos y batería;
     - acciones con su deshacer, advertencias y enlaces a los CSV.
 
-  Son autocontenidos (sin internet) y se imprimen a PDF desde el navegador (Ctrl+P, "Guardar como PDF"). Solo se generan con la ficha completa; si falta algo, dice qué. Garantía, próxima mantención y días para borrar lo apartado se ajustan en `config.json` → `expediente`.
+  Son autocontenidos (sin internet). **Guardar PDF** los imprime con Edge sin ventana (`msedge --headless --print-to-pdf`, con un perfil temporal que se borra al terminar) y deja el `.pdf` junto al `.html`; en consola es la opción W de Trabajo. Sin Edge, se imprimen desde el navegador (Ctrl+P, "Guardar como PDF"). Solo se generan con la ficha completa; si falta algo, dice qué. Garantía, próxima mantención y días para borrar lo apartado se ajustan en `config.json` → `expediente`.
 
 Con admin, el diagnóstico también lee el SMART de `discos.txt` (CrystalDiskInfo). Así detecta errores de medio, sectores dañados, desgaste y temperatura reales aunque Windows no los reciba.
 
@@ -172,10 +174,12 @@ El USB lleva las atenciones en curso; el historial completo vive en el **maestro
   - Analizar → revisar (desmarcar lo que no se mueve) → Mover, con el total antes de confirmar, y Deshacer (ARCHIVOS);
   - semáforo (REVISIÓN).
 - **Pre-informe:** `pre_informe.html`, en la carpeta de la atención. Muestra cómo está el equipo antes del trabajo, siempre con la medición ANTES y sin exigir la ficha completa. Se actualiza después del diagnóstico ANTES, al importar el CSV y al guardar las condiciones. Se abre al terminar el diagnóstico ANTES y otra vez cuando la medición queda completa. **② Antes → Ver pre-informe** lo abre en cualquier momento; en consola es la opción P de Trabajo. Lo que imprime es una hoja A4 para el cliente; el detalle de las alertas se ve en pantalla, pero no sale al imprimir.
+- **PDF y mensaje:** en ② Antes, **PDF del pre-informe** y **Copiar mensaje**; en ⑤ Informe, **Guardar PDF del cliente** y **Copiar mensaje para WhatsApp**. El PDF sale con Edge en segundo plano y se muestra en su carpeta. El mensaje (lo arma `Get-MensajeWhatsApp`) saluda por el nombre, dice cómo está el equipo (pre: estado, áreas en rojo o naranjo, temperatura, trabajo y precio propuestos) o cómo quedó (final: el antes → después principal y la garantía), firma con tu nombre y no lleva serie ni datos técnicos. Queda en el portapapeles y se muestra para revisarlo. En consola, la opción W hace las dos cosas.
 - **Informe:** vista previa de ambos informes, Generar, Abrir y Abrir carpeta.
 - **Mostrar al cliente:** pantalla completa en dos partes. Arriba, el **estado general del equipo**: una luz por área, una frase (en buen estado / hay cosas que conviene atender / necesita atención / sin datos suficientes) y las áreas en rojo o naranjo. Abajo, separado, el **resultado del motivo** (Temperatura, Rapidez o Espacio: antes → después) con su frase y tarjetas. Esc para salir.
 - **Expedientes:** lista los expedientes del USB (o del maestro, en tus equipos) con buscador; se elige la atención y **Abrir**. El de otro equipo, o cualquiera del maestro, se abre en **modo consulta** (barra ámbar): no se mide ni se aplican acciones, pero se puede completar la ficha y **regenerar los informes**. **Volver a este equipo** regresa al flujo normal. En tus equipos, abajo está **Sincronizar** (ver "Sincronizar con el maestro").
 - **Modo técnico:** diagnóstico suelto por secciones, atajos y menú de consola. Con todas las secciones y la atención todavía sin ANTES, cuenta como su ANTES; si no, pregunta antes de abrir una atención aparte.
+- **Paquete de soporte** (Modo técnico; en consola, Trabajo → Z): `KIT\soporte\soporte_<fabricante>-<modelo>_<fecha>.zip` con `LEEME.txt` (versión del kit, verificación, admin, Windows, modo de lenguaje), `ficha.json` con el cliente tapado y, por cada atención del equipo, `trabajo.log`, la lista de archivos, y de cada medición `log.txt`, `resumen.txt`, `alertas.json` (alertas y parámetros) y los resúmenes de sensores. El nombre, el contacto (aunque esté escrito con otros espacios) y la comuna del cliente se reemplazan en todos los textos. No lleva los CSV del diagnóstico, `discos.txt`, fotos ni informes.
 - **Herramientas:** un botón por herramienta; las que faltan aparecen en gris.
 
 Los trabajos largos corren en segundo plano: la ventana no se congela y la barra de abajo tiene **Cancelar**. Si se cancela un diagnóstico, la medición anterior queda intacta.
@@ -281,6 +285,7 @@ Notas:
 - **CrystalDiskMark** escribe archivos de prueba en el disco que mide.
 - **Herramientas agregadas a mano**: crea `KIT\herramientas\<nombre>\` con el programa adentro. Aparece en el menú y queda en `versiones.json` la próxima vez que corras el actualizador.
 - **OCCT** se abre con `DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1=1`, solo para ese programa: en un notebook con AMD Vega 8 y GTX 1650 se caía en `vulkan-1.dll` sin mostrar ventana. Como pide admin, el kit lo lanza desde un `cmd` elevado (un solo UAC). Si quedó uno colgado, avisa en vez de abrir otro. Ver "OCCT no abre" en `GUIA_ATENCION.md`.
+- **OCCT, prueba fija:** al abrirlo con su botón, el kit copia en `OCCT.config.json` (junto a `OCCT.exe`) la prueba de `config\occt_prueba.json`: CPU, 10 minutos, Normal, Steady, ciclo 1, instrucciones y hilos automáticos. Solo cambia valores que ya existen: si una versión nueva cambia el formato, no inventa campos y lo dice. También quita lo que OCCT guarda del último equipo (la carpeta de informes, con el usuario de ese Windows, y la placa madre) y apaga el envío de resultados a internet. La prueba anterior queda en `OCCT.config.json.bak`, también sin los datos del equipo. No toca la aceptación de la licencia. Si OCCT nunca se abrió desde ese pendrive, no hay archivo: la primera vez se elige a mano.
 - **HWiNFO64, OCCT y WizTree**: su versión gratuita es solo para uso personal. En el servicio técnico úsalas solo si tienes licencia comercial. El menú las marca en amarillo.
 
 ## Configuración

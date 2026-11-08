@@ -595,3 +595,99 @@ function Export-Informes {
     Write-TrabajoLog -Expediente $Expediente -Atencion $Atencion -Texto "INFORMES | generados informe_cliente.html e informe_tecnico.html (semáforo $($datos.Color))"
     [pscustomobject]@{ Generado = $true; Faltan = @(); Cliente = $cliente; Tecnico = $tecnico; Datos = $datos }
 }
+
+# ---------------------------------------------------------------- PDF y mensaje para el cliente
+
+function Find-Edge {
+    # Ruta de msedge.exe (viene con Windows 10 y 11) o $null. Solo lee.
+    $claves = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe', 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe'
+    foreach ($k in $claves) {
+        try {
+            $v = "$((Get-ItemProperty -LiteralPath $k -ErrorAction Stop).'(default)')".Trim('"')
+            if ($v -and [IO.File]::Exists($v)) { return $v }
+        } catch { Write-Verbose "Sin $k" }
+    }
+    foreach ($b in @(${env:ProgramFiles(x86)}, $env:ProgramFiles)) {
+        if (-not $b) { continue }
+        $r = Join-Path $b 'Microsoft\Edge\Application\msedge.exe'
+        if ([IO.File]::Exists($r)) { return $r }
+    }
+    $null
+}
+
+function Export-PdfInforme {
+    # Imprime un informe HTML a PDF con Edge sin ventana y lo deja junto al HTML (informe_cliente.pdf,
+    # pre_informe.pdf). Edge corre con un perfil temporal, para no tocar el del cliente, que se borra al
+    # terminar. Devuelve la ruta del PDF; si no se puede, lanza el motivo.
+    param([Parameter(Mandatory)][string]$Html, [string]$Pdf, [int]$EsperaSeg = 90)
+    if (-not [IO.File]::Exists($Html)) { throw "No existe $([IO.Path]::GetFileName($Html)): genéralo primero" }
+    if (-not $Pdf) { $Pdf = [IO.Path]::ChangeExtension($Html, '.pdf') }
+    $edge = Find-Edge
+    if (-not $edge) { throw 'No encontré Microsoft Edge en este equipo: abre el informe y usa Ctrl+P → Guardar como PDF' }
+    $perfil = Join-Path ([IO.Path]::GetTempPath()) ('kit_pdf_' + [guid]::NewGuid().ToString('N').Substring(0, 8))
+    $null = [IO.Directory]::CreateDirectory($perfil)
+    $salida = Join-Path $perfil 'informe.pdf'
+    try {
+        $uri = (New-Object Uri($Html)).AbsoluteUri
+        $argumentos = @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--disable-sync',
+            '--disable-breakpad', '--no-pdf-header-footer', '--print-to-pdf-no-header', ('--user-data-dir="{0}"' -f $perfil), ('--print-to-pdf="{0}"' -f $salida), ('"{0}"' -f $uri)) -join ' '
+        $psi = New-Object Diagnostics.ProcessStartInfo($edge, $argumentos)
+        $psi.UseShellExecute = $false
+        $psi.CreateNoWindow = $true
+        $p = [Diagnostics.Process]::Start($psi)
+        if (-not $p.WaitForExit($EsperaSeg * 1000)) {
+            try { $p.Kill() } catch { Write-Verbose 'Edge ya había terminado' }
+            throw "Edge no terminó en $EsperaSeg segundos: abre el informe y usa Ctrl+P → Guardar como PDF"
+        }
+        for ($i = 0; $i -lt 20 -and -not [IO.File]::Exists($salida); $i++) { Start-Sleep -Milliseconds 250 }
+        if (-not [IO.File]::Exists($salida) -or (Get-Item -LiteralPath $salida).Length -lt 1000) { throw "Edge no generó el PDF (código $($p.ExitCode)): abre el informe y usa Ctrl+P → Guardar como PDF" }
+        try { [IO.File]::Copy($salida, $Pdf, $true) } catch { throw "No se pudo escribir $([IO.Path]::GetFileName($Pdf)): si está abierto, ciérralo y prueba de nuevo" }
+        $Pdf
+    } finally {
+        for ($i = 0; $i -lt 10 -and [IO.Directory]::Exists($perfil); $i++) {
+            try { [IO.Directory]::Delete($perfil, $true) } catch { Start-Sleep -Milliseconds 500 }
+        }
+    }
+}
+
+function Get-MensajeWhatsApp {
+    # Texto corto para mandarle al cliente junto con el PDF: saludo, cómo está (pre) o cómo quedó (final)
+    # y la garantía. Sin serie ni detalles técnicos.
+    param([Parameter(Mandatory)]$Expediente, [Parameter(Mandatory)][string]$Atencion, [ValidateSet('pre', 'final')][string]$Tipo = 'final')
+    $d = if ($Tipo -eq 'final') { Get-DatosInforme -Expediente $Expediente -Atencion $Atencion } else { Get-DatosPreInforme -Expediente $Expediente -Atencion $Atencion }
+    $nombre = @("$(if ($d.Cliente) { $d.Cliente['nombre'] })".Trim() -split '\s+')[0]
+    $equipo = (@($(if ($d.Equipo) { $d.Equipo['fabricante'], $d.Equipo['modelo'] })) | Where-Object { $_ }) -join ' '
+    $equipo = if ($equipo) { "tu $equipo" } else { 'tu equipo' }
+    $saludo = if ($nombre) { "Hola $nombre" } else { 'Hola' }
+    $l = New-Object System.Collections.Generic.List[string]
+    if ($Tipo -eq 'final') {
+        $l.Add("$saludo, $equipo ya está listo.")
+        if ($d.Frase) { $l.Add("$($d.Frase)".Trim()) }
+        $principal = @($d.Metricas.Keys)[0]
+        if ($principal) {
+            $m = $d.Metricas[$principal]
+            $tarjetas = if ($m.PSObject.Properties['Pantalla']) { @($m.Pantalla) } else { @($m.Tarjetas) }
+            foreach ($t in @($tarjetas | Where-Object { $_ -and $null -ne $_.Antes -and $null -ne $_.Despues } | Select-Object -First 2)) {
+                $l.Add(('• {0}: {1} → {2}' -f $t.Titulo, (Format-ValorTarjeta $t.Antes $t.Unidad), (Format-ValorTarjeta $t.Despues $t.Unidad)))
+            }
+        }
+        if ($d.Garantia) {
+            $g = "$($d.Garantia)"
+            try { $g = [datetime]::ParseExact($g, 'yyyy-MM-dd', $script:Invariante).ToString('dd-MM-yyyy', $script:Invariante) } catch { Write-Verbose "Garantía sin formato: $g" }
+            $l.Add("Garantía hasta el $g.")
+        }
+        $l.Add('Te mando el informe en PDF.')
+    } else {
+        $l.Add("$saludo, ya revisé $equipo.")
+        $l.Add("$($d.Frase).")
+        foreach ($a in @($d.Semaforo.Areas | Where-Object { $_.Color -in 'rojo', 'amarillo' } | Select-Object -First 3)) { $l.Add("• $($a.Area): $($a.Frase)") }
+        if ($d.Grupos.Contains('Temperatura bajo carga')) {
+            $t = @($d.Grupos['Temperatura bajo carga'] | Where-Object { $_ -and $null -ne $_.Antes }) | Select-Object -First 1
+            if ($t) { $l.Add(('• {0}, bajo carga: {1}' -f $t.Titulo, (Format-ValorTarjeta $t.Antes $t.Unidad))) }
+        }
+        if ($d.Paquete) { $l.Add("Te propongo: $($d.Paquete)$(if ("$($d.Precio)" -ne '') { ", `$$(Format-Numero ([double]$d.Precio) 0)" }).") }
+        $l.Add('Te mando el pre-informe en PDF con el detalle.')
+    }
+    if ($d.Tecnico -and $d.Tecnico.nombre) { $l.Add("$($d.Tecnico.nombre)") }
+    $l -join "`r`n"
+}

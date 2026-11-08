@@ -1,0 +1,16 @@
+{
+  "_leeme": "Prueba fija de OCCT para CALOR. Al abrir OCCT con su botón, el kit copia estos valores en OCCT.config.json (junto a OCCT.exe), pero solo los que ya existen en ese archivo: si una versión nueva de OCCT cambia el formato, no inventa nada y avisa. También quita los datos que OCCT guarda del último equipo (carpeta de informes con su usuario, placa madre) y apaga el envío de resultados a internet. No toca la aceptación de la licencia: esa la acepta el técnico.",
+  "valores": {
+    "StabilitySchedule.Periods[0].TestType": "CpuOnlyOcct",
+    "StabilitySchedule.Periods[0].Duration": "00:10:00",
+    "StabilitySchedule.Periods[0].IsInfinite": false,
+    "StabilitySchedule.Periods[0].CpuOnlyOcctConfig.Mode": "Normal",
+    "StabilitySchedule.Periods[0].CpuOnlyOcctConfig.LoadType": "Steady",
+    "StabilitySchedule.Periods[0].CpuOnlyOcctConfig.DataSet": "Large",
+    "StabilitySchedule.Periods[0].CpuOnlyOcctConfig.OcctInstructionSet": "Auto",
+    "StabilitySchedule.Periods[0].CpuOnlyOcctConfig.Threads": "Auto",
+    "StabilitySchedule.Periods[0].CpuOnlyOcctConfig.StartAtCycle": 1,
+    "AllowOcbaseUpload": false
+  },
+  "quitar": ["SaveReportPath", "SaveScreenshotPath", "MotherboardName"]
+}

@@ -9,7 +9,7 @@
 #>
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Sin Write-Host: escribe en [Console]::Out')]
 param(
-    [Parameter(Mandatory)][ValidateSet('analizar_archivos', 'mover_archivos', 'deshacer_archivos', 'aplicar_lento', 'deshacer_lento', 'generar_informes', 'importar_sensores')][string]$Accion,
+    [Parameter(Mandatory)][ValidateSet('analizar_archivos', 'mover_archivos', 'deshacer_archivos', 'aplicar_lento', 'deshacer_lento', 'generar_informes', 'importar_sensores', 'guardar_pdf')][string]$Accion,
     [Parameter(Mandatory)][string]$Expediente,
     [Parameter(Mandatory)][string]$Atencion,
     [string]$Parametros
@@ -72,6 +72,21 @@ try {
         'generar_informes' {
             $r = Export-Informes -Expediente $exp -Atencion $Atencion
             $resultado = [ordered]@{ generado = $r.Generado; faltan = @($r.Faltan | ForEach-Object { $_.Texto }); cliente = $r.Cliente; tecnico = $r.Tecnico; advertencias = @($(if ($r.Datos) { $r.Datos.Advertencias })) }
+        }
+        'guardar_pdf' {
+            # PDF del pre-informe (rehecho con lo último) o del informe del cliente, con Edge sin ventana.
+            if ($p['cual'] -eq 'pre') {
+                $pre = Export-PreInforme -Expediente $exp -Atencion $Atencion
+                if (-not $pre.Generado) { throw 'Primero haz el diagnóstico ANTES' }
+                $html = $pre.Ruta
+            } else {
+                $html = Join-Path (Join-Path $exp.Ruta $Atencion) 'informe_cliente.html'
+                if (-not [IO.File]::Exists($html)) { throw 'Primero genera los informes' }
+            }
+            Write-Gui 'LOG' 'Imprimiendo a PDF con Edge (sin ventana)...'
+            $pdf = Export-PdfInforme -Html $html
+            Write-TrabajoLog -Expediente $exp -Atencion $Atencion -Texto "PDF | $([IO.Path]::GetFileName($pdf)) guardado"
+            $resultado = [ordered]@{ pdf = $pdf }
         }
         'importar_sensores' {
             $r = Import-SensoresMedicion -Expediente $exp -Atencion $Atencion -Momento $p['momento'] -Ruta $p['ruta']

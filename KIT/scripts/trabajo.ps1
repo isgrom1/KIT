@@ -16,7 +16,7 @@ param()
 $ErrorActionPreference = 'Stop'
 $raizScripts = $PSScriptRoot
 try {
-    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe', 'Flujo') { . (Join-Path $raizScripts "lib\$lib.ps1") }
+    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe', 'Flujo', 'Soporte') { . (Join-Path $raizScripts "lib\$lib.ps1") }
     foreach ($m in 'calor', 'lento', 'archivos', 'revision') { . (Join-Path $raizScripts "motivos\$m.ps1") }
     Initialize-Contexto -RaizScripts $raizScripts
     Initialize-Privacidad
@@ -69,7 +69,14 @@ function Edit-CondicionesCalor {
 
 function Import-CsvConsola {
     param($Exp, [string]$At, [string]$Momento)
-    $ruta = (Read-Linea -Pregunta "Ruta del CSV de sensores ($($Momento.ToUpperInvariant()))" -Actual $null).Trim('"')
+    # El CSV que dejó HWiNFO (raíz del pendrive, Escritorio, Documentos...): Enter lo usa.
+    $hallado = $null
+    try { $h = @(Find-CsvSensores -Expediente $Exp -Atencion $At -Momento $Momento); if ($h.Count) { $hallado = $h[0] } } catch { Write-Verbose "Sin búsqueda de CSV: $($_.Exception.Message)" }
+    if ($hallado) {
+        Write-Host ('    Encontré {0} en {1} ({2}, {3} KB){4}' -f $hallado.Nombre, $hallado.Donde, $hallado.Fecha.ToString('dd-MM HH:mm'), $hallado.KB, $(if ($hallado.EnCurso) { ': todavía se está grabando, detén HWiNFO primero' } else { '' })) -ForegroundColor Cyan
+    }
+    $ruta = "$(Read-Linea -Pregunta "Ruta del CSV de sensores ($($Momento.ToUpperInvariant()))$(if ($hallado) { ', Enter = el encontrado' })" -Actual $null)".Trim('"')
+    if (-not $ruta -and $hallado) { $ruta = $hallado.Ruta }
     if (-not $ruta) { return }
     try {
         $r = Import-SensoresMedicion -Expediente $Exp -Atencion $At -Momento $Momento -Ruta $ruta
@@ -77,6 +84,9 @@ function Import-CsvConsola {
         Write-Host ("    {0}, {1} filas, {2} min" -f $r.formato, $r.filas, (Format-Numero $r.duracion_min 1)) -ForegroundColor Green
         if ($cpu) { Write-Host ("    CPU {0} °C promedio, {1} °C máximo, {2} min sobre {3} °C" -f (Format-Numero $cpu.media 1), (Format-Numero $cpu.max 1), (Format-Numero $r.minutos_sobre_umbral 1), $r.umbral_c) }
         if ($r.metricas.gpu_temp) { Write-Host ("    GPU {0} °C promedio, {1} °C máximo" -f (Format-Numero $r.metricas.gpu_temp.media 1), (Format-Numero $r.metricas.gpu_temp.max 1)) }
+        if ($hallado -and $ruta -eq $hallado.Ruta -and (Test-Si (Read-Linea -Pregunta "    ¿Lo saco de $($hallado.Donde) para no dejarlo en el equipo? (s/N)" -Actual $null))) {
+            if (Remove-CsvSensoresOrigen -Expediente $Exp -Atencion $At -Momento $Momento -Ruta $ruta) { Write-Host '    Sacado: quedó la copia en el expediente.' -ForegroundColor Green }
+        }
         Write-Host ("    Pierde velocidad por calor: {0} ({1})" -f $(if ($null -eq $r.pierde_velocidad.valor) { 'sin dato' } elseif ($r.pierde_velocidad.valor) { 'sí' } else { 'no' }), $r.pierde_velocidad.fuente)
     } catch { Show-Error $_.Exception.Message }
 }
@@ -205,6 +215,8 @@ while ($true) {
     $op['S'] = 'Semáforo de revisión'
     $op['P'] = 'Generar pre-informe (cómo está antes del trabajo)'
     $op['I'] = 'Generar informes (cliente y técnico)'
+    $op['W'] = 'PDF y mensaje para WhatsApp (del informe, o del pre-informe si aún no hay informe)'
+    $op['Z'] = 'Paquete de soporte (.zip sin datos del cliente, en KIT\soporte)'
     $op['0'] = 'Volver'
     foreach ($k in $op.Keys) { Write-Host ('  {0}) {1}' -f $k, $op[$k]) }
     $r = (Read-Linea -Pregunta 'Opción' -Actual $null).ToUpperInvariant()
@@ -247,6 +259,32 @@ while ($true) {
                     if (Test-Si (Read-Linea -Pregunta '¿Abrir el informe del cliente? (s/N)' -Actual $null)) { Open-InformeNavegador -Ruta $inf.Cliente }
                 }
             } catch { Show-Error $_.Exception.Message }
+        }
+        'W' {
+            try {
+                $e2 = Read-Expediente $exp.Ruta
+                $html = Join-Path (Join-Path $exp.Ruta $at) 'informe_cliente.html'
+                $final = [IO.File]::Exists($html)
+                if (-not $final) {
+                    $pre = Export-PreInforme -Expediente $e2 -Atencion $at
+                    $html = if ($pre.Generado) { $pre.Ruta } else { $null }
+                }
+                if (-not $html) { Write-Host '    Primero haz el diagnóstico ANTES.' -ForegroundColor Yellow }
+                else {
+                    Write-Host '    Guardando el PDF con Edge (sin ventana)...'
+                    $pdf = Export-PdfInforme -Html $html
+                    Write-TrabajoLog -Expediente $e2 -Atencion $at -Texto "PDF | $([IO.Path]::GetFileName($pdf)) guardado"
+                    Write-Host "    PDF: $pdf" -ForegroundColor Green
+                    $msg = Get-MensajeWhatsApp -Expediente $e2 -Atencion $at -Tipo $(if ($final) { 'final' } else { 'pre' })
+                    Write-Host ''
+                    Write-Host $msg
+                    Write-Host ''
+                    try { Set-Clipboard -Value $msg; Write-Host '    Mensaje copiado: pégalo en WhatsApp y adjunta el PDF.' -ForegroundColor Green } catch { Write-Host '    Copia el mensaje de arriba.' -ForegroundColor Yellow }
+                }
+            } catch { Show-Error $_.Exception.Message }
+        }
+        'Z' {
+            try { Write-Host "    Listo: $(Export-PaqueteSoporte -Expediente (Read-Expediente $exp.Ruta) -Atencion $at)" -ForegroundColor Green } catch { Show-Error $_.Exception.Message }
         }
         'S' {
             $s = Get-SemaforoRevision -Expediente $exp -Atencion $at -Momento $(if (Test-Medicion -Expediente $exp -Atencion $at -Momento 'despues') { 'despues' } else { 'antes' })

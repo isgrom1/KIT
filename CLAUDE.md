@@ -41,8 +41,8 @@ En el PC (`X:\kitservicio`): `git pull` antes de trabajar; al terminar, commit y
 
 | Fase | Contenido | Estado |
 |---|---|---|
-| G | Actualizar el pendrive con versión (`actualizar_pendrive.ps1`, `KIT\version.json`), verificación de integridad, franja "Siguiente paso" (`lib\Flujo.ps1`), "Mostrar al cliente" con estado general separado del resultado del motivo | hecha, esperando OK |
-| H | CSV de sensores detectado solo + configuración base de OCCT; PDF con Edge sin ventana + mensaje de WhatsApp; paquete de soporte | pendiente |
+| G | Actualizar el pendrive con versión (`actualizar_pendrive.ps1`, `KIT\version.json`), verificación de integridad, franja "Siguiente paso" (`lib\Flujo.ps1`), "Mostrar al cliente" con estado general separado del resultado del motivo | entregada 2026-11-08 (OK de Isaac) |
+| H | CSV de sensores detectado solo y prueba fija de OCCT (`config\occt_prueba.json`, `Set-ConfigOcct`); PDF con Edge sin ventana y mensaje para WhatsApp (`Export-PdfInforme`, `Get-MensajeWhatsApp`); paquete de soporte (`lib\Soporte.ps1`, `KIT\soporte`) | hecha, esperando OK |
 | I | GitHub Actions (PSScriptAnalyzer y parseo), pruebas con Pester, respaldo del maestro y pendrive de repuesto | pendiente; preguntar destino del respaldo |
 | J | Ley 21.719 (datos personales: retención y consentimiento), apto para Windows 11, detección de reglas ASR | pendiente; preguntar retención y texto de consentimiento |
 | K | ISO de rescate, dividir `kit.ps1`, negocio (precios y paquetes), firma de código | pendiente; preguntar ISO, precios y si compra certificado (se recomendó no) |
@@ -60,7 +60,7 @@ En el PC (`X:\kitservicio`): `git pull` antes de trabajar; al terminar, commit y
 - El contacto del técnico vive en `KIT\scripts\config\config_local.json`, que está en `.gitignore`: solo existe en el PC de Isaac y en su pendrive. En una sesión en la nube ese archivo no existe y los informes piden el contacto; es lo esperado. **Nunca escribas su contacto en `config.json` ni en otro archivo del repo.**
 - CALOR se mide con OCCT (CPU, 10 minutos) y HWiNFO grabando: la elección de esas herramientas ya la decidió Isaac. Van a mano en `KIT\herramientas` (fuera del repo). Falta una atención real con este método, antes y después, porque su Nitro ya tiene la pasta cambiada.
 - El USB Ventoy real ya está armado y probado desde Windows (Kingston de 58 GB, 2026-11-05: ventana, diagnóstico con y sin admin, informes y consola). Falta arrancar una ISO desde él, si Isaac agrega ISOs.
-- OCCT en notebooks AMD + NVIDIA: se caía en `vulkan-1.dll` sin mostrar ventana (`vkGetPhysicalDeviceProperties2: Invalid physicalDevice`). Confirmado a mano en un equipo con Vega 8 y GTX 1650: abre con `DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1=1` desde un `cmd` con admin; las variables `VK_LOADER_*` no hicieron efecto con admin. El botón del kit lo hace con `Start-Herramienta`. Falta probar el botón con UAC (`pruebas\test_herramientas.ps1 -ConUac`) y desde el pendrive en un equipo con este problema.
+- OCCT en notebooks AMD + NVIDIA: se caía en `vulkan-1.dll` sin mostrar ventana (`vkGetPhysicalDeviceProperties2: Invalid physicalDevice`). Confirmado a mano en un equipo con Vega 8 y GTX 1650: abre con `DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1=1` desde un `cmd` con admin; las variables `VK_LOADER_*` no hicieron efecto con admin. El botón del kit lo hace con `Start-Herramienta`; el paso por el UAC quedó probado el 2026-11-08 (`test_herramientas.ps1 -ConUac`, 25/25). Desde la fase H el botón también fija la prueba (CPU, 10 min, Normal, Steady): OCCT 17.1.10 real la aceptó y la volvió a guardar (`pruebas\faseH_admin.ps1`). Falta probarlo desde el pendrive en un equipo con el problema de Vulkan.
 - Crear un punto de restauración NUEVO no se ejercitó: en la Fase F Windows ya tenía uno de las últimas 24 h y el kit lo reutilizó. En una atención real (2026-11-07) Windows no dejó crearlo, con el servicio Instantáneas de volumen deshabilitado. Ahora el kit no aplica nada y pregunta si seguir sin punto (`PrefijoSinPunto` en `lento.ps1`). Falta probar ese reintento en la ventana con un equipo así.
 
 ## Reglas duras del kit
@@ -100,7 +100,7 @@ En el PC (`X:\kitservicio`): `git pull` antes de trabajar; al terminar, commit y
 
 ## Cómo probar (en el PC de Isaac)
 
-- `pruebas\` tiene las baterías: `test_expediente.ps1` (45), `test_faseB.ps1` (23), `test_velocidad.ps1` (18), `test_archivos.ps1`, `test_sensores.ps1`, `test_smart.ps1`, `test_sincronizacion.ps1` (50), `test_herramientas.ps1` (22), `test_preinforme.ps1` (52), `test_terreno.ps1` (19), `test_faseG.ps1` (33) y otras. Ver `pruebas\LEEME.md`.
+- `pruebas\` tiene las baterías: `test_expediente.ps1` (45), `test_faseB.ps1` (23), `test_velocidad.ps1` (18), `test_archivos.ps1`, `test_sensores.ps1`, `test_smart.ps1`, `test_sincronizacion.ps1` (50), `test_herramientas.ps1` (22), `test_preinforme.ps1` (52), `test_terreno.ps1` (19), `test_faseG.ps1` (33), `test_faseH.ps1` (38) y otras. Ver `pruebas\LEEME.md`.
 - La interfaz tiene modo captura: `powershell -STA -File KIT\scripts\gui\kit.ps1 -Captura <carpeta> [-CapturaDiag] [-RutaMaestro <maestro de prueba>] [-Escenario <archivo de pasos>]` recorre los paneles (o los pasos del escenario, con los botones reales) y guarda un PNG de cada uno.
 - La ventana guarda el expediente en memoria y los trabajos largos corren en otro proceso que también escribe `ficha.json`: **antes de guardar desde la ventana hay que releer** (`Initialize-AtencionGui`), o se pisa lo que escribió el otro proceso (bug encontrado en la Fase F).
 - PSScriptAnalyzer:
