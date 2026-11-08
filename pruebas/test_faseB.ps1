@@ -77,6 +77,8 @@ $runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $aprob = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run'
 $gpuKey = 'HKCU:\Software\Microsoft\DirectX\UserGpuPreferences'
 $app = 'C:\kit_prueba_no_existe\juego.exe'
+# En un perfil nuevo (como en GitHub) la clave Run puede no existir.
+if (-not (Test-Path $runKey)) { New-Item -Path $runKey -Force | Out-Null }
 New-ItemProperty -Path $runKey -Name 'KitPruebaInicio' -Value 'C:\kit_prueba_no_existe\app.exe' -PropertyType String -Force | Out-Null
 if (-not (Test-Path $gpuKey)) { New-Item -Path $gpuKey -Force | Out-Null }
 New-ItemProperty -Path $gpuKey -Name $app -Value 'GpuPreference=1;' -PropertyType String -Force | Out-Null

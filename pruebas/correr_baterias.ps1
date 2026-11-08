@@ -49,7 +49,17 @@ if ($fallas.Count) {
 }
 [IO.File]::WriteAllLines((Join-Path $Salida 'resumen.md'), $md, (New-Object Text.UTF8Encoding($true)))
 if ($env:GITHUB_STEP_SUMMARY) { [IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, (($md -join "`n") + "`n"), (New-Object Text.UTF8Encoding($false))) }
-if ($env:GITHUB_ACTIONS) { foreach ($f in $fallas) { [Console]::Out.WriteLine(('::error title={0}::{1}' -f $f.Describe, ($f.Name -replace '[\r\n]+', ' '))) } }
+if ($env:GITHUB_ACTIONS) {
+    foreach ($f in $fallas) { [Console]::Out.WriteLine(('::error title={0}::{1}' -f $f.Describe, ($f.Name -replace '[\r\n]+', ' '))) }
+    # Si una batería se cortó, sus últimas líneas van como error: así se ven sin bajar el informe.
+    foreach ($d in @($fallas | Select-Object -ExpandProperty Describe -Unique)) {
+        $txt = Join-Path $Salida "$d.txt"
+        if ([IO.File]::Exists($txt)) {
+            $cola = @([IO.File]::ReadAllLines($txt) | Where-Object { $_ -match '\S' } | Select-Object -Last 15) -join '%0A'
+            [Console]::Out.WriteLine(('::error title={0} (últimas líneas)::{1}' -f $d, ($cola -replace '::', ': ')))
+        }
+    }
+}
 
 ''
 "Resultado: $($r.PassedCount) OK, $($r.FailedCount) fallas, $($r.SkippedCount) omitidas | informe en $Salida"
