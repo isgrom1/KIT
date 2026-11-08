@@ -172,6 +172,18 @@ if ($exp.PSObject.Properties['SinAntes']) {
 Write-LogKit -Mensaje ("Kit v{0} | PowerShell {1} | 64 bits: {2} | Elevado: {3} | Miembro de Administradores: {4}" -f $script:Ctx.Version,
     $PSVersionTable.PSVersion, [Environment]::Is64BitProcess, $script:Ctx.Admin.Elevado, $script:Ctx.Admin.MiembroAdministradores)
 Write-LogKit -Mensaje ('Parámetros: ' + (($script:Ctx.Parametros.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value -join ',')" }) -join ' '))
+# ¿Los scripts son los que copió actualizar_pendrive.ps1? Solo se avisa: no detiene el diagnóstico.
+$integridad = Test-IntegridadKit -RaizKit $script:Ctx.RaizKit
+switch ($integridad.Estado) {
+    'ok' { Write-LogKit -Mensaje "Integridad del kit: OK (copia del $($integridad.Copiado))" }
+    'sin_manifiesto' { Write-LogKit -Mensaje 'Integridad del kit: sin version.json (copia de trabajo, no se verifica)' }
+    'error' { Write-LogKit -Nivel AVISO -Mensaje "Integridad del kit: no se pudo verificar ($($integridad.Detalle))" }
+    default {
+        $distintos = @($integridad.Cambiados + $integridad.Faltan + $integridad.Nuevos)
+        Write-LogKit -Nivel AVISO -Mensaje "Integridad del kit: $($distintos.Count) archivo(s) no coinciden con la copia del $($integridad.Copiado): $($distintos -join ', ')"
+        Show-Mensaje " Ojo: $($distintos.Count) archivo(s) del kit no coinciden con la copia verificada. Vuelve a copiar el kit desde tu PC." -Color Yellow
+    }
+}
 if (-not [Environment]::Is64BitProcess -and [Environment]::Is64BitOperatingSystem) {
     Write-LogKit -Nivel AVISO -Mensaje 'PowerShell de 32 bits en Windows de 64 bits: el registro se lee con vista explícita de 64 bits.'
 }

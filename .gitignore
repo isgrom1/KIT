@@ -18,6 +18,10 @@ pruebas/vista_previa/
 pruebas/*.txt
 pruebas/*.log
 
+# Lo que deja actualizar_pendrive.ps1 en el pendrive (si alguna vez se corre sobre una copia dentro del repo).
+KIT/version.json
+KIT/_obsoletos/
+
 # Temporales del kit.
 *.tmp
 *.bak

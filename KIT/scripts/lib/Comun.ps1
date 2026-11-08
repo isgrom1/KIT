@@ -31,6 +31,67 @@ function Merge-ConfigLocal {
     }
 }
 
+# Versión del kit. La copia que hace actualizar_pendrive.ps1 agrega el commit y la fecha (KIT\version.json).
+$script:VersionBase = '0.2.0'
+
+function Get-VersionKit {
+    # "0.2.0 · 2f98fd2 · 2026-11-08" si el kit vino de actualizar_pendrive.ps1; si no, la versión base.
+    param([Parameter(Mandatory)][string]$RaizKit)
+    $v = $null
+    try { $v = Read-JsonKitOpcional (Join-Path $RaizKit 'version.json') } catch { $v = $null }
+    if ($v -and $v.commit) { return ('{0} · {1} · {2}' -f $script:VersionBase, $v.commit, $v.fecha_commit) }
+    "$script:VersionBase (copia de trabajo)"
+}
+
+function Get-ArchivosVerificablesKit {
+    # Archivos del kit que se verifican, relativos a KIT\: INICIAR.cmd, scripts\ (menos config_local.json,
+    # que es de cada técnico) y docs\. Sale ordenado; quien llama lo junta con @().
+    param([Parameter(Mandatory)][string]$RaizKit)
+    $base = $RaizKit.TrimEnd('\')
+    $lista = New-Object System.Collections.Generic.List[string]
+    if ([IO.File]::Exists((Join-Path $base 'INICIAR.cmd'))) { $lista.Add('INICIAR.cmd') }
+    foreach ($sub in 'scripts', 'docs') {
+        $dir = Join-Path $base $sub
+        if (-not [IO.Directory]::Exists($dir)) { continue }
+        foreach ($f in [IO.Directory]::GetFiles($dir, '*', [IO.SearchOption]::AllDirectories)) {
+            $rel = $f.Substring($base.Length + 1)
+            if ($rel -ieq 'scripts\config\config_local.json') { continue }
+            $lista.Add($rel)
+        }
+    }
+    $lista | Sort-Object
+}
+
+function Test-IntegridadKit {
+    # Compara los archivos del kit con los hashes que dejó actualizar_pendrive.ps1 en KIT\version.json.
+    # Solo lee. Estado: ok, cambios (distinto, faltante o sobrante), sin_manifiesto (copia de trabajo) o error.
+    # Detecta un pendrive dañado (exFAT sacado sin expulsar) o scripts alterados en el PC de un cliente.
+    param([Parameter(Mandatory)][string]$RaizKit)
+    $r = [ordered]@{ Estado = 'sin_manifiesto'; Cambiados = @(); Faltan = @(); Nuevos = @(); Copiado = $null; Version = $null; Detalle = $null }
+    try {
+        $v = Read-JsonKitOpcional (Join-Path $RaizKit 'version.json')
+        if (-not $v -or -not $v.archivos) { return [pscustomobject]$r }
+        $r.Copiado = $v.copiado; $r.Version = $v.commit
+        $esperados = @{}
+        foreach ($p in $v.archivos.PSObject.Properties) { $esperados[$p.Name] = "$($p.Value)" }
+        $cambiados = New-Object System.Collections.Generic.List[string]
+        $faltan = New-Object System.Collections.Generic.List[string]
+        foreach ($rel in $esperados.Keys) {
+            $ruta = Join-Path $RaizKit $rel
+            if (-not [IO.File]::Exists($ruta)) { $faltan.Add($rel); continue }
+            if ((Get-FileHash -LiteralPath $ruta -Algorithm SHA256).Hash -ne $esperados[$rel]) { $cambiados.Add($rel) }
+        }
+        $r.Cambiados = @($cambiados | Sort-Object)
+        $r.Faltan = @($faltan | Sort-Object)
+        $r.Nuevos = @(Get-ArchivosVerificablesKit -RaizKit $RaizKit | Where-Object { -not $esperados.ContainsKey($_) })
+        $r.Estado = if ($r.Cambiados.Count -or $r.Faltan.Count -or $r.Nuevos.Count) { 'cambios' } else { 'ok' }
+    } catch {
+        $r.Estado = 'error'
+        $r.Detalle = $_.Exception.Message
+    }
+    [pscustomobject]$r
+}
+
 function Initialize-Contexto {
     param([Parameter(Mandatory)][string]$RaizScripts)
     $raizKit = Split-Path -Parent $RaizScripts
@@ -43,7 +104,7 @@ function Initialize-Contexto {
         Write-Warning "config_local.json no se pudo leer y se ignora: $($_.Exception.Message)"
     }
     $script:Ctx = [ordered]@{
-        Version         = '0.1.0'
+        Version         = Get-VersionKit -RaizKit $raizKit
         Inicio          = Get-Date
         Reloj           = [Diagnostics.Stopwatch]::StartNew()
         RaizKit         = $raizKit

@@ -16,7 +16,7 @@ param()
 $ErrorActionPreference = 'Stop'
 $raizScripts = $PSScriptRoot
 try {
-    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe') { . (Join-Path $raizScripts "lib\$lib.ps1") }
+    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe', 'Flujo') { . (Join-Path $raizScripts "lib\$lib.ps1") }
     foreach ($m in 'calor', 'lento', 'archivos', 'revision') { . (Join-Path $raizScripts "motivos\$m.ps1") }
     Initialize-Contexto -RaizScripts $raizScripts
     Initialize-Privacidad
@@ -197,6 +197,7 @@ while ($true) {
     $motivos = @($a['motivos'] | Where-Object { $_ })
     Write-Host ''
     Write-Host " TRABAJO | $($exp.Id) | $at | motivos: $(if ($motivos) { $motivos -join ', ' } else { '(ninguno: complétalos en la ficha)' }) | admin: $(if ($script:Ctx.Admin.Elevado) { 'sí' } else { 'no' })" -ForegroundColor Cyan
+    try { Write-Host " Siguiente: $((Get-SiguientePaso -Expediente (Read-Expediente $exp.Ruta) -Atencion $at).Texto)" -ForegroundColor White } catch { Write-Verbose "Sin siguiente paso: $($_.Exception.Message)" }
     $op = [ordered]@{}
     if ($motivos -contains 'CALOR') { $op['1'] = 'CALOR: condiciones ANTES'; $op['2'] = 'CALOR: importar CSV ANTES'; $op['3'] = 'CALOR: checklist físico y materiales'; $op['4'] = 'CALOR: condiciones DESPUÉS'; $op['5'] = 'CALOR: importar CSV DESPUÉS'; $op['6'] = 'CALOR: ver métricas' }
     if ($motivos -contains 'LENTO') { $op['7'] = 'LENTO: acciones sugeridas'; $op['8'] = 'LENTO: deshacer acciones'; $op['9'] = 'LENTO: ver métricas' }

@@ -35,13 +35,15 @@ try { Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBas
 $ErrorActionPreference = 'Stop'
 $script:Raiz = Split-Path -Parent $PSScriptRoot
 try {
-    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe', 'Herramientas', 'Sincronizacion') { . (Join-Path $script:Raiz "lib\$lib.ps1") }
+    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe', 'Herramientas', 'Sincronizacion', 'Flujo') { . (Join-Path $script:Raiz "lib\$lib.ps1") }
     foreach ($m in 'calor', 'lento', 'archivos', 'revision') { . (Join-Path $script:Raiz "motivos\$m.ps1") }
     Initialize-Contexto -RaizScripts $script:Raiz
     if ($Clientes) { $script:Ctx.CarpetaClientes = $Clientes }
     Initialize-Privacidad
     $script:Ctx.Admin = Get-EstadoAdmin
     $script:Identidad = Get-IdentidadEquipo
+    # Una vez al abrir: ¿los scripts del pendrive son los que copió actualizar_pendrive.ps1?
+    $script:Integridad = Test-IntegridadKit -RaizKit $script:Ctx.RaizKit
     [xml]$xaml = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'principal.xaml'))
     $script:Win = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
 } catch {
@@ -207,6 +209,36 @@ function Show-Estado {
     $ui.grpTrabajoLento.Visibility = & $vis 'LENTO'
     $ui.grpTrabajoArchivos.Visibility = & $vis 'ARCHIVOS'
     $ui.grpTrabajoRevision.Visibility = 'Visible'
+    $ui.txtVersion.Text = "Kit $($script:Ctx.Version)"
+    Show-Integridad
+    Show-SiguientePaso
+}
+
+function Show-Integridad {
+    # Franja ámbar si los scripts no coinciden con la copia verificada. Avisa, no bloquea.
+    $ui = $script:Ui
+    $i = $script:Integridad
+    if (-not $i -or $i.Estado -in 'ok', 'sin_manifiesto') { $ui.bdIntegridad.Visibility = 'Collapsed'; return }
+    $ui.txtIntegridad.Text = if ($i.Estado -eq 'error') {
+        "No se pudo verificar el kit: $($i.Detalle)"
+    } else {
+        $lista = @($i.Cambiados + $i.Faltan + $i.Nuevos)
+        $muestra = ($lista | Select-Object -First 3) -join ', '
+        "Ojo: $($lista.Count) archivo(s) del kit no coinciden con la copia del $($i.Copiado) ($muestra$(if ($lista.Count -gt 3) { '...' })). Puede ser un pendrive dañado o un script modificado: vuelve a copiar el kit desde tu PC con actualizar_pendrive.ps1 antes de seguir."
+    }
+    $ui.bdIntegridad.Visibility = 'Visible'
+}
+
+function Show-SiguientePaso {
+    # Franja bajo los pasos: qué le falta a la atención y un botón que lleva ahí. En consulta no aplica.
+    $ui = $script:Ui
+    $s = if ($script:G.Ajeno) { $null } else { Get-SiguientePaso -Expediente $script:G.Exp -Atencion $script:G.At }
+    if (-not $s) { $ui.bdSiguiente.Visibility = 'Collapsed'; return }
+    $ui.txtSiguiente.Text = "Siguiente: $($s.Texto)"
+    $ui.btnSiguiente.Tag = $s
+    $ui.btnSiguiente.Content = if ($s.Boton) { $s.Boton } else { 'Ir' }
+    $ui.btnSiguiente.Visibility = if ($s.Panel) { 'Visible' } else { 'Collapsed' }
+    $ui.bdSiguiente.Visibility = 'Visible'
 }
 
 function Show-Panel {
@@ -543,13 +575,30 @@ function Show-VistaCliente {
     if ($Captura) { $w.WindowState = 'Normal'; $w.Width = 1180; $w.Height = 700 }
     $sp = New-Object Windows.Controls.StackPanel
     $sp.Margin = '60,40'
-    $luces = New-Object Windows.Controls.StackPanel; $luces.Orientation = 'Horizontal'; $luces.Margin = '0,0,0,20'
-    foreach ($c in 'rojo', 'amarillo', 'verde') { $e = New-Object Windows.Shapes.Ellipse; $e.Width = 46; $e.Height = 46; $e.Margin = '0,0,14,0'; $e.Fill = Get-Pincel $(if ($d.Color -eq $c) { $script:Colores[$c] } else { '#E6E8EB' }); [void]$luces.Children.Add($e) }
-    [void]$sp.Children.Add($luces)
+    # Arriba, el estado general del equipo (todas las áreas) con su luz y por qué. Abajo, el resultado del
+    # motivo. Así una luz roja por un disco no contradice "tu equipo ya no se sobrecalienta".
+    $general = New-Object Windows.Controls.StackPanel; $general.Orientation = 'Horizontal'; $general.Margin = '0,0,0,6'
+    foreach ($c in 'rojo', 'amarillo', 'verde') { $e = New-Object Windows.Shapes.Ellipse; $e.Width = 30; $e.Height = 30; $e.Margin = '0,0,10,0'; $e.VerticalAlignment = 'Center'; $e.Fill = Get-Pincel $(if ($d.Color -eq $c) { $script:Colores[$c] } else { '#E6E8EB' }); [void]$general.Children.Add($e) }
+    $tg = New-Object Windows.Controls.TextBlock; $tg.FontSize = 24; $tg.VerticalAlignment = 'Center'; $tg.Margin = '6,0,0,0'
+    $tg.Text = 'Estado general del equipo: ' + @{ verde = 'en buen estado'; amarillo = 'hay cosas que conviene atender'; rojo = 'necesita atención'; gris = 'sin datos suficientes' }[$d.Color]
+    [void]$general.Children.Add($tg)
+    [void]$sp.Children.Add($general)
+    $razones = @($d.Semaforo.Areas | Where-Object { $_.Color -in 'rojo', 'amarillo' } | ForEach-Object { "$($_.Area): $($_.Frase)" })
+    if ($razones.Count) {
+        $tr = New-Object Windows.Controls.TextBlock; $tr.Text = $razones -join '   ·   '; $tr.FontSize = 18; $tr.Foreground = Get-Pincel '#57606A'; $tr.TextWrapping = 'Wrap'; $tr.Margin = '0,0,0,6'
+        [void]$sp.Children.Add($tr)
+    }
+    $sep = New-Object Windows.Controls.Border; $sep.Height = 1; $sep.Background = Get-Pincel '#D0D7DE'; $sep.Margin = '0,18,0,22'
+    [void]$sp.Children.Add($sep)
+    $principal = @($d.Metricas.Keys)[0]
+    $tituloMotivo = @{ CALOR = 'Temperatura: antes → después'; LENTO = 'Rapidez: antes → después'; ARCHIVOS = 'Espacio: antes → después' }[[string]$principal]
+    if ($tituloMotivo) {
+        $tm = New-Object Windows.Controls.TextBlock; $tm.Text = $tituloMotivo; $tm.FontSize = 22; $tm.Foreground = Get-Pincel '#57606A'; $tm.Margin = '0,0,0,6'
+        [void]$sp.Children.Add($tm)
+    }
     $fr = New-Object Windows.Controls.TextBlock; $fr.Text = $d.Frase; $fr.FontSize = 40; $fr.FontWeight = 'SemiBold'; $fr.TextWrapping = 'Wrap'; $fr.Margin = '0,0,0,30'
     [void]$sp.Children.Add($fr)
     $wp = New-Object Windows.Controls.WrapPanel
-    $principal = @($d.Metricas.Keys)[0]
     $metPrincipal = if ($principal) { $d.Metricas[$principal] } else { $null }
     $conDatos = { param($t) $t -and ($null -ne $t.Antes -or $null -ne $t.Despues) }
     $tarjetas = if ($metPrincipal -and $metPrincipal.PSObject.Properties['Pantalla']) { @($metPrincipal.Pantalla | Where-Object { & $conDatos $_ }) } elseif ($metPrincipal) { @($metPrincipal.Tarjetas | Where-Object { & $conDatos $_ } | Select-Object -First 4) } else { @() }
@@ -702,6 +751,12 @@ $script:Temporizador = New-Object Windows.Threading.DispatcherTimer
 $script:Temporizador.Interval = [TimeSpan]::FromMilliseconds(150)
 $script:Temporizador.Add_Tick({ Invoke-LecturaFondo })
 
+$ui.btnSiguiente.Add_Click({
+        $s = $script:Ui.btnSiguiente.Tag
+        if (-not $s -or -not $s.Panel) { return }
+        if ($s.Momento) { $script:G.Momento = $s.Momento }
+        Show-Panel $s.Panel
+    })
 $ui.navInicio.Add_Click({ Show-Panel 'pnlInicio' })
 $ui.navFicha.Add_Click({ Show-Panel 'pnlFicha' })
 $ui.navAntes.Add_Click({ $script:G.Momento = 'antes'; Show-Panel 'pnlMedicion' })
@@ -793,6 +848,7 @@ $ui.btnGuardarCondiciones.Add_Click({
                 Invoke-PreInformeGui -Auto
                 $ui.txtCondEstado.Text = "Condiciones guardadas. $($ui.txtMedicionEstado.Text)"
             }
+            Show-SiguientePaso
         } catch { $ui.txtCondEstado.Foreground = Get-Pincel '#CF222E'; $ui.txtCondEstado.Text = Get-MensajeSimple $_.Exception.Message }
     })
 
@@ -962,7 +1018,9 @@ $script:Win.Add_Closing({
 function Save-Captura {
     param([Windows.FrameworkElement]$Elemento, [string]$Nombre)
     $Elemento.UpdateLayout()
-    $rtb = New-Object Windows.Media.Imaging.RenderTargetBitmap ([int]$Elemento.ActualWidth, [int]$Elemento.ActualHeight, 96, 96, [Windows.Media.PixelFormats]::Pbgra32)
+    # Render() dibuja el elemento corrido por su margen: sin sumarlo, la captura cortaba el borde derecho.
+    $m = $Elemento.Margin
+    $rtb = New-Object Windows.Media.Imaging.RenderTargetBitmap ([int]($Elemento.ActualWidth + $m.Left + $m.Right), [int]($Elemento.ActualHeight + $m.Top + $m.Bottom), 96, 96, [Windows.Media.PixelFormats]::Pbgra32)
     $rtb.Render($Elemento)
     $enc = New-Object Windows.Media.Imaging.PngBitmapEncoder
     $enc.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($rtb))

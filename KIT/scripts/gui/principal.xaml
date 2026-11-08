@@ -110,9 +110,21 @@
       </DockPanel>
     </Border>
 
+    <!-- Avisos: integridad del kit y siguiente paso de la atención -->
+    <Border Name="bdIntegridad" DockPanel.Dock="Top" Background="#FFF4D6" BorderBrush="#D4A72C" BorderThickness="0,0,0,1" Padding="14,6" Visibility="Collapsed">
+      <TextBlock Name="txtIntegridad" TextWrapping="Wrap" Foreground="#5C4100"/>
+    </Border>
+    <Border Name="bdSiguiente" DockPanel.Dock="Top" Background="#E3EFFB" BorderBrush="#B6D4F5" BorderThickness="0,0,0,1" Padding="14,4" Visibility="Collapsed">
+      <DockPanel>
+        <Button Name="btnSiguiente" DockPanel.Dock="Right" Content="Ir" Margin="0" MinHeight="28"/>
+        <TextBlock Name="txtSiguiente" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0" Foreground="#0B3D75"/>
+      </DockPanel>
+    </Border>
+
     <!-- Barra inferior: trabajo en segundo plano -->
     <Border DockPanel.Dock="Bottom" Background="White" BorderBrush="#D0D7DE" BorderThickness="0,1,0,0" Padding="12,6">
       <DockPanel>
+        <TextBlock Name="txtVersion" DockPanel.Dock="Right" VerticalAlignment="Center" Foreground="#8C959F" Margin="12,0,0,0"/>
         <Button Name="btnCancelar" DockPanel.Dock="Right" Content="Cancelar" Margin="0" Visibility="Collapsed"/>
         <ProgressBar Name="prgTarea" DockPanel.Dock="Right" Width="220" Height="14" Margin="0,0,12,0" Visibility="Collapsed"/>
         <TextBlock Name="txtEstado" VerticalAlignment="Center" Text="Listo." TextTrimming="CharacterEllipsis"/>

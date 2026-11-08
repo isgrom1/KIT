@@ -4,6 +4,7 @@ Isaac hace servicio técnico de notebooks y PC en Santiago de Chile. Este repo e
 
 - **Habla con Isaac en español chileno informal.**
 - La raíz del repo es la raíz del USB: `actualizar_herramientas.ps1` + `KIT\`. `pruebas\` no va al USB.
+- El kit se copia al pendrive con `actualizar_pendrive.ps1` (en el PC de Isaac): copia, verifica por SHA-256, nunca toca `KIT\clientes` y deja `KIT\version.json` con los hashes.
 - Manual: `KIT/docs/LEEME.md`. Atención paso a paso: `KIT/docs/GUIA_ATENCION.md`.
 
 ## Cómo se trabaja
@@ -35,6 +36,16 @@ En el PC (`X:\kitservicio`): `git pull` antes de trabajar; al terminar, commit y
 | F | Prueba completa: 6 pruebas de punta a punta desde un "USB" exFAT de prueba (banco en `pruebas\faseF_*.ps1`) | cerrada 2026-11-02 (OK de Isaac) |
 
 **Las 7 fases del prompt maestro están cerradas.** Lo que venga ahora son mejoras o arreglos que pida Isaac: cada cambio se prueba en su PC (baterías de `pruebas\` y PSScriptAnalyzer en 0) antes de darlo por hecho.
+
+**Mejoras de la revisión (2026-11-08):** Isaac aprobó las 17 sugerencias de la revisión del kit. Van por fases, con su OK entre cada una:
+
+| Fase | Contenido | Estado |
+|---|---|---|
+| G | Actualizar el pendrive con versión (`actualizar_pendrive.ps1`, `KIT\version.json`), verificación de integridad, franja "Siguiente paso" (`lib\Flujo.ps1`), "Mostrar al cliente" con estado general separado del resultado del motivo | hecha, esperando OK |
+| H | CSV de sensores detectado solo + configuración base de OCCT; PDF con Edge sin ventana + mensaje de WhatsApp; paquete de soporte | pendiente |
+| I | GitHub Actions (PSScriptAnalyzer y parseo), pruebas con Pester, respaldo del maestro y pendrive de repuesto | pendiente; preguntar destino del respaldo |
+| J | Ley 21.719 (datos personales: retención y consentimiento), apto para Windows 11, detección de reglas ASR | pendiente; preguntar retención y texto de consentimiento |
+| K | ISO de rescate, dividir `kit.ps1`, negocio (precios y paquetes), firma de código | pendiente; preguntar ISO, precios y si compra certificado (se recomendó no) |
 
 **Fase F (especificación de Isaac):** simular atenciones completas con el kit copiado a otra letra.
 - **CALOR**, cliente nuevo.
@@ -89,7 +100,7 @@ En el PC (`X:\kitservicio`): `git pull` antes de trabajar; al terminar, commit y
 
 ## Cómo probar (en el PC de Isaac)
 
-- `pruebas\` tiene las baterías: `test_expediente.ps1` (45), `test_faseB.ps1` (23), `test_velocidad.ps1` (18), `test_archivos.ps1`, `test_sensores.ps1`, `test_smart.ps1`, `test_sincronizacion.ps1` (50), `test_herramientas.ps1` (22), `test_preinforme.ps1` (52), `test_terreno.ps1` (19) y otras. Ver `pruebas\LEEME.md`.
+- `pruebas\` tiene las baterías: `test_expediente.ps1` (45), `test_faseB.ps1` (23), `test_velocidad.ps1` (18), `test_archivos.ps1`, `test_sensores.ps1`, `test_smart.ps1`, `test_sincronizacion.ps1` (50), `test_herramientas.ps1` (22), `test_preinforme.ps1` (52), `test_terreno.ps1` (19), `test_faseG.ps1` (33) y otras. Ver `pruebas\LEEME.md`.
 - La interfaz tiene modo captura: `powershell -STA -File KIT\scripts\gui\kit.ps1 -Captura <carpeta> [-CapturaDiag] [-RutaMaestro <maestro de prueba>] [-Escenario <archivo de pasos>]` recorre los paneles (o los pasos del escenario, con los botones reales) y guarda un PNG de cada uno.
 - La ventana guarda el expediente en memoria y los trabajos largos corren en otro proceso que también escribe `ficha.json`: **antes de guardar desde la ventana hay que releer** (`Initialize-AtencionGui`), o se pisa lo que escribió el otro proceso (bug encontrado en la Fase F).
 - PSScriptAnalyzer:

@@ -8,7 +8,8 @@ Cómo atender un equipo con el kit: desde que lo recibes hasta que lo entregas y
 2. **Tu contacto en `KIT\scripts\config\config_local.json` → `tecnico.contacto`** (ya está tu correo). Sin él no se generan informes. Ese archivo no se sube a GitHub: cópialo al pendrive junto con el kit.
 3. **OCCT y HWiNFO** van en `KIT\herramientas\OCCT` y `KIT\herramientas\HWiNFO` (la versión portable). Aparecen solos como botones en **Herramientas** y no se suben a GitHub. Hay que copiarlos a mano: el actualizador no los baja.
 4. **Si vienes de atender, sincroniza primero** (punto 7).
-5. **Para actualizar el kit del USB** con una versión nueva, copia encima `INICIAR.cmd`, `KIT\scripts` y `KIT\docs`. **No borres `KIT\clientes` del USB**: ahí están las atenciones abiertas.
+5. **Para actualizar el kit del USB** con una versión nueva: conecta el pendrive y, en la carpeta del repositorio, corre `actualizar_pendrive.ps1` (clic derecho → Ejecutar con PowerShell, o `powershell -ExecutionPolicy Bypass -File .\actualizar_pendrive.ps1`). Busca solo el pendrive "Ventoy" (si hay otro, se lo indicas con `-Destino E:`). Copia `INICIAR.cmd`, `KIT\scripts` y `KIT\docs`, compara cada archivo por SHA-256 y deja la versión en `KIT\version.json`. **No toca `KIT\clientes` ni `KIT\herramientas`**, no pisa el `config_local.json` del pendrive y no borra nada: si un script ya no existe, lo aparta en `KIT\_obsoletos`. Debe terminar en **"Listo"**; si dice "No se completó", repítelo antes de salir.
+6. **Versión del kit:** abajo a la derecha de la ventana dice la versión y el commit con que se copió, por ejemplo `Kit 0.2.0 · a1b2c3d · 2026-11-08`. Si sale una franja ámbar "Ojo: … archivos del kit no coinciden", el pendrive tiene un script dañado o cambiado: vuelve a correr `actualizar_pendrive.ps1` en tu PC. El kit sigue funcionando igual.
 
 ## 1. Recepción, con el cliente presente (10-15 min)
 
@@ -16,6 +17,7 @@ Cómo atender un equipo con el kit: desde que lo recibes hasta que lo entregas y
 2. Arriba a la derecha, si dice **Admin: no**, toca **Relanzar como admin** y acepta el aviso de Windows. Sin admin el kit funciona igual, pero no lee el SMART real de los discos, BitLocker, TPM ni el tiempo de arranque.
 3. En la barra de arriba ves el equipo y su serie. Si ya vino antes, dice **Cliente conocido — última atención…**.
 4. **Inicio:** marca por qué viene (puede ser más de uno): **Se calienta**, **Está lento**, **Archivos y espacio** o **Revisión completa**. Eso abre la atención de hoy.
+   - Desde ahí, la **franja azul "Siguiente:"**, bajo los pasos, dice qué le falta a la atención (la ficha, el ANTES, el CSV, las condiciones, el trabajo, el DESPUÉS, los informes o la entrega) y su botón te lleva al panel. Puedes seguirla de principio a fin o moverte por los pasos a tu gusto.
 5. **① Ficha**, delante del cliente:
    - nombre, contacto (WhatsApp o correo) y comuna. **Nada de RUT ni dirección**: la ficha los rechaza;
    - síntoma, con sus palabras, y estado físico (golpes, piezas sueltas, bisagras);
@@ -60,7 +62,7 @@ El DESPUÉS tiene que medirse igual: misma carga, duración y condiciones. El ki
 1. **⑤ Informe → Generar informes**. Si falta algo de la ficha, dice qué.
 2. **Informe del cliente** (una página A4): semáforo, frase principal, antes → después, lo que se hizo, hasta 3 recomendaciones, garantía y próxima mantención. **Abrir informe del cliente → Ctrl+P → Guardar como PDF**, y se lo mandas por WhatsApp o correo.
 3. **Informe técnico**: todo el detalle, para ti.
-4. **Mostrar al cliente**: pantalla completa con el semáforo y las tarjetas antes → después. **Esc** para salir.
+4. **Mostrar al cliente**: pantalla completa. Arriba, el **estado general del equipo** (las luces por área y, si hay algo en rojo o naranjo, cuáles son). Abajo, separado, el **resultado de lo que vino a hacer** (temperatura, rapidez o espacio) con las tarjetas antes → después. Así no se confunde "el equipo está en buen estado" con "la temperatura bajó". **Esc** para salir.
 
 ## 6. Entrega
 
@@ -124,6 +126,7 @@ Abre una herramienta solo cuando el diagnóstico o el motivo de la atención lo 
 - **La ventana no abre:** el equipo tiene PowerShell restringido (AppLocker, WDAC o Smart App Control). INICIAR muestra el menú de consola. Si el diagnóstico dice "código 3", no puede correr en ese equipo. **Nunca desactives la seguridad del cliente.**
 - **"No hay diagnóstico ANTES":** el DESPUÉS necesita un ANTES en la misma atención.
 - **Cancelar:** botón de la barra de abajo. La medición anterior queda intacta.
+- **Franja ámbar "Ojo: … archivos del kit no coinciden":** un script del pendrive no es igual al que se copió (pendrive dañado o archivo cambiado). Termina la atención si quieres, pero al volver corre `actualizar_pendrive.ps1`. Si abajo dice "copia de trabajo", el kit se copió a mano (o corre desde el repositorio) y no hay contra qué verificarlo.
 - **Se cortó la luz o sacaron el USB a mitad:** lo cortado queda como `_incompleto_` y la medición anterior queda intacta.
 - **Modo técnico:** diagnóstico suelto por secciones, y abrir `resumen.txt`, `trabajo.log` o el menú de consola. Si la atención en curso todavía no tiene ANTES y marcas todas las secciones, cuenta como su ANTES. Si no, pregunta antes de abrir una atención aparte, que no reemplaza a la que estás trabajando. Lo normal es medir en **② Antes**.
 - **Sin admin:** el diagnóstico corre y marca qué quedó incompleto. Relanza como admin para completarlo.

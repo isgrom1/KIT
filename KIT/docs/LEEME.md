@@ -12,6 +12,7 @@ Corre con el Windows PowerShell 5.1 que trae Windows: no instala nada en el equi
 ├─ actualizar_herramientas.ps1   se corre en TU equipo, nunca en el del cliente
 └─ KIT\
    ├─ INICIAR.cmd                abre la ventana; menú de consola de respaldo
+   ├─ version.json               versión y hashes de la última copia (lo escribe actualizar_pendrive.ps1)
    ├─ scripts\
    │  ├─ diagnostico.ps1         orquestador
    │  ├─ ficha.ps1               ficha del cliente por consola
@@ -21,7 +22,7 @@ Corre con el Windows PowerShell 5.1 que trae Windows: no instala nada en el equi
    │  ├─ gui\                    principal.xaml, kit.ps1 (ventana) y tarea.ps1 (trabajos en segundo plano)
    │  ├─ herramientas.ps1        menú de herramientas portables
    │  ├─ secciones\              01_equipo.ps1 … 13_estabilidad.ps1
-   │  ├─ lib\                    Comun, Log, Privacidad, Salidas, Alertas, Expediente, Sincronizacion...
+   │  ├─ lib\                    Comun, Log, Privacidad, Salidas, Alertas, Expediente, Flujo, Sincronizacion...
    │  └─ config\                 config.json, software_conocido.json, ciclo_vida_windows.json
    ├─ herramientas\              una carpeta por herramienta + versiones.json
    ├─ clientes\                  un expediente por equipo (ver "Expedientes")
@@ -117,8 +118,15 @@ Con admin, el diagnóstico también lee el SMART de `discos.txt` (CrystalDiskInf
 
 ## Preparar el USB (en tu equipo)
 
-1. Copia la carpeta del kit a la partición de datos del Ventoy (la grande, en exFAT). Corre desde cualquier letra: todas las rutas salen de la carpeta del kit y los expedientes no guardan rutas del USB.
-2. Si bajaste el kit como .zip, desbloquéalo antes de descomprimir (ver "Mark of the Web").
+1. Copia el kit a la partición de datos del Ventoy (la grande, en exFAT). Corre desde cualquier letra: todas las rutas salen de la carpeta del kit y los expedientes no guardan rutas del USB. Desde el repositorio, lo más seguro es:
+   ```
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\actualizar_pendrive.ps1 [-Destino E:]
+   ```
+   - Sin `-Destino` busca el único volumen llamado "Ventoy". Se niega a copiar sobre el mismo repositorio.
+   - Copia `INICIAR.cmd`, `KIT\scripts`, `KIT\docs` y `actualizar_herramientas.ps1`. **No toca `KIT\clientes` ni `KIT\herramientas`** y no pisa un `config_local.json` que ya esté en el pendrive (si no hay, copia el tuyo).
+   - No borra: lo que ya no existe en el repositorio se aparta a `KIT\_obsoletos\<fecha_hora>\`.
+   - Compara cada archivo con el original por SHA-256, comprueba que `KIT\clientes` no cambió y deja `KIT\version.json` con el commit, la fecha y el hash de cada archivo. Sale con código 0 si todo cuadra y 1 si no.
+2. Si bajaste el kit como .zip, desbloquéalo antes de descomprimir (ver "Mark of the Web"). Copiado a mano no hay `version.json`: la ventana dice "copia de trabajo" y no verifica nada.
 3. Actualiza las herramientas:
    ```
    powershell -NoProfile -ExecutionPolicy Bypass -File .\actualizar_herramientas.ps1
@@ -149,6 +157,9 @@ El USB lleva las atenciones en curso; el historial completo vive en el **maestro
   - equipo, serie, "Admin: sí/no" y **Relanzar como admin**, que conserva el expediente y la atención;
   - cliente activo y, si el equipo ya vino antes, "Cliente conocido — última atención…".
 - **Inicio:** "¿Por qué viene el equipo?" con 4 tarjetas, en las que se puede marcar más de una. Debajo va el avance ① Ficha ② Antes ③ Trabajo ④ Después ⑤ Informe: cada paso se habilita al completar el anterior y lleva ✓ cuando está hecho.
+- **Siguiente paso** (franja azul bajo los pasos): qué le falta a la atención, en este orden: motivo → ficha (nombre, contacto, síntoma y, con ARCHIVOS, consentimiento y carpetas protegidas) → diagnóstico ANTES → con CALOR, CSV y condiciones del ANTES → trabajo terminado → DESPUÉS (y su CSV y condiciones) → lo que falta para los informes (paquete, precio, datos del técnico) → informes → entrega. El botón lleva al panel. En modo consulta no aparece. Lo calcula `lib\Flujo.ps1` (`Get-SiguientePaso`); la consola de Trabajo muestra la misma línea.
+- **Barra de abajo:** a la derecha, la versión del kit (`0.2.0 · <commit> · <fecha>`, o "copia de trabajo").
+- **Verificación del kit:** al abrir, la ventana compara cada archivo de `INICIAR.cmd`, `scripts\` y `docs\` con los hashes de `version.json` (sin contar `config_local.json`). Si alguno cambió, falta o sobra, sale una franja ámbar con los primeros nombres; el diagnóstico lo anota en su log y lo muestra en consola. Avisa, no bloquea.
 - **Por motivo:** cada paso muestra solo lo de los motivos elegidos.
 - **Ficha:** obligatorios marcados con *, checklist funcional y **Agregar fotos de recepción** (se copian a `fotos_recepcion\`).
 - **Antes / Después:**
@@ -162,7 +173,7 @@ El USB lleva las atenciones en curso; el historial completo vive en el **maestro
   - semáforo (REVISIÓN).
 - **Pre-informe:** `pre_informe.html`, en la carpeta de la atención. Muestra cómo está el equipo antes del trabajo, siempre con la medición ANTES y sin exigir la ficha completa. Se actualiza después del diagnóstico ANTES, al importar el CSV y al guardar las condiciones. Se abre al terminar el diagnóstico ANTES y otra vez cuando la medición queda completa. **② Antes → Ver pre-informe** lo abre en cualquier momento; en consola es la opción P de Trabajo. Lo que imprime es una hoja A4 para el cliente; el detalle de las alertas se ve en pantalla, pero no sale al imprimir.
 - **Informe:** vista previa de ambos informes, Generar, Abrir y Abrir carpeta.
-- **Mostrar al cliente:** pantalla completa con el semáforo y las tarjetas antes → después del motivo principal. Esc para salir.
+- **Mostrar al cliente:** pantalla completa en dos partes. Arriba, el **estado general del equipo**: una luz por área, una frase (en buen estado / hay cosas que conviene atender / necesita atención / sin datos suficientes) y las áreas en rojo o naranjo. Abajo, separado, el **resultado del motivo** (Temperatura, Rapidez o Espacio: antes → después) con su frase y tarjetas. Esc para salir.
 - **Expedientes:** lista los expedientes del USB (o del maestro, en tus equipos) con buscador; se elige la atención y **Abrir**. El de otro equipo, o cualquiera del maestro, se abre en **modo consulta** (barra ámbar): no se mide ni se aplican acciones, pero se puede completar la ficha y **regenerar los informes**. **Volver a este equipo** regresa al flujo normal. En tus equipos, abajo está **Sincronizar** (ver "Sincronizar con el maestro").
 - **Modo técnico:** diagnóstico suelto por secciones, atajos y menú de consola. Con todas las secciones y la atención todavía sin ANTES, cuenta como su ANTES; si no, pregunta antes de abrir una atención aparte.
 - **Herramientas:** un botón por herramienta; las que faltan aparecen en gris.
