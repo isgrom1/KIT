@@ -97,6 +97,7 @@ function Import-SensoresMedicion {
         throw 'No existe "después" sin "antes": importa primero los sensores o el diagnóstico ANTES'
     }
     $resumen = Read-SensoresCsv -Ruta $Ruta
+    $equipo = Test-EquipoCsvSensores -Expediente $Expediente -Ruta $Ruta
     $destino = Join-Path (Join-Path $Expediente.Ruta $Atencion) $Momento
     if (-not $PSCmdlet.ShouldProcess($destino, 'Importar sensores')) { return }
     $null = [IO.Directory]::CreateDirectory($destino)
@@ -107,6 +108,7 @@ function Import-SensoresMedicion {
     $txt = '{0} | sensores importados: {1} ({2}, {3} min){4}{5}' -f $Momento.ToUpperInvariant(), $resumen.archivo, $resumen.formato, (Format-Numero $resumen.duracion_min 1),
         $(if ($cpu) { " | CPU $(Format-Numero $cpu.media 1)/$(Format-Numero $cpu.max 1) °C" } else { '' }),
         $(if ($m.gpu_temp) { " | GPU $(Format-Numero $m.gpu_temp.media 1)/$(Format-Numero $m.gpu_temp.max 1) °C" } else { '' })
+    if ($equipo.Coincide -eq $false) { $txt += " | ojo: el CSV dice que es de $($equipo.Texto)" }
     Write-TrabajoLog -Expediente $Expediente -Atencion $Atencion -Texto ("CALOR $txt")
     $resumen
 }
@@ -214,11 +216,85 @@ function Get-FormatoEncabezadoSensores {
     $null
 }
 
+function ConvertTo-ClaveEquipo {
+    # Texto para comparar nombres de equipo o CPU: sin (R), (TM), espacios ni signos, en minúsculas.
+    param([AllowNull()][string]$Texto)
+    if (-not $Texto) { return '' }
+    $Texto.ToLowerInvariant() -replace '\((r|tm)\)|®|™', '' -replace '[^a-z0-9]', ''
+}
+
+function Get-EquipoCsvSensores {
+    # Equipo y CPU según la fila de grupos que HWiNFO escribe al final del CSV cuando se detiene el registro
+    # ("Sistema: DELL Inspiron 3493", "CPU [#0]: Intel Core i3-1005G1"). $null si no la tiene: LibreHardwareMonitor,
+    # o HWiNFO todavía grabando. Lee solo el final del archivo y devuelve esos dos nombres: esa fila también nombra
+    # los discos con su serie, y eso no se guarda.
+    param([Parameter(Mandatory)][string]$Ruta)
+    $ultima = $null
+    try {
+        $fs = [IO.File]::Open($Ruta, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+        try {
+            $bom = New-Object byte[] 3
+            $conBom = $fs.Read($bom, 0, 3) -eq 3 -and $bom[0] -eq 0xEF -and $bom[1] -eq 0xBB -and $bom[2] -eq 0xBF
+            $cod = if ($conBom) { [Text.Encoding]::UTF8 } else { [Text.Encoding]::Default }
+            # La fila de grupos mide unos 40 bytes por columna: casi siempre cabe en 64 KB; si no, se lee más.
+            foreach ($tam in 65536, 1048576, 8388608) {
+                $largo = [int][math]::Min($fs.Length, $tam)
+                $null = $fs.Seek(-$largo, [IO.SeekOrigin]::End)
+                $buf = New-Object byte[] $largo
+                $leidos = 0
+                while ($leidos -lt $largo) { $n = $fs.Read($buf, $leidos, $largo - $leidos); if ($n -le 0) { break }; $leidos += $n }
+                $texto = $cod.GetString($buf, 0, $leidos).TrimEnd([char[]]@([char]13, [char]10, [char]32))
+                $corte = $texto.LastIndexOf([char]10)
+                if ($corte -ge 0) { $ultima = $texto.Substring($corte + 1); break }
+                if ($largo -eq $fs.Length) { $ultima = $texto.TrimStart([char]0xFEFF); break }
+            }
+        } finally { $fs.Dispose() }
+    } catch { return $null }
+    if (-not $ultima) { return $null }
+    $s = [regex]::Match($ultima, '(?:^|,)"?(?:Sistema|System)\s*:\s*([^,"]+)')
+    if (-not $s.Success) { return $null }
+    $c = [regex]::Match($ultima, '(?:^|,)"?CPU \[#0\]\s*:\s*([^,":]+)')
+    [pscustomobject]@{
+        Sistema = $s.Groups[1].Value.Trim()
+        Cpu     = if ($c.Success) { $c.Groups[1].Value.Trim() } else { $null }
+    }
+}
+
+function Test-EquipoCsvSensores {
+    # ¿El CSV es de este equipo? Compara la fila de grupos de HWiNFO con el modelo y la CPU de la ficha.
+    # Coincide: $true; $false si algo no calza (otro equipo); $null si el CSV no lo dice o no hay con qué comparar.
+    # En Lenovo el modelo de la ficha es el nombre comercial y HWiNFO puede mostrar el tipo de máquina: ahí, y en
+    # los equipos genéricos, se compara solo la CPU.
+    param([Parameter(Mandatory)]$Expediente, [Parameter(Mandatory)][string]$Ruta)
+    $r = [pscustomobject]@{ Coincide = $null; Sistema = $null; Cpu = $null; Texto = $null }
+    $csv = Get-EquipoCsvSensores -Ruta $Ruta
+    if (-not $csv) { return $r }
+    $r.Sistema = $csv.Sistema; $r.Cpu = $csv.Cpu
+    $r.Texto = $csv.Sistema + $(if ($csv.Cpu) { " ($($csv.Cpu))" } else { '' })
+    $eq = $Expediente.Ficha['equipo']
+    if (-not $eq) { return $r }
+    $resultados = New-Object System.Collections.Generic.List[bool]
+    $modelo = ConvertTo-ClaveEquipo $eq['modelo']
+    if ($modelo.Length -ge 3 -and $modelo -ne 'generico' -and "$($eq['fabricante'])" -ne 'Lenovo') {
+        $resultados.Add((ConvertTo-ClaveEquipo $csv.Sistema).Contains($modelo))
+    }
+    $cpuFicha = ConvertTo-ClaveEquipo $eq['cpu']
+    if ($csv.Cpu -and $cpuFicha) {
+        # HWiNFO acorta el nombre ("Intel Core i3-1005G1"); Windows lo alarga ("Intel(R) Core(TM) i3-1005G1 CPU @ 1.20GHz").
+        $numero = @($csv.Cpu -split '\s+' | Where-Object { $_ -match '\d' })
+        $resultados.Add($cpuFicha.Contains((ConvertTo-ClaveEquipo $csv.Cpu)) -or ($numero.Count -gt 0 -and $cpuFicha.Contains((ConvertTo-ClaveEquipo $numero[-1]))))
+    }
+    if ($resultados.Count) { $r.Coincide = -not $resultados.Contains($false) }
+    $r
+}
+
 function Find-CsvSensores {
     # CSV de sensores que pueden ser de esta medición, el más nuevo primero: de HWiNFO o LibreHardwareMonitor,
     # modificados desde el día de la atención (en el DESPUÉS, desde que se importó el ANTES) y distintos de
     # los ya importados. Si el momento ya tiene sensores, no busca. Solo mira nombres y fechas de los .csv y
-    # la primera línea de los recientes; no guarda nada.
+    # la primera y la última línea de los recientes; no guarda nada.
+    # Los que dicen ser de otro equipo (fila de grupos de HWiNFO) van al final con OtroEquipo y Equipo: quien
+    # llama no los ofrece, solo avisa que están.
     param(
         [Parameter(Mandatory)]$Expediente,
         [Parameter(Mandatory)][string]$Atencion,
@@ -253,19 +329,22 @@ function Find-CsvSensores {
                 if ($i.Length -eq $f.Length -and (Get-FileHash -LiteralPath $i.FullName -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash) { $igual = $true }
             }
             if ($igual) { continue }
+            $equipo = Test-EquipoCsvSensores -Expediente $Expediente -Ruta $f.FullName
             [pscustomobject][ordered]@{
-                Ruta    = $f.FullName
-                Nombre  = $f.Name
-                Donde   = $k
-                Fecha   = $f.LastWriteTime
-                KB      = [math]::Round($f.Length / 1KB)
-                Formato = $formato
+                Ruta       = $f.FullName
+                Nombre     = $f.Name
+                Donde      = $k
+                Fecha      = $f.LastWriteTime
+                KB         = [math]::Round($f.Length / 1KB)
+                Formato    = $formato
                 # HWiNFO escribe cada 2 segundos: si cambió hace poco, todavía está grabando.
-                EnCurso = (($Ahora - $f.LastWriteTime).TotalSeconds -lt 15)
+                EnCurso    = (($Ahora - $f.LastWriteTime).TotalSeconds -lt 15)
+                OtroEquipo = ($equipo.Coincide -eq $false)
+                Equipo     = $equipo.Texto
             }
         }
     }
-    @($lista | Sort-Object Fecha -Descending)
+    @($lista | Sort-Object @{ Expression = { $_.OtroEquipo } }, @{ Expression = { $_.Fecha }; Descending = $true })
 }
 
 function Remove-CsvSensoresOrigen {

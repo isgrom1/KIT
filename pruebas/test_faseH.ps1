@@ -13,6 +13,7 @@ $ErrorActionPreference = 'Stop'
 $scripts = Join-Path (Split-Path -Parent $PSScriptRoot) 'KIT\scripts'
 foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe', 'Herramientas', 'Soporte') { . (Join-Path $scripts "lib\$lib.ps1") }
 foreach ($m in 'calor', 'lento', 'archivos', 'revision') { . (Join-Path $scripts "motivos\$m.ps1") }
+. (Join-Path $PSScriptRoot '_datos_ejemplo.ps1')
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 Initialize-Contexto -RaizScripts $scripts
 Initialize-Privacidad
@@ -87,6 +88,48 @@ try {
     Add-Content -LiteralPath "$esc\despues.CSV" -Value 'fila nueva'
     $error1 = $null; try { $null = Remove-CsvSensoresOrigen -Expediente (& $exp) -Atencion $at -Momento despues -Ruta "$esc\despues.CSV" } catch { $error1 = $_.Exception.Message }
     Assert 'no saca un CSV que cambió después de importarlo' ($error1 -match 'cambió' -and (Test-Path "$esc\despues.CSV"))
+
+    '== CSV de otro equipo'
+    $e2 = New-Expediente -Identidad ([pscustomobject]@{ Fabricante = 'Acer'; Modelo = 'Nitro AN515-43'; Serie = 'FASEH002'; SerieOriginal = 'FASEH002'; Uuid = $null; PlacaSerie = $null })
+    $x2 = Read-Expediente $e2.Ruta; $x2.Ficha['equipo']['cpu'] = 'AMD Ryzen 5 3550H with Radeon Vega Mobile Gfx'; Save-Ficha -Expediente $x2
+    $at2 = New-Atencion -Expediente (Read-Expediente $e2.Ruta)
+    Set-Ficha -Expediente (Read-Expediente $e2.Ruta) -Atencion $at2 -Valores ([ordered]@{ motivos = 'CALOR'; sintoma = 'Se calienta'; paquete = 'Mantención'; precio = '20000' })
+    $exp2 = { Read-Expediente $e2.Ruta }
+    $dirEq = Join-Path $tmp 'equipos'
+    Write-CsvHwinfoEs -Ruta "$dirEq\propio.CSV" -Sistema 'Acer Nitro AN515-43' -Cpu 'AMD Ryzen 5 3550H' -Minutos 1
+    Write-CsvHwinfoEs -Ruta "$dirEq\sin_bom.CSV" -Sistema 'Acer Nitro AN515-43' -Cpu 'AMD Ryzen 5 3550H' -Minutos 1 -SinBom
+    Write-CsvHwinfoEs -Ruta "$dirEq\dell.CSV" -Sistema 'DELL Inspiron 3493' -Cpu 'Intel Core i3-1005G1' -Minutos 1
+    Write-CsvHwinfoEs -Ruta "$dirEq\misma_cpu.CSV" -Sistema 'HP Laptop 15-db1xxx' -Cpu 'AMD Ryzen 5 3550H' -Minutos 1
+    Write-CsvHwinfo "$dirEq\grabando.CSV" 80
+    $minutos = @{ 'grabando.CSV' = -6; 'sin_bom.CSV' = -5; 'propio.CSV' = -4; 'misma_cpu.CSV' = -2; 'dell.CSV' = -1 }
+    foreach ($n in $minutos.Keys) { [IO.File]::SetLastWriteTime("$dirEq\$n", (Get-Date).AddMinutes($minutos[$n])) }
+    $g = Get-EquipoCsvSensores -Ruta "$dirEq\dell.CSV"
+    Assert 'lee el equipo y la CPU de la fila de grupos de HWiNFO' ($g.Sistema -eq 'DELL Inspiron 3493' -and $g.Cpu -eq 'Intel Core i3-1005G1') -D "$($g.Sistema) | $($g.Cpu)"
+    Assert 'sin fila de grupos (HWiNFO grabando, LibreHardwareMonitor) no dice nada' ($null -eq (Get-EquipoCsvSensores -Ruta "$dirEq\grabando.CSV") -and $null -eq (Get-EquipoCsvSensores -Ruta "$docs\lhm.csv") -and $null -eq (Test-EquipoCsvSensores -Expediente (& $exp2) -Ruta "$dirEq\grabando.CSV").Coincide)
+    Assert 'el del mismo equipo coincide, aunque HWiNFO y Windows escriban distinto la CPU' ((Test-EquipoCsvSensores -Expediente (& $exp2) -Ruta "$dirEq\propio.CSV").Coincide -eq $true -and (Test-EquipoCsvSensores -Expediente (& $exp2) -Ruta "$dirEq\sin_bom.CSV").Coincide -eq $true)
+    $t = Test-EquipoCsvSensores -Expediente (& $exp2) -Ruta "$dirEq\dell.CSV"
+    Assert 'el de otro equipo no coincide y dice de cuál es' ($t.Coincide -eq $false -and $t.Texto -eq 'DELL Inspiron 3493 (Intel Core i3-1005G1)') -D $t.Texto
+    Assert 'la misma CPU en otro modelo tampoco coincide' ((Test-EquipoCsvSensores -Expediente (& $exp2) -Ruta "$dirEq\misma_cpu.CSV").Coincide -eq $false)
+    $lenovo = [pscustomobject]@{ Ficha = @{ equipo = @{ fabricante = 'Lenovo'; modelo = 'IdeaPad 3 15ITL6'; cpu = '11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz' } } }
+    Write-CsvHwinfoEs -Ruta "$tmp\lenovo\l.CSV" -Sistema 'LENOVO 82H8' -Cpu 'Intel Core i5-1135G7' -Minutos 1
+    Write-CsvHwinfoEs -Ruta "$tmp\lenovo\otra.CSV" -Sistema 'LENOVO 82H8' -Cpu 'Intel Core i7-1165G7' -Minutos 1
+    Assert 'en Lenovo compara solo la CPU (el modelo de la ficha es el nombre comercial)' ((Test-EquipoCsvSensores -Expediente $lenovo -Ruta "$tmp\lenovo\l.CSV").Coincide -eq $true -and (Test-EquipoCsvSensores -Expediente $lenovo -Ruta "$tmp\lenovo\otra.CSV").Coincide -eq $false)
+    $cols = 3000
+    $largo = @(('Date,Time,' + ((1..$cols | ForEach-Object { '"Sensor ' + $_ + ' [°C]"' }) -join ',')), ('8.11.2026,10:0:0.000,' + ((1..$cols | ForEach-Object { '50.0' }) -join ',')))
+    $largo += $largo[0]
+    $largo += ',,Sistema: Acer Nitro AN515-43,CPU [#0]: AMD Ryzen 5 3550H,' + ((1..$cols | ForEach-Object { 'CPU [#0]: AMD Ryzen 5 3550H: Enhanced' }) -join ',')
+    $null = [IO.Directory]::CreateDirectory("$tmp\grande"); [IO.File]::WriteAllLines("$tmp\grande\largo.CSV", $largo, (New-Object Text.UTF8Encoding($true)))
+    $gl = Get-EquipoCsvSensores -Ruta "$tmp\grande\largo.CSV"
+    Assert 'una fila de grupos de más de 64 KB también se lee' ($largo[-1].Length -gt 65536 -and $gl.Sistema -eq 'Acer Nitro AN515-43' -and $gl.Cpu -eq 'AMD Ryzen 5 3550H') -D "$($largo[-1].Length) bytes: $($gl.Sistema)"
+    $c = @(Find-CsvSensores -Expediente (& $exp2) -Atencion $at2 -Momento antes -Carpetas @{ 'la raíz del pendrive' = $dirEq } -Ahora (Get-Date).AddMinutes(10))
+    $orden = ($c | ForEach-Object { "$($_.Nombre)$(if ($_.OtroEquipo) { '*' })" }) -join ', '
+    Assert 'ofrece primero los de este equipo y deja al final, marcados, los de otro' ($orden -eq 'propio.CSV, sin_bom.CSV, grabando.CSV, dell.CSV*, misma_cpu.CSV*' -and $c[3].Equipo -eq 'DELL Inspiron 3493 (Intel Core i3-1005G1)') -D $orden
+    $null = Import-SensoresMedicion -Expediente (& $exp2) -Atencion $at2 -Momento antes -Ruta "$dirEq\propio.CSV"
+    $null = Import-SensoresMedicion -Expediente (& $exp2) -Atencion $at2 -Momento despues -Ruta "$dirEq\dell.CSV"
+    $log2 = @([IO.File]::ReadAllLines((Join-Path (Join-Path $e2.Ruta $at2) 'trabajo.log')))
+    Assert 'importar uno de otro equipo queda anotado en trabajo.log; el propio no' ($log2[-1] -match 'DESPUES.*ojo: el CSV dice que es de DELL Inspiron 3493 \(Intel Core i3-1005G1\)' -and $log2[-2] -match 'ANTES \| sensores importados' -and $log2[-2] -notmatch 'ojo') -D ($log2[-2..-1] -join ' // ')
+    $resumen2 = [IO.File]::ReadAllText((Join-Path (Join-Path (Join-Path $e2.Ruta $at2) 'despues') 'sensores_resumen.json'))
+    Assert 'las series de los discos de la fila de grupos no quedan en el resumen ni en el log' ($resumen2 -notmatch 'EJEMPLO-0001' -and ($log2 -join "`n") -notmatch 'EJEMPLO-0001')
 
     '== Prueba fija de OCCT'
     $occt = Join-Path $tmp 'herramientas\OCCT'

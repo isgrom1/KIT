@@ -70,14 +70,23 @@ function Edit-CondicionesCalor {
 function Import-CsvConsola {
     param($Exp, [string]$At, [string]$Momento)
     # El CSV que dejó HWiNFO (raíz del pendrive, Escritorio, Documentos...): Enter lo usa.
+    # Uno de otro equipo no se ofrece: solo se avisa.
     $hallado = $null
-    try { $h = @(Find-CsvSensores -Expediente $Exp -Atencion $At -Momento $Momento); if ($h.Count) { $hallado = $h[0] } } catch { Write-Verbose "Sin búsqueda de CSV: $($_.Exception.Message)" }
+    $h = @()
+    try { $h = @(Find-CsvSensores -Expediente $Exp -Atencion $At -Momento $Momento); $hallado = @($h | Where-Object { -not $_.OtroEquipo })[0] } catch { Write-Verbose "Sin búsqueda de CSV: $($_.Exception.Message)" }
     if ($hallado) {
         Write-Host ('    Encontré {0} en {1} ({2}, {3} KB){4}' -f $hallado.Nombre, $hallado.Donde, $hallado.Fecha.ToString('dd-MM HH:mm'), $hallado.KB, $(if ($hallado.EnCurso) { ': todavía se está grabando, detén HWiNFO primero' } else { '' })) -ForegroundColor Cyan
+    }
+    foreach ($o in @($h | Where-Object { $_.OtroEquipo })) {
+        Write-Host ('    {0} en {1} es de otro equipo ({2}): no lo ofrezco.' -f $o.Nombre, $o.Donde, $o.Equipo) -ForegroundColor Yellow
     }
     $ruta = "$(Read-Linea -Pregunta "Ruta del CSV de sensores ($($Momento.ToUpperInvariant()))$(if ($hallado) { ', Enter = el encontrado' })" -Actual $null)".Trim('"')
     if (-not $ruta -and $hallado) { $ruta = $hallado.Ruta }
     if (-not $ruta) { return }
+    if (-not ($hallado -and $ruta -eq $hallado.Ruta) -and [IO.File]::Exists($ruta)) {
+        $eq = Test-EquipoCsvSensores -Expediente $Exp -Ruta $ruta
+        if ($eq.Coincide -eq $false -and -not (Test-Si (Read-Linea -Pregunta "    Ese CSV dice que es de otro equipo: $($eq.Texto). ¿Lo importo igual? (s/N)" -Actual $null))) { return }
+    }
     try {
         $r = Import-SensoresMedicion -Expediente $Exp -Atencion $At -Momento $Momento -Ruta $ruta
         $cpu = if ($r.metricas.cpu_temp_paquete) { $r.metricas.cpu_temp_paquete } else { $r.metricas.cpu_temp_nucleo_max }

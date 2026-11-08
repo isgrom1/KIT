@@ -2,7 +2,7 @@
 # archivos reales de Isaac ni series de equipos. Se carga con un punto desde cada batería que lo necesite.
 # - Write-CsvHwinfoEs: CSV de HWiNFO en español con las mañas del real: hora sin ceros a la izquierda,
 #   columnas con el mismo nombre ("CPU Entera [°C]" dos veces), UTF-8 con BOM, y al final el encabezado
-#   repetido y la fila de grupos ("Sistema: ...").
+#   repetido y la fila de grupos ("Sistema: <equipo>", "CPU [#0]: <cpu>"), que dice de qué equipo es.
 # - Write-DiscosEjemplo: discos.txt de CrystalDiskInfo con un NVMe y un HDD inventados.
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '', Justification = 'Nombres en español')]
 param()
@@ -15,7 +15,10 @@ function Write-CsvHwinfoEs {
         [double]$Mhz = 1900,
         [int]$PctDesaceleracion = 20,
         [double]$Uso = 100,
-        [int]$Minutos = 10
+        [int]$Minutos = 10,
+        [string]$Sistema = 'Equipo de ejemplo',
+        [string]$Cpu = 'Intel Core i5-1135G7',
+        [switch]$SinBom
     )
     $cultura = [Globalization.CultureInfo]::InvariantCulture
     $columnas = @('Uso total de CPU [%]', 'CPU Entera [°C]', 'Desaceleración térmica del núcleo (avg) [Yes/No]', 'Relojes efectivos núcleo (avg) [MHz]', 'CPU Entera [°C]', 'Desaceleración térmica del paquete/anillo [Yes/No]', 'Reloj efectivo promedio [MHz]')
@@ -33,9 +36,12 @@ function Write-CsvHwinfoEs {
                 $Uso.ToString('0.0', $cultura), $grados.ToString('0.0', $cultura), $des, $Mhz.ToString('0.0', $cultura), ($grados - 6).ToString('0.0', $cultura), $des, $Mhz.ToString('0.0', $cultura)))
     }
     $l.Add($encabezado)
-    $l.Add(',,' + ((1..$columnas.Count | ForEach-Object { '"Sistema: Equipo de ejemplo"' }) -join ','))
+    # Como en el real: primero el grupo del sistema, después los de la CPU (y los discos, con su serie).
+    $grupos = @("Sistema: $Sistema", "CPU [#0]: $Cpu", "CPU [#0]: ${Cpu}: DTS", "CPU [#0]: ${Cpu}: Enhanced", "CPU [#0]: ${Cpu}: DTS", "S.M.A.R.T.: DISCO DE EJEMPLO (EJEMPLO-0001) [C:]", "CPU [#0]: ${Cpu}: Enhanced")
+    $l.Add(',,' + ($grupos -join ','))
     $null = [IO.Directory]::CreateDirectory((Split-Path -Parent $Ruta))
-    [IO.File]::WriteAllLines($Ruta, $l, (New-Object Text.UTF8Encoding($true)))
+    $cod = if ($SinBom) { [Text.Encoding]::Default } else { New-Object Text.UTF8Encoding($true) }
+    [IO.File]::WriteAllLines($Ruta, $l, $cod)
 }
 
 function Write-DiscosEjemplo {

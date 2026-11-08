@@ -434,7 +434,8 @@ function Show-Medicion {
 
 function Show-CsvDetectado {
     # Con CALOR y el CSV de este momento pendiente, busca el que dejó HWiNFO (raíz del pendrive, carpeta de
-    # HWiNFO, Escritorio, Documentos, Descargas) y ofrece importarlo con un botón.
+    # HWiNFO, Escritorio, Documentos, Descargas) y ofrece importarlo con un botón. Uno de otro equipo no se
+    # ofrece: solo se avisa que está.
     $ui = $script:Ui
     $ui.bdCsvDetectado.Visibility = 'Collapsed'
     $ui.btnImportarDetectado.Tag = $null
@@ -444,13 +445,24 @@ function Show-CsvDetectado {
     $c = @()
     try { $c = @(Find-CsvSensores -Expediente $script:G.Exp -Atencion $script:G.At -Momento $script:G.Momento) } catch { Write-Verbose "Sin búsqueda de CSV: $($_.Exception.Message)" }
     if (-not $c.Count) { return }
-    $x = $c[0]
+    $propios = @($c | Where-Object { -not $_.OtroEquipo })
+    $otros = @($c | Where-Object { $_.OtroEquipo })
+    if (-not $propios.Count) {
+        $o = $otros[0]
+        $ui.txtCsvDetectado.Text = "Hay un CSV de sensores en $($o.Donde) ($($o.Nombre)), pero es de otro equipo: $($o.Equipo). No lo ofrezco; si igual es de este, usa Importar CSV de sensores."
+        $ui.btnImportarDetectado.Visibility = 'Collapsed'
+        $ui.bdCsvDetectado.Visibility = 'Visible'
+        return
+    }
+    $x = $propios[0]
     $texto = "Encontré un CSV de $($x.Formato) en $($x.Donde): $($x.Nombre) ($($x.Fecha.ToString('dd-MM HH:mm')), $($x.KB) KB)."
     if ($x.EnCurso) { $texto += ' Todavía se está grabando: detén el registro en HWiNFO y vuelve a esta ventana.' }
-    if ($c.Count -gt 1) { $texto += " Hay $($c.Count - 1) más: si no es este, usa Importar CSV de sensores." }
+    if ($propios.Count -gt 1) { $texto += " Hay $($propios.Count - 1) más: si no es este, usa Importar CSV de sensores." }
+    if ($otros.Count) { $texto += " $(if ($otros.Count -eq 1) { 'Otro es' } else { "Otros $($otros.Count) son" }) de otro equipo y no lo$(if ($otros.Count -gt 1) { 's' }) ofrezco." }
     $ui.txtCsvDetectado.Text = $texto
     $ui.btnImportarDetectado.Tag = $x
     $ui.btnImportarDetectado.IsEnabled = -not $x.EnCurso
+    $ui.btnImportarDetectado.Visibility = 'Visible'
     $ui.bdCsvDetectado.Visibility = 'Visible'
 }
 
@@ -883,6 +895,8 @@ $ui.btnImportarCsv.Add_Click({
             Initialize-AtencionGui
             $dlg = New-Object Microsoft.Win32.OpenFileDialog; $dlg.Filter = 'CSV de sensores (*.csv)|*.csv'
             if (-not $dlg.ShowDialog($script:Win)) { return }
+            $eq = Test-EquipoCsvSensores -Expediente $script:G.Exp -Ruta $dlg.FileName
+            if ($eq.Coincide -eq $false -and -not (Show-Aviso "Este CSV dice que es de otro equipo: $($eq.Texto).`n`n¿Lo importo igual en esta atención?" -Pregunta)) { return }
             Invoke-TareaKit -Accion 'importar_sensores' -Parametros @{ momento = $script:G.Momento; ruta = $dlg.FileName } -Texto 'Leyendo el CSV de sensores...' -AlResultado { param($r) Show-Medicion; Show-Estado; if ($script:G.Momento -eq 'antes') { Invoke-PreInformeGui -Auto } }
         } catch { [void](Show-Aviso (Get-MensajeSimple $_.Exception.Message) -EsError) }
     })
