@@ -1,10 +1,11 @@
-﻿{
+{
   "_leeme": "Configuración del diagnóstico. Umbrales en las unidades indicadas por el nombre (dias, meses, gb, pct, seg).",
   "cim_timeout_seg": 20,
   "externo_timeout_seg": 60,
   "enmascarar_perfiles": true,
   "equipos_tecnico": ["DESKTOP-5OEOR7A"],
   "sincronizacion": { "_leeme": "Maestro de expedientes en tu PC. Sincronizar solo aparece en equipos_tecnico.", "ruta_maestro": "X:\\kitservicio_datos\\clientes" },
+  "respaldo": { "_leeme": "Copia cifrada del maestro después de cada sincronización (solo en equipos_tecnico). La contraseña se crea con respaldar_maestro.ps1 -NuevaClave. Se guardan los últimos 'conservar'.", "destino": "Z:\\kitservicio_respaldos", "conservar": 10 },
   "tecnico": { "nombre": "Isaac", "contacto": "" },
   "expediente": { "garantia_dias": 30, "proxima_mantencion_meses": 12, "dias_para_borrar": 30, "condiciones_garantia": "Cubre el trabajo realizado y las piezas cambiadas. No cubre golpes, líquidos, fallas de piezas no intervenidas ni cambios hechos por terceros." },
   "archivos": {

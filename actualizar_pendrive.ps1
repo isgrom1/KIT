@@ -10,12 +10,20 @@
     - Al terminar compara cada archivo con el original por SHA-256 y revisa que KIT\clientes no haya cambiado.
     Con el version.json, la ventana y el diagnóstico muestran la versión y avisan si un script cambió.
 .PARAMETER Destino
-    Letra o carpeta raíz del pendrive (E:, E:\ o una carpeta de prueba). Sin él, busca el volumen "Ventoy".
+    Letra o carpeta raíz del pendrive (por ejemplo F: o una carpeta de prueba). Sin él, busca el único volumen
+    "Ventoy"; con dos pendrives conectados hay que indicarlo.
+.PARAMETER ConHerramientas
+    Pendrive de repuesto: copia también KIT\herramientas (OCCT, HWiNFO, CrystalDiskInfo...) y verifica cada
+    archivo por SHA-256. No borra nada de lo que ya tenga el destino.
+.PARAMETER Herramientas
+    Carpeta de origen de las herramientas (por defecto KIT\herramientas de este repositorio).
 .EXAMPLE
     powershell -NoProfile -ExecutionPolicy Bypass -File .\actualizar_pendrive.ps1
+.EXAMPLE
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\actualizar_pendrive.ps1 -Destino F: -ConHerramientas
 #>
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Salida para el técnico en consola')]
-param([string]$Destino)
+param([string]$Destino, [switch]$ConHerramientas, [string]$Herramientas)
 
 $ErrorActionPreference = 'Stop'
 $repo = $PSScriptRoot
@@ -81,6 +89,26 @@ try {
     [IO.File]::Copy((Join-Path $kitOrigen 'INICIAR.cmd'), (Join-Path $kitDestino 'INICIAR.cmd'), $true)
     $herr = Join-Path $repo 'actualizar_herramientas.ps1'
     if ([IO.File]::Exists($herr)) { [IO.File]::Copy($herr, (Join-Path $raiz 'actualizar_herramientas.ps1'), $true) }
+
+    # Pendrive de repuesto: también las herramientas, verificadas por SHA-256 (sin borrar nada del destino).
+    if ($ConHerramientas) {
+        if (-not $Herramientas) { $Herramientas = Join-Path $kitOrigen 'herramientas' }
+        if (-not [IO.Directory]::Exists($Herramientas)) { throw "No existe la carpeta de herramientas $Herramientas" }
+        $herrDestino = Join-Path $kitDestino 'herramientas'
+        $null = & robocopy.exe $Herramientas $herrDestino /E /COPY:DAT /R:2 /W:1 /NP /NFL /NDL /NJH /NJS
+        if ($LASTEXITCODE -ge 8) { throw "robocopy falló copiando las herramientas (código $LASTEXITCODE)" }
+        $origenH = [IO.Path]::GetFullPath($Herramientas).TrimEnd('\')
+        $malos = New-Object System.Collections.Generic.List[string]
+        $totalH = 0; $bytesH = 0
+        foreach ($f in [IO.Directory]::GetFiles($origenH, '*', [IO.SearchOption]::AllDirectories)) {
+            $rel = $f.Substring($origenH.Length + 1)
+            $copia = Join-Path $herrDestino $rel
+            $totalH++; $bytesH += (New-Object IO.FileInfo($f)).Length
+            if (-not [IO.File]::Exists($copia) -or (Get-FileHash -LiteralPath $copia -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash) { $malos.Add($rel) }
+        }
+        if ($malos.Count) { throw "Herramientas distintas en el pendrive: $(($malos | Select-Object -First 5) -join ', ')$(if ($malos.Count -gt 5) { '...' })" }
+        Write-Paso ('Herramientas verificadas por SHA-256: {0} archivos ({1})' -f $totalH, (Format-Tamano $bytesH)) -Color Green
+    }
 
     # Los scripts que ya no están en el repositorio no se borran: se apartan.
     $esperados = @(Get-ArchivosVerificablesKit -RaizKit $kitOrigen)

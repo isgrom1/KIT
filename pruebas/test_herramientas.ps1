@@ -9,7 +9,7 @@
 #>
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '', Justification = 'Nombres en español')]
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Salida de la batería en consola')]
-param([string]$Base = 'X:\kitservicio_prueba\herramientas', [switch]$ConUac)
+param([string]$Base = $(if (Test-Path 'X:\') { 'X:\kitservicio_prueba\herramientas' } else { Join-Path $env:SystemDrive 'kitprueba\herramientas' }), [switch]$ConUac)
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '..\KIT\scripts\lib\Herramientas.ps1')
@@ -59,7 +59,9 @@ try {
     Assert-Prueba 'Otra herramienta se abre directo' ($i.FilePath -eq $otra.Exe -and $i.WorkingDirectory -eq $dirOtra -and -not $i.ContainsKey('Verb'))
     $i = Get-InicioHerramienta -Opcion $occt
     Assert-Prueba 'OCCT parte desde cmd' ($i.FilePath -like '*\System32\cmd.exe')
-    Assert-Prueba 'Sin admin pide elevar' ($i['Verb'] -eq 'RunAs')
+    # En GitHub la batería corre elevada: ahí el cmd no pide elevar.
+    $yaAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if ($yaAdmin) { Assert-Prueba 'Ya en admin no vuelve a pedir elevar' (-not $i.ContainsKey('Verb')) } else { Assert-Prueba 'Sin admin pide elevar' ($i['Verb'] -eq 'RunAs') }
     Assert-Prueba 'La ventana del cmd va oculta' ($i.WindowStyle -eq 'Hidden')
     Assert-Prueba 'El comando fija la variable' ($i.ArgumentList -like "*set ""$variable=1""&&*")
 

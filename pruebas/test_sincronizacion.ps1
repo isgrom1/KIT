@@ -1,7 +1,7 @@
 ﻿#Requires -Version 5.1
 # Pruebas de lib\Sincronizacion.ps1 y sincronizar.ps1 con expedientes sintéticos.
 # Solo escribe en -Base (carpeta de prueba creada aquí): nunca toca KIT\clientes ni el maestro real.
-param([string]$Kit = (Join-Path (Split-Path -Parent $PSScriptRoot) 'KIT'), [string]$Base = 'X:\kitservicio_prueba\sync con espacios ñ')
+param([string]$Kit = (Join-Path (Split-Path -Parent $PSScriptRoot) 'KIT'), [string]$Base = $(if (Test-Path 'X:\') { 'X:\kitservicio_prueba\sync con espacios ñ' } else { Join-Path $env:SystemDrive 'kitprueba\sync con espacios ñ' }))
 $ErrorActionPreference = 'Stop'
 $scripts = Join-Path $Kit 'scripts'
 foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Expediente', 'Sincronizacion') { . (Join-Path $scripts "lib\$lib.ps1") }

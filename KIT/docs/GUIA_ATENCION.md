@@ -10,6 +10,7 @@ Cómo atender un equipo con el kit: desde que lo recibes hasta que lo entregas y
 4. **Si vienes de atender, sincroniza primero** (punto 7).
 5. **Para actualizar el kit del USB** con una versión nueva: conecta el pendrive y, en la carpeta del repositorio, corre `actualizar_pendrive.ps1` (clic derecho → Ejecutar con PowerShell, o `powershell -ExecutionPolicy Bypass -File .\actualizar_pendrive.ps1`). Busca solo el pendrive "Ventoy" (si hay otro, se lo indicas con `-Destino E:`). Copia `INICIAR.cmd`, `KIT\scripts` y `KIT\docs`, compara cada archivo por SHA-256 y deja la versión en `KIT\version.json`. **No toca `KIT\clientes` ni `KIT\herramientas`**, no pisa el `config_local.json` del pendrive y no borra nada: si un script ya no existe, lo aparta en `KIT\_obsoletos`. Debe terminar en **"Listo"**; si dice "No se completó", repítelo antes de salir.
 6. **Versión del kit:** abajo a la derecha de la ventana dice la versión y el commit con que se copió, por ejemplo `Kit 0.2.0 · a1b2c3d · 2026-11-08`. Si sale una franja ámbar "Ojo: … archivos del kit no coinciden", el pendrive tiene un script dañado o cambiado: vuelve a correr `actualizar_pendrive.ps1` en tu PC. El kit sigue funcionando igual.
+7. **Pendrive de repuesto:** conecta el segundo pendrive (sin el principal, o indica la letra) y corre `actualizar_pendrive.ps1 -Destino <letra>: -ConHerramientas`. Copia el kit y también `KIT\herramientas` (OCCT, HWiNFO, CrystalDiskInfo…), verificando cada archivo por SHA-256. No borra nada de lo que ya tenga. Si se te cae el principal, sigues con este.
 
 ## 1. Recepción, con el cliente presente (10-15 min)
 
@@ -77,6 +78,10 @@ El DESPUÉS tiene que medirse igual: misma carga, duración y condiciones. El ki
 2. Marca **"dejar en el USB solo las atenciones abiertas"** para liberar espacio. Del USB solo se borra lo que quedó verificado por hash en el maestro, y las fichas se quedan para reconocer a los clientes.
 3. El maestro queda en `X:\kitservicio_datos\clientes`. En **Expedientes → En el maestro** abres cualquier expediente antiguo (en modo consulta, con la barra ámbar) y regeneras sus informes.
 4. Si algo cambió en el USB y en el maestro a la vez, se guardan las dos versiones y te avisa: revisa el `(conflicto USB …)`.
+5. **Respaldo cifrado:** al terminar de sincronizar, el kit guarda una copia cifrada del maestro en `Z:\kitservicio_respaldos` (`maestro_<fecha_hora>.kitresp`), la vuelve a leer para comprobar cada archivo y deja las últimas 10. El aviso final dice "Respaldo verificado" o por qué no se hizo.
+   - **La primera vez**, crea la contraseña: en `KIT\scripts`, `powershell -ExecutionPolicy Bypass -File .\respaldar_maestro.ps1 -NuevaClave`. **Anótala en un lugar seguro**: sin ella el respaldo no se abre. Queda guardada cifrada solo para tu usuario de Windows, así que después no la pide.
+   - **Para recuperar:** `respaldar_maestro.ps1 -Restaurar Z:\kitservicio_respaldos\maestro_….kitresp -En <carpeta nueva>`. Nunca escribe sobre el maestro: revisas la carpeta y reemplazas a mano. En otro PC te pide la contraseña.
+   - **Ojo:** Z: es el NVMe Samsung que marca errores de integridad en el SMART. Sirve como segunda copia, pero no debería ser la única.
 
 ## Cliente que vuelve
 

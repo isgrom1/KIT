@@ -772,6 +772,7 @@ function Invoke-SincronizarGui {
         if (@($r.Conflictos).Count) { $avisos += "OJO: $(@($r.Conflictos).Count) archivos cambiaron en el USB y en el maestro. Se guardaron ambas versiones (la del USB como '(conflicto USB ...)'):`n- $((@($r.Conflictos) | Select-Object -First 5) -join "`n- ")" }
         if (@($r.Errores).Count) { $avisos += "No se pudieron copiar $(@($r.Errores).Count) (se reintentan la próxima vez):`n- $((@($r.Errores) | Select-Object -First 5) -join "`n- ")" }
         if (@($r.NoLiberadas).Count) { $avisos += "Quedaron en el USB:`n- $((@($r.NoLiberadas) | Select-Object -First 5) -join "`n- ")" }
+        if ($r.Respaldo) { $avisos += "$($r.Respaldo)" }
         $script:G.Registro.Add("sincronizacion: $($ui.txtSync.Text)")
         [void](Show-Aviso ("$($ui.txtSync.Text)$(if ($avisos) { "`n`n" + ($avisos -join "`n`n") })`n`nLog: $($r.Log)") -EsError:([bool](@($r.Conflictos).Count -or @($r.Errores).Count)))
         Show-Estado

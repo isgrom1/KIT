@@ -65,11 +65,18 @@ try {
     Assert 'no pisa el config_local del pendrive' ([IO.File]::ReadAllText("$usb\KIT\scripts\config\config_local.json") -match 'del pendrive')
     Assert 'aparta el script obsoleto, no lo borra' (-not (Test-Path "$usb\KIT\scripts\viejo.ps1") -and @(Get-ChildItem "$usb\KIT\_obsoletos" -Recurse -Filter 'viejo.ps1').Count -eq 1)
     Assert 'copia INICIAR.cmd y actualizar_herramientas.ps1' ((Test-Path "$usb\KIT\INICIAR.cmd") -and (Test-Path "$usb\actualizar_herramientas.ps1"))
-    Assert 'no copia herramientas de terceros' (-not (Test-Path "$usb\KIT\herramientas\OCCT"))
+    Assert 'sin -ConHerramientas no copia herramientas de terceros' (-not (Test-Path "$usb\KIT\herramientas\OCCT"))
     $null = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'actualizar_pendrive.ps1') -Destino $usb 2>&1
     Assert 'se puede repetir sin problemas' ($LASTEXITCODE -eq 0 -and @(Get-ChildItem "$usb\KIT\_obsoletos" -Directory).Count -eq 1)
     $null = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'actualizar_pendrive.ps1') -Destino $repo 2>&1
     Assert 'se niega a copiar sobre el mismo repositorio' ($LASTEXITCODE -eq 1)
+    $herrFalsas = Join-Path $tmp 'herramientas_falsas'
+    Write-Texto "$herrFalsas\OCCT\OCCT.exe" 'programa falso'
+    Write-Texto "$herrFalsas\HWiNFO\HWiNFO64.exe" 'otro programa falso'
+    Write-Texto "$usb\KIT\herramientas\Propia\mia.exe" 'una herramienta que solo está en el pendrive'
+    $salidaH = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'actualizar_pendrive.ps1') -Destino $usb -ConHerramientas -Herramientas $herrFalsas 2>&1 | Out-String
+    Assert 'repuesto: copia y verifica las herramientas' ($LASTEXITCODE -eq 0 -and (Test-Path "$usb\KIT\herramientas\OCCT\OCCT.exe") -and $salidaH -match 'Herramientas verificadas por SHA-256: 2 archivos') -D $salidaH
+    Assert 'repuesto: no borra lo que el pendrive ya tenía' (Test-Path "$usb\KIT\herramientas\Propia\mia.exe")
     $script:Ctx.RaizKit = "$usb\KIT"
     Assert 'el kit copiado muestra su versión' ((Get-VersionKit -RaizKit "$usb\KIT") -like "$script:VersionBase · *")
 

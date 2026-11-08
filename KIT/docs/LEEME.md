@@ -18,6 +18,7 @@ Corre con el Windows PowerShell 5.1 que trae Windows: no instala nada en el equi
    │  ├─ ficha.ps1               ficha del cliente por consola
    │  ├─ trabajo.ps1             trabajo según el motivo, por consola
    │  ├─ sincronizar.ps1         copia los expedientes al maestro de tu PC
+   │  ├─ respaldar_maestro.ps1   respaldo cifrado del maestro: contraseña, respaldar, verificar, restaurar
    │  ├─ motivos\                calor.ps1, lento.ps1, archivos.ps1, revision.ps1
    │  ├─ gui\                    principal.xaml, kit.ps1 (ventana) y tarea.ps1 (trabajos en segundo plano)
    │  ├─ herramientas.ps1        menú de herramientas portables
@@ -127,6 +128,7 @@ Con admin, el diagnóstico también lee el SMART de `discos.txt` (CrystalDiskInf
    - Sin `-Destino` busca el único volumen llamado "Ventoy". Se niega a copiar sobre el mismo repositorio.
    - Copia `INICIAR.cmd`, `KIT\scripts`, `KIT\docs` y `actualizar_herramientas.ps1`. **No toca `KIT\clientes` ni `KIT\herramientas`** y no pisa un `config_local.json` que ya esté en el pendrive (si no hay, copia el tuyo).
    - No borra: lo que ya no existe en el repositorio se aparta a `KIT\_obsoletos\<fecha_hora>\`.
+   - **Pendrive de repuesto:** con `-ConHerramientas` copia además `KIT\herramientas` (o la carpeta de `-Herramientas`) y verifica cada archivo por SHA-256, sin borrar nada del destino. Con dos pendrives conectados, indica `-Destino`.
    - Compara cada archivo con el original por SHA-256, comprueba que `KIT\clientes` no cambió y deja `KIT\version.json` con el commit, la fecha y el hash de cada archivo. Sale con código 0 si todo cuadra y 1 si no.
 2. Si bajaste el kit como .zip, desbloquéalo antes de descomprimir (ver "Mark of the Web"). Copiado a mano no hay `version.json`: la ventana dice "copia de trabajo" y no verifica nada.
 3. Actualiza las herramientas:
@@ -150,6 +152,15 @@ El USB lleva las atenciones en curso; el historial completo vive en el **maestro
 - Las mediciones en curso (`*_en_curso`) no se copian: se copian cuando terminan.
 - **Log de cada sincronización** en `<maestro>\_sincronizacion\logs\`, con copia en `KIT\clientes\_sincronizacion\logs\`.
 - Desde el maestro, Expedientes → "En el maestro" abre cualquier expediente y regenera sus informes.
+
+### Respaldo cifrado del maestro
+
+Después de cada sincronización (ventana y consola), si `config.json` → `respaldo.destino` está definido (por defecto `Z:\kitservicio_respaldos`), el kit escribe `maestro_<fecha_hora>.kitresp`:
+- **Cifrado** con AES-256 y firmado con HMAC-SHA256; las claves salen de tu contraseña (PBKDF2-SHA256). Todo con .NET Framework (necesita .NET 4.7.2 o más nuevo, que viene en Windows 10 1803 y posteriores). Sin la contraseña no se abre, y si el archivo se daña lo detecta.
+- **Verificado:** antes de darle su nombre final lo lee de vuelta desde el disco, lo descifra y compara el SHA-256 de cada archivo con el del maestro. Recién entonces borra los más antiguos que pasen de `respaldo.conservar` (10).
+- **La contraseña** se crea una vez con `respaldar_maestro.ps1 -NuevaClave` y queda cifrada con DPAPI en `%LOCALAPPDATA%\kitservicio\respaldo.clave` (solo tu usuario en ese PC, nunca en el pendrive). Anótala aparte: sin ella no se puede restaurar en otro PC.
+- `respaldar_maestro.ps1` sin parámetros respalda ahora; `-Verificar <archivo>` lo comprueba; `-Restaurar <archivo> -En <carpeta nueva>` lo descifra en una carpeta nueva (nunca sobre el maestro).
+- Si el respaldo falla (falta la contraseña, Z: no está, un archivo cambió mientras se copiaba), la sincronización igual queda bien y el aviso lo dice.
 
 ## Interfaz gráfica
 

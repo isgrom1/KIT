@@ -19,9 +19,15 @@
     Solo responde con el código de salida: 0 si este equipo está en equipos_tecnico, 1 si no.
 .PARAMETER Forzar
     Pruebas: sincroniza aunque este equipo no esté en equipos_tecnico.
+.PARAMETER SinRespaldo
+    No hace el respaldo cifrado del maestro (config.json -> respaldo) que corre después de sincronizar.
+.PARAMETER Respaldo
+    Pruebas: carpeta del respaldo en vez de la de config.json.
+.PARAMETER ArchivoClave
+    Pruebas: archivo con la contraseña del respaldo (DPAPI) en vez del de tu perfil.
 #>
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Salida en consola con colores para el técnico')]
-param([switch]$LiberarUsb, [string]$Maestro, [string]$Clientes, [switch]$ProgresoGui, [switch]$EsTecnico, [switch]$Forzar)
+param([switch]$LiberarUsb, [string]$Maestro, [string]$Clientes, [switch]$ProgresoGui, [switch]$EsTecnico, [switch]$Forzar, [switch]$SinRespaldo, [string]$Respaldo, [string]$ArchivoClave)
 
 $ErrorActionPreference = 'Stop'
 if ($ProgresoGui) { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) }
@@ -42,7 +48,7 @@ function Show-Lista {
 }
 
 try {
-    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Expediente', 'Sincronizacion') { . (Join-Path $PSScriptRoot "lib\$lib.ps1") }
+    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Expediente', 'Sincronizacion', 'Respaldo') { . (Join-Path $PSScriptRoot "lib\$lib.ps1") }
     Initialize-Contexto -RaizScripts $PSScriptRoot
     if ($EsTecnico) { exit $(if (Test-EquipoTecnico) { 0 } else { 1 }) }
     if (-not (Test-EquipoTecnico) -and -not $Forzar) { throw "Sincronizar es solo para tus equipos (config.json -> equipos_tecnico) y este es $env:COMPUTERNAME." }
@@ -57,6 +63,22 @@ try {
         Write-Host ''
     }
     $r = Invoke-Sincronizacion -Clientes $Clientes -Maestro $Maestro -LiberarUsb:$LiberarUsb -AlAvance $avance
+    # Respaldo cifrado del maestro (config.json -> respaldo). Si falla, la sincronización igual queda bien y se avisa.
+    $textoRespaldo = $null
+    $cfgRespaldo = Get-ConfigRespaldo
+    $destinoRespaldo = if ($Respaldo) { $Respaldo } elseif ($cfgRespaldo) { $cfgRespaldo.Destino } else { $null }
+    if (-not $SinRespaldo -and $destinoRespaldo) {
+        $claveRespaldo = Get-ClaveRespaldo -Ruta $(if ($ArchivoClave) { $ArchivoClave } else { Get-RutaClaveRespaldo })
+        if (-not $claveRespaldo) { $textoRespaldo = 'Respaldo NO hecho: falta la contraseña (corre una vez KIT\scripts\respaldar_maestro.ps1 -NuevaClave).' }
+        else {
+            & $avance "Respaldando el maestro (cifrado) en $destinoRespaldo y verificándolo..."
+            try {
+                $rr = New-RespaldoMaestro -Maestro $Maestro -Destino $destinoRespaldo -Clave $claveRespaldo -Conservar $(if ($cfgRespaldo) { $cfgRespaldo.Conservar } else { 10 })
+                $textoRespaldo = "Respaldo verificado: $(Split-Path -Leaf $rr.Ruta) en $destinoRespaldo ($($rr.Archivos) archivos, $(Format-Tamano $rr.Bytes))."
+            } catch { $textoRespaldo = "Respaldo NO hecho: $($_.Exception.Message)" }
+        }
+    }
+    if ($r -is [Collections.IDictionary]) { $r['Respaldo'] = $textoRespaldo } else { $r | Add-Member -NotePropertyName Respaldo -NotePropertyValue $textoRespaldo -Force }
     if ($ProgresoGui) {
         Write-Gui 'RESULTADO' ($r | ConvertTo-Json -Compress -Depth 4)
         exit 0
@@ -75,6 +97,7 @@ try {
     }
     Write-Host ''
     Write-Host "  Log: $($r.Log)"
+    if ($textoRespaldo) { Write-Host "  $textoRespaldo" -ForegroundColor $(if ($textoRespaldo -like 'Respaldo NO*') { 'Yellow' } else { 'Green' }) }
     exit 0
 } catch {
     if ($ProgresoGui) { Write-Gui 'ERROR' $_.Exception.Message } else { Write-Host "  $($_.Exception.Message)" -ForegroundColor Red }

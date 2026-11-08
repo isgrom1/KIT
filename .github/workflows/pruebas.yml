@@ -1,0 +1,57 @@
+# Pruebas del kit en Windows PowerShell 5.1 (shell: powershell) en cada push y pull request.
+# Corre PSScriptAnalyzer con las reglas de compatibilidad 5.1 (debe dar 0) y las baterías de pruebas\ con
+# Pester 3.4. Las pruebas que necesitan archivos del PC de Isaac salen como omitidas.
+name: Pruebas (Windows PowerShell 5.1)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar (cultura es-CL, PSScriptAnalyzer y Pester 3.4)
+        shell: powershell
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Set-Culture es-CL
+          if (-not (Get-PackageProvider -ListAvailable -Name NuGet -ErrorAction SilentlyContinue)) { Install-PackageProvider -Name NuGet -Force -Scope CurrentUser | Out-Null }
+          Install-Module PSScriptAnalyzer -RequiredVersion 1.25.0 -Force -Scope CurrentUser -SkipPublisherCheck -AllowClobber
+          if (-not (Get-Module -ListAvailable Pester | Where-Object { $_.Version -eq [version]'3.4.0' })) {
+            Install-Module Pester -RequiredVersion 3.4.0 -Force -Scope CurrentUser -SkipPublisherCheck -AllowClobber
+          }
+          "PowerShell $($PSVersionTable.PSVersion) | Pester: $((Get-Module -ListAvailable Pester | ForEach-Object { $_.Version.ToString() }) -join ', ')"
+
+      - name: PSScriptAnalyzer (debe dar 0)
+        shell: powershell
+        run: |
+          Import-Module PSScriptAnalyzer -RequiredVersion 1.25.0
+          $s = @{ IncludeDefaultRules = $true; Rules = @{
+            PSUseCompatibleSyntax  = @{ Enable = $true; TargetVersions = @('5.1') }
+            PSUseCompatibleCmdlets = @{ compatibility = @('desktop-5.1.14393.206-windows') }
+            PSUseCompatibleTypes   = @{ Enable = $true; TargetProfiles = @('win-48_x64_10.0.17763.0_5.1.17763.316_x64_4.0.30319.42000_framework') } } }
+          $r = @(Invoke-ScriptAnalyzer -Path .\KIT -Recurse -Settings $s) + @(Invoke-ScriptAnalyzer -Path .\actualizar_pendrive.ps1 -Settings $s)
+          foreach ($x in $r) { "::error file=$((Resolve-Path -Relative $x.ScriptPath).TrimStart('.\')),line=$($x.Line)::$($x.RuleName): $($x.Message)" }
+          "Hallazgos: $($r.Count)"
+          if ($r.Count) { exit 1 }
+
+      - name: Baterías
+        shell: powershell
+        run: .\pruebas\correr_baterias.ps1 -Salida "$env:RUNNER_TEMP\pruebas"
+
+      - name: Guardar el informe
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-pruebas
+          path: ${{ runner.temp }}/pruebas
+          if-no-files-found: ignore

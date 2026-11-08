@@ -1,9 +1,8 @@
 ﻿# Pruebas de desarrollo de la Fase B: CALOR, LENTO y REVISION (no es parte del kit).
-# Los CSV reales de Isaac solo se leen. Lo que se escribe en su registro (HKCU) son valores de prueba
+# CALOR usa CSV de ejemplo (_datos_ejemplo.ps1). La parte sobre la medición real del Nitro solo corre en su PC. Lo que se escribe en su registro (HKCU) son valores de prueba
 # que esta misma prueba crea y borra.
 $ErrorActionPreference = 'Stop'
 $scripts = Join-Path (Split-Path -Parent $PSScriptRoot) 'KIT\scripts'
-$docs = [Environment]::GetFolderPath('MyDocuments')   # CSV reales de HWiNFO usados en las pruebas de CALOR
 foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores') { . (Join-Path $scripts "lib\$lib.ps1") }
 foreach ($m in 'calor', 'lento', 'revision') { . (Join-Path $scripts "motivos\$m.ps1") }
 Initialize-Contexto -RaizScripts $scripts
@@ -15,8 +14,12 @@ $clientesReales = $script:Ctx.CarpetaClientes
 $tmp = Join-Path $env:TEMP ('kit_prueba_B_' + [guid]::NewGuid().ToString('N').Substring(0, 6))
 $script:Ctx.CarpetaClientes = $tmp
 $null = New-Item -ItemType Directory $tmp
-$antesCsv = (Join-Path $docs '08 Datos sueltos (csv-json)\reg.CSV')
-$despuesCsv = (Join-Path $docs 'asdasd.CSV')
+. (Join-Path $PSScriptRoot '_datos_ejemplo.ps1')
+# ANTES caliente (91,1 °C, 1,9 GHz, 20 % con desaceleración); DESPUÉS en reposo (35,2 °C, 0,4 GHz).
+$antesCsv = Join-Path $tmp 'antes_ejemplo.csv'
+$despuesCsv = Join-Path $tmp 'despues_ejemplo.csv'
+Write-CsvHwinfoEs -Ruta $antesCsv -Temp 91.1 -Mhz 1900 -PctDesaceleracion 20 -Uso 100
+Write-CsvHwinfoEs -Ruta $despuesCsv -Temp 35.2 -Mhz 400 -PctDesaceleracion 0 -Uso 5
 
 '== CALOR'
 $exp = New-Expediente -Identidad ([pscustomobject]@{ Fabricante = 'Acer'; Modelo = 'Prueba Calor'; Serie = 'CALOR001'; SerieOriginal = 'CALOR001'; Uuid = $null; PlacaSerie = $null })
@@ -51,17 +54,22 @@ $s = Get-SemaforoRevision -Expediente $exp -Atencion $at -Momento antes
 foreach ($f in $s.Areas) { '     {0,-20} {1,-9} {2}' -f $f.Area, $f.Color, $f.Frase }
 Assert 'temperatura en rojo con el CSV del ANTES' (($s.Areas | Where-Object Area -EQ 'Temperatura').Color -eq 'rojo')
 
-'== REVISION y LENTO sobre la medición real del Nitro (solo lectura)'
+'== REVISION y LENTO sobre la medición real del Nitro (solo lectura; solo en su PC)'
 $script:Ctx.CarpetaClientes = $clientesReales
-$nitro = Get-Expediente -Identidad (Get-IdentidadEquipo)
-$s = Get-SemaforoRevision -Expediente $nitro -Atencion '2026-11-01_atencion_2' -Momento antes
-"     general: $($s.General)"
-foreach ($f in $s.Areas) { '     {0,-20} {1,-9} {2}' -f $f.Area, $f.Color, $f.Frase }
-Assert 'discos en rojo (152 errores de medio del Samsung)' (($s.Areas | Where-Object Area -EQ 'Discos').Color -eq 'rojo')
-$acc = @(Get-AccionesLento -Expediente $nitro -Atencion '2026-11-01_atencion_2')
-foreach ($a in $acc) { '     [{0,-9}] {1}{2}{3}' -f $a.Tipo, $a.Titulo, $(if ($a.RequiereAdmin) { ' [admin]' } else { '' }), $(if ($a.Riesgo -eq 'revisar') { ' [revisar]' } else { '' }) }
-Assert 'no ofrece desactivar SecurityHealth (Microsoft)' (@($acc | Where-Object { $_.Titulo -match 'SecurityHealth' }).Count -eq 0)
-Assert 'ofrece las entradas huérfanas' (@($acc | Where-Object { $_.Titulo -match 'huérfana' }).Count -ge 1)
+$nitro = $null
+try { $nitro = Get-Expediente -Identidad (Get-IdentidadEquipo) } catch { $nitro = $null }
+if (-not $nitro -or -not (Test-Path (Join-Path $nitro.Ruta '2026-11-01_atencion_2\antes\diagnostico.json'))) {
+    '  OMITIDA  medición real del Nitro (no está en este equipo)'
+} else {
+    $s = Get-SemaforoRevision -Expediente $nitro -Atencion '2026-11-01_atencion_2' -Momento antes
+    "     general: $($s.General)"
+    foreach ($f in $s.Areas) { '     {0,-20} {1,-9} {2}' -f $f.Area, $f.Color, $f.Frase }
+    Assert 'discos en rojo (152 errores de medio del Samsung)' (($s.Areas | Where-Object Area -EQ 'Discos').Color -eq 'rojo')
+    $acc = @(Get-AccionesLento -Expediente $nitro -Atencion '2026-11-01_atencion_2')
+    foreach ($a in $acc) { '     [{0,-9}] {1}{2}{3}' -f $a.Tipo, $a.Titulo, $(if ($a.RequiereAdmin) { ' [admin]' } else { '' }), $(if ($a.Riesgo -eq 'revisar') { ' [revisar]' } else { '' }) }
+    Assert 'no ofrece desactivar SecurityHealth (Microsoft)' (@($acc | Where-Object { $_.Titulo -match 'SecurityHealth' }).Count -eq 0)
+    Assert 'ofrece las entradas huérfanas' (@($acc | Where-Object { $_.Titulo -match 'huérfana' }).Count -ge 1)
+}
 
 '== LENTO: aplicar y deshacer sobre valores de prueba (HKCU)'
 $script:Ctx.CarpetaClientes = $tmp
@@ -79,11 +87,13 @@ try {
     )
     $expL = New-Expediente -Identidad ([pscustomobject]@{ Fabricante = 'Acer'; Modelo = 'Prueba Lento'; Serie = 'LENTO001'; SerieOriginal = 'LENTO001'; Uuid = $null; PlacaSerie = $null })
     $atL = New-Atencion -Expediente $expL
+    # Se prueba como sin admin aunque la batería corra elevada (en GitHub corre así): con admin crearía un punto de restauración.
+    $adminReal = $script:Ctx.Admin
+    $script:Ctx.Admin = [pscustomobject]@{ Elevado = $false; MiembroAdministradores = $true }
     try { $null = Invoke-AccionesLento -Expediente $expL -Atencion $atL -Acciones @(ConvertTo-AccionLento -Id 'servicio|x' -Tipo 'servicio' -Titulo 'Servicio X' -QueHace '' -Deshacer '' -Admin $true -Datos ([ordered]@{ Servicio = 'x' })); Assert 'admin' $false }
     catch { Assert 'sin admin rechaza acciones que lo necesitan' ($_.Exception.Message -match 'Necesitan admin') }
-    if (-not $script:Ctx.Admin.Elevado) {
-        try { $null = Invoke-AccionesLento -Expediente $expL -Atencion $atL -Acciones $acciones; Assert 'punto' $false } catch { Assert 'sin admin y sin -SinPuntoRestauracion no aplica nada' ($_.Exception.Message -match 'punto de restauración') }
-    }
+    try { $null = Invoke-AccionesLento -Expediente $expL -Atencion $atL -Acciones $acciones; Assert 'punto' $false } catch { Assert 'sin admin y sin -SinPuntoRestauracion no aplica nada' ($_.Exception.Message -match 'punto de restauración') }
+    $script:Ctx.Admin = $adminReal
     $hechas = @(Invoke-AccionesLento -Expediente $expL -Atencion $atL -Acciones $acciones -SinPuntoRestauracion)
     $bytes = (Get-ItemProperty -Path $aprob -Name 'KitPruebaInicio').KitPruebaInicio
     Assert 'inicio marcado como deshabilitado (03 en StartupApproved)' ($hechas.Count -eq 2 -and $bytes[0] -eq 3)
