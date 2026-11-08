@@ -221,14 +221,15 @@ function New-Atencion {
 
 function Get-AtencionAbierta {
     # La atención más reciente que no se ha entregado (la que se está trabajando). $null si no hay.
-    # El diagnóstico suelto del modo técnico abre una atención aparte, sin motivos: no le quita el
-    # lugar a la que se está trabajando ese mismo día.
+    # El diagnóstico suelto del modo técnico abre una atención aparte, sin motivos ni ficha: no le quita
+    # el lugar a la que se está trabajando ese mismo día (la que tiene motivos o datos de la ficha).
     param([Parameter(Mandatory)]$Expediente)
     $abiertas = @(Get-ListaAtenciones -Expediente $Expediente | Where-Object { -not $_['entregado'] })
     if ($abiertas.Count -eq 0) { return $null }
+    $enUso = { param($x) @($x['motivos'] | Where-Object { $_ }).Count -gt 0 -or [bool]$x['sintoma'] -or [bool]$x['paquete'] }
     $ultima = $abiertas[$abiertas.Count - 1]
-    if (@($ultima['motivos'] | Where-Object { $_ }).Count -eq 0) {
-        $delDia = @($abiertas | Where-Object { $_['fecha'] -eq $ultima['fecha'] -and @($_['motivos'] | Where-Object { $_ }).Count -gt 0 } | Select-Object -Last 1)
+    if (-not (& $enUso $ultima)) {
+        $delDia = @($abiertas | Where-Object { $_['fecha'] -eq $ultima['fecha'] -and (& $enUso $_) } | Select-Object -Last 1)
         if ($delDia.Count -gt 0) { return $delDia[0]['carpeta'] }
     }
     $ultima['carpeta']

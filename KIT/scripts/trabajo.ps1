@@ -121,7 +121,17 @@ function Invoke-LentoConsola {
         if (-not $sinPunto) { return }
     }
     try {
-        $hechas = @(Invoke-AccionesLento -Expediente $Exp -Atencion $At -Acciones $elegidas -SinPuntoRestauracion:$sinPunto)
+        try {
+            $hechas = @(Invoke-AccionesLento -Expediente $Exp -Atencion $At -Acciones $elegidas -SinPuntoRestauracion:$sinPunto)
+        } catch {
+            # Windows no deja crear el punto: no se aplicó nada y el técnico decide si sigue sin él.
+            $msj = "$($_.Exception.Message)"
+            if (-not $msj.StartsWith($script:PrefijoSinPunto)) { throw }
+            Write-Host "    No se pudo crear el punto de restauración: $($msj.Substring($script:PrefijoSinPunto.Length))" -ForegroundColor Yellow
+            Write-Host '    No se aplicó nada. El kit no cambia esa configuración del equipo.' -ForegroundColor Yellow
+            if (-not (Test-Si (Read-Linea -Pregunta '¿Aplicar igual sin punto de restauración? Cada acción se puede deshacer (s/N)' -Actual $null))) { return }
+            $hechas = @(Invoke-AccionesLento -Expediente $Exp -Atencion $At -Acciones $elegidas -SinPuntoRestauracion)
+        }
         foreach ($h in $hechas) { Write-Host "    Hecho: $h" -ForegroundColor Green }
     } catch { Show-Error $_.Exception.Message }
 }

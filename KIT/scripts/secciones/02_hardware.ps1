@@ -119,6 +119,9 @@ function Get-DiscosKit {
     $particiones = @(Get-Cim -Namespace $ns -Clase MSFT_Partition -Propiedades DiskNumber, DriveLetter)
     $discos = @(Get-Cim -Namespace $ns -Clase MSFT_PhysicalDisk -Propiedades ObjectId, DeviceId, FriendlyName, MediaType, BusType, HealthStatus, OperationalStatus, Size, FirmwareVersion, SpindleSpeed)
     $letraSistema = "$env:SystemDrive".Substring(0, 1)
+    # El USB del kit aparece entre los discos: se marca para no dar avisos sobre él como si fuera del cliente.
+    $raizKit = if ($script:Ctx.RaizKit) { [IO.Path]::GetPathRoot([string]$script:Ctx.RaizKit) } else { '' }
+    $letraKit = if ($raizKit -match '^([A-Za-z]):') { $Matches[1].ToUpperInvariant() } else { '' }
     $leerDesgaste = $script:Ctx.Admin.Elevado
     if (-not $leerDesgaste) { Add-Incompleto -Parte 'Desgaste y temperatura de discos' }
     foreach ($pd in ($discos | Sort-Object { [int]$_.DeviceId })) {
@@ -141,6 +144,8 @@ function Get-DiscosKit {
             Firmware         = "$($pd.FirmwareVersion)".Trim()
             Letras           = ($letras -join ' ')
             Sistema          = ($letras -contains $letraSistema)
+            # El disco de Windows nunca cuenta como del kit (en el PC del técnico el kit puede estar ahí).
+            DelKit           = [bool]($letraKit -and $letras -contains $letraKit -and $letras -notcontains $letraSistema)
             DesgastePct      = $null
             TemperaturaC     = $null
             TemperaturaMaxC  = $null
@@ -237,8 +242,11 @@ function Test-AlertasHardware {
             Add-Alerta -Severidad AVISO -Codigo 'HW-DISCO-TEMP' -Texto "Disco $($disco.Disco) ($($disco.Modelo)) a $($disco.TemperaturaC) °C"
         }
         $cdi = Find-SmartCrystal -Lista $d['SmartCrystal'] -Disco $disco
-        if ($disco.Smart -like 'no confiable*' -and -not $cdi) {
-            Add-Alerta -Severidad INFO -Codigo 'HW-DISCO-SMART' -Texto "Disco $($disco.Disco) ($($disco.Modelo), bus $($disco.Bus)): Windows no recibe SMART del controlador; revisa salud, desgaste y temperatura con CrystalDiskInfo"
+        if ($disco.Smart -like 'no confiable*' -and -not $cdi -and -not $disco.DelKit) {
+            $quien = "Disco $($disco.Disco) ($($disco.Modelo), bus $($disco.Bus))"
+            $texto = if ($d['DiscosTxt']) { "${quien}: ni Windows ni CrystalDiskInfo leen su SMART (pasa con pendrives y algunas cajas USB); no se pudo revisar su salud" }
+            else { "${quien}: Windows no recibe SMART del controlador; con admin, el kit lo lee con CrystalDiskInfo" }
+            Add-Alerta -Severidad INFO -Codigo 'HW-DISCO-SMART' -Texto $texto
         }
         if ($cdi) {
             # SMART leído por CrystalDiskInfo (discos.txt): vale aunque Windows no lo reciba.
@@ -302,7 +310,7 @@ function Format-ResumenHardware {
             if ($k.HorasEncendido) { $partes += "$(Format-Numero $k.HorasEncendido 0) h encendido" }
             if ($partes) { $extra = ' | ' + ($partes -join ' | ') }
         }
-        "Disco $($k.Disco)    : $($k.Modelo) | $($k.Tipo) $($k.Bus) | $($k.TamanoGB) GB | salud $($k.Salud) | letras $($k.Letras)$(if ($k.Sistema) { ' (sistema)' })$extra"
+        "Disco $($k.Disco)    : $($k.Modelo) | $($k.Tipo) $($k.Bus) | $($k.TamanoGB) GB | salud $($k.Salud) | letras $($k.Letras)$(if ($k.Sistema) { ' (sistema)' })$(if ($k.DelKit) { ' (USB del kit)' })$extra"
         $c = Find-SmartCrystal -Lista $d['SmartCrystal'] -Disco $k
         if ($c) {
             $partes = @("salud $($c.SaludTexto) $($c.SaludPct) %")

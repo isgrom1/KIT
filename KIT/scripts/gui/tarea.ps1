@@ -55,8 +55,15 @@ try {
             $ids = @($p['ids'])
             $acciones = @(Get-AccionesLento -Expediente $exp -Atencion $Atencion | Where-Object { $_.Id -in $ids })
             if (-not $p['sin_punto']) { Write-Gui 'LOG' 'Creando el punto de restauración (puede tardar un minuto)...' }
-            $hechas = @(Invoke-AccionesLento -Expediente $exp -Atencion $Atencion -Acciones $acciones -SinPuntoRestauracion:([bool]$p['sin_punto']) -WarningVariable avisos -WarningAction SilentlyContinue)
-            $resultado = [ordered]@{ hechas = $hechas; errores = @($avisos | ForEach-Object { "$_" }) }
+            try {
+                $hechas = @(Invoke-AccionesLento -Expediente $exp -Atencion $Atencion -Acciones $acciones -SinPuntoRestauracion:([bool]$p['sin_punto']) -WarningVariable avisos -WarningAction SilentlyContinue)
+                $resultado = [ordered]@{ hechas = $hechas; errores = @($avisos | ForEach-Object { "$_" }) }
+            } catch {
+                # Windows no deja crear el punto: no se aplicó nada y la ventana le pregunta al técnico.
+                $msj = "$($_.Exception.Message)"
+                if (-not $msj.StartsWith($script:PrefijoSinPunto)) { throw }
+                $resultado = [ordered]@{ hechas = @(); errores = @(); punto_fallo = $msj.Substring($script:PrefijoSinPunto.Length) }
+            }
         }
         'deshacer_lento' {
             $d = @(Undo-AccionesLento -Expediente $exp -Atencion $Atencion -WarningVariable avisos -WarningAction SilentlyContinue)

@@ -458,7 +458,8 @@ function Invoke-Diagnostico {
             4 { $ui.txtMedicionEstado.Text = 'No hay un diagnóstico ANTES: hazlo primero.' }
             default { $ui.txtMedicionEstado.Text = "El diagnóstico terminó con un problema (código $codigo). Revisa el registro de abajo."; if ($err) { $ui.txtLog.AppendText($err) } }
         }
-        if ($codigo -eq 0 -and -not $script:G.DiagSuelto -and $script:G.Momento -eq 'antes') { Invoke-PreInformeGui -Auto }
+        # Tras el ANTES se muestra el pre-informe aunque falte el CSV: dice qué le falta y se vuelve a abrir al completarse.
+        if ($codigo -eq 0 -and -not $script:G.DiagSuelto -and $script:G.Momento -eq 'antes') { Invoke-PreInformeGui -Abrir }
     }
 }
 
@@ -834,11 +835,21 @@ $ui.btnAplicarAcciones.Add_Click({
             $sinPunto = Show-Aviso 'Sin admin no se puede crear el punto de restauración. ¿Seguir igual? (lo recomendado es relanzar como admin)' -Pregunta
             if (-not $sinPunto) { return }
         }
-        Invoke-TareaKit -Accion 'aplicar_lento' -Parametros @{ ids = $ids; sin_punto = $sinPunto } -Texto 'Aplicando acciones...' -AlResultado {
+        $script:G.IdsLento = $ids
+        # Si Windows no deja crear el punto de restauración, no se aplicó nada: se pregunta si seguir sin él.
+        $script:G.AlAplicarLento = {
             param($r)
+            if ($r.punto_fallo) {
+                $txt = "No se pudo crear el punto de restauración: $($r.punto_fallo)`n`nNo se aplicó nada. El kit no cambia esa configuración del equipo.`n`n¿Aplicar igual sin punto de restauración? Cada acción se puede deshacer con «Deshacer acciones aplicadas»."
+                if (Show-Aviso $txt -Pregunta) {
+                    Invoke-TareaKit -Accion 'aplicar_lento' -Parametros @{ ids = $script:G.IdsLento; sin_punto = $true } -Texto 'Aplicando acciones...' -AlResultado $script:G.AlAplicarLento
+                }
+                return
+            }
             [void](Show-Aviso ("Hechas: $(@($r.hechas).Count)." + $(if (@($r.errores).Count) { "`nNo se pudo: $(@($r.errores) -join '; ')" } else { '' })))
             Show-Trabajo
         }
+        Invoke-TareaKit -Accion 'aplicar_lento' -Parametros @{ ids = $ids; sin_punto = $sinPunto } -Texto 'Aplicando acciones...' -AlResultado $script:G.AlAplicarLento
     })
 $ui.btnDeshacerLento.Add_Click({
         if (-not (Show-Aviso '¿Deshacer todas las acciones aplicadas?' -Pregunta)) { return }
@@ -896,6 +907,16 @@ $ui.btnAbrirCarpeta.Add_Click({ if ($script:G.Exp) { Start-Process -FilePath 'ex
 $ui.btnDiagSuelto.Add_Click({
         $secs = @($script:Ui.wpSecciones.Children | Where-Object { $_.IsChecked } | ForEach-Object { $_.Tag })
         if ($secs.Count -eq 0) { return }
+        $a = Get-Entrada
+        $sinAntes = $a -and -not $script:G.Ajeno -and -not (Test-Medicion -Expediente $script:G.Exp -Atencion $script:G.At -Momento 'antes')
+        if ($sinAntes -and $secs.Count -eq $script:Ui.wpSecciones.Children.Count) {
+            # Completo y sin ANTES todavía: cuenta como el ANTES de la atención en curso, para que no quede
+            # una atención aparte (sin motivos ni ficha) que después se confunde con la real.
+            $script:G.Momento = 'antes'; Show-Panel 'pnlMedicion'
+            Invoke-Diagnostico -Momento 'antes' -Extra $(if ($script:Ui.chkSueltoEspacio.IsChecked) { @() } else { @('-SinEspacio') })
+            return
+        }
+        if ($a -and -not $script:G.Ajeno -and -not (Show-Aviso "Esto abre una atención aparte: no cuenta como el ANTES de la atención $($script:G.At).`nPara medir esa atención usa ② Antes.`n`n¿Seguir con el diagnóstico suelto?" -Pregunta)) { return }
         $extra = @('-NuevaAtencion', '-Secciones', ($secs -join ','))
         if (-not $script:Ui.chkSueltoEspacio.IsChecked) { $extra += '-SinEspacio' }
         $script:G.Momento = 'antes'; Show-Panel 'pnlMedicion'

@@ -266,15 +266,30 @@ function Undo-CambioLento {
     }
 }
 
+# Las excepciones que empiezan así significan "Windows no deja crear el punto de restauración": la ventana
+# y la consola le preguntan al técnico si aplica igual sin él (el kit no cambia esa configuración).
+$script:PrefijoSinPunto = 'PUNTO_RESTAURACION: '
+
+function Get-MotivoSinPunto {
+    # Por qué Windows no deja crear el punto de restauración, en palabras simples. Solo lee.
+    $vss = Get-Service -Name 'VSS' -ErrorAction SilentlyContinue
+    if ($vss -and "$($vss.StartType)" -eq 'Disabled') { return 'el servicio Instantáneas de volumen está deshabilitado (típico de optimizadores)' }
+    'la Protección del sistema parece desactivada en C:'
+}
+
 function Initialize-PuntoRestauracion {
     # Usa uno de las últimas 24 h si existe (Windows no crea otro antes) o crea uno nuevo. Necesita admin.
     if (-not $script:Ctx.Admin.Elevado) { throw 'El punto de restauración necesita admin: relanza como administrador' }
     $antes = @(Get-ComputerRestorePoint -ErrorAction SilentlyContinue)
     $reciente = $antes | Where-Object { [Management.ManagementDateTimeConverter]::ToDateTime($_.CreationTime) -gt (Get-Date).AddHours(-24) } | Select-Object -Last 1
     if ($reciente) { return [ordered]@{ fecha = ConvertTo-TextoFecha ([Management.ManagementDateTimeConverter]::ToDateTime($reciente.CreationTime)); descripcion = $reciente.Description; creado_ahora = $false } }
-    Checkpoint-Computer -Description 'KIT SERVICIO - antes de LENTO' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop -WarningAction SilentlyContinue
+    try {
+        Checkpoint-Computer -Description 'KIT SERVICIO - antes de LENTO' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop -WarningAction SilentlyContinue
+    } catch {
+        throw "$($script:PrefijoSinPunto)$(Get-MotivoSinPunto). Windows dice: $($_.Exception.Message)"
+    }
     $nuevo = @(Get-ComputerRestorePoint -ErrorAction SilentlyContinue) | Select-Object -Last 1
-    if (-not $nuevo -or @($antes).Count -eq @(Get-ComputerRestorePoint -ErrorAction SilentlyContinue).Count) { throw 'Windows no creó el punto de restauración (¿Protección del sistema desactivada en C:?)' }
+    if (-not $nuevo -or @($antes).Count -eq @(Get-ComputerRestorePoint -ErrorAction SilentlyContinue).Count) { throw "$($script:PrefijoSinPunto)$(Get-MotivoSinPunto)" }
     [ordered]@{ fecha = ConvertTo-TextoFecha ([Management.ManagementDateTimeConverter]::ToDateTime($nuevo.CreationTime)); descripcion = $nuevo.Description; creado_ahora = $true }
 }
 

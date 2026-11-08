@@ -1,4 +1,4 @@
-﻿# KIT SERVICIO
+# KIT SERVICIO
 
 Herramienta portable para diagnosticar notebooks y PC con Windows 10/11 desde un pendrive Ventoy.
 Corre con el Windows PowerShell 5.1 que trae Windows: no instala nada en el equipo del cliente y no usa internet.
@@ -160,11 +160,11 @@ El USB lleva las atenciones en curso; el historial completo vive en el **maestro
   - acciones sugeridas con casillas y "Aplicar seleccionadas" (LENTO);
   - Analizar → revisar (desmarcar lo que no se mueve) → Mover, con el total antes de confirmar, y Deshacer (ARCHIVOS);
   - semáforo (REVISIÓN).
-- **Pre-informe:** `pre_informe.html`, en la carpeta de la atención. Muestra cómo está el equipo antes del trabajo, siempre con la medición ANTES y sin exigir la ficha completa. Se actualiza después del diagnóstico ANTES, al importar el CSV y al guardar las condiciones, y se abre solo cuando la medición queda completa. **② Antes → Ver pre-informe** lo abre en cualquier momento; en consola es la opción P de Trabajo. Lo que imprime es una hoja A4 para el cliente; el detalle de las alertas se ve en pantalla, pero no sale al imprimir.
+- **Pre-informe:** `pre_informe.html`, en la carpeta de la atención. Muestra cómo está el equipo antes del trabajo, siempre con la medición ANTES y sin exigir la ficha completa. Se actualiza después del diagnóstico ANTES, al importar el CSV y al guardar las condiciones. Se abre al terminar el diagnóstico ANTES y otra vez cuando la medición queda completa. **② Antes → Ver pre-informe** lo abre en cualquier momento; en consola es la opción P de Trabajo. Lo que imprime es una hoja A4 para el cliente; el detalle de las alertas se ve en pantalla, pero no sale al imprimir.
 - **Informe:** vista previa de ambos informes, Generar, Abrir y Abrir carpeta.
 - **Mostrar al cliente:** pantalla completa con el semáforo y las tarjetas antes → después del motivo principal. Esc para salir.
 - **Expedientes:** lista los expedientes del USB (o del maestro, en tus equipos) con buscador; se elige la atención y **Abrir**. El de otro equipo, o cualquiera del maestro, se abre en **modo consulta** (barra ámbar): no se mide ni se aplican acciones, pero se puede completar la ficha y **regenerar los informes**. **Volver a este equipo** regresa al flujo normal. En tus equipos, abajo está **Sincronizar** (ver "Sincronizar con el maestro").
-- **Modo técnico:** diagnóstico suelto por secciones (en una atención aparte), atajos y menú de consola.
+- **Modo técnico:** diagnóstico suelto por secciones, atajos y menú de consola. Con todas las secciones y la atención todavía sin ANTES, cuenta como su ANTES; si no, pregunta antes de abrir una atención aparte.
 - **Herramientas:** un botón por herramienta; las que faltan aparecen en gris.
 
 Los trabajos largos corren en segundo plano: la ventana no se congela y la barra de abajo tiene **Cancelar**. Si se cancela un diagnóstico, la medición anterior queda intacta.
