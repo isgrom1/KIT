@@ -179,7 +179,7 @@ Después de cada sincronización (ventana y consola), si `config.json` → `resp
   - cliente activo y, si el equipo ya vino antes, "Cliente conocido — última atención…".
 - **Inicio:** "¿Por qué viene el equipo?" con 4 tarjetas, en las que se puede marcar más de una. Debajo va el avance ① Ficha ② Antes ③ Trabajo ④ Después ⑤ Informe: cada paso se habilita al completar el anterior y lleva ✓ cuando está hecho.
 - **Siguiente paso** (franja azul bajo los pasos): qué le falta a la atención, en este orden: motivo → ficha (nombre, contacto, síntoma y, con ARCHIVOS, consentimiento y carpetas protegidas) → diagnóstico ANTES → con CALOR, CSV y condiciones del ANTES → trabajo terminado → DESPUÉS (y su CSV y condiciones) → lo que falta para los informes (paquete, precio, datos del técnico) → informes → entrega. El botón lleva al panel. En modo consulta no aparece. Lo calcula `lib\Flujo.ps1` (`Get-SiguientePaso`); la consola de Trabajo muestra la misma línea.
-- **Barra de abajo:** a la derecha, la versión del kit (`0.2.0 · <commit> · <fecha>`, o "copia de trabajo").
+- **Barra de abajo:** a la derecha, la versión del kit (`0.4.3 · <commit> · <fecha>`, o "copia de trabajo").
 - **Verificación del kit:** al abrir, la ventana compara cada archivo de `INICIAR.cmd`, `scripts\` y `docs\` con los hashes de `version.json` (sin contar `config_local.json`). Si alguno cambió, falta o sobra, sale una franja ámbar con los primeros nombres; el diagnóstico lo anota en su log y lo muestra en consola. Avisa, no bloquea.
 - **Por motivo:** cada paso muestra solo lo de los motivos elegidos.
 - **Ficha:** obligatorios marcados con *, checklist funcional y **Agregar fotos de recepción** (se copian a `fotos_recepcion\`).
