@@ -12,8 +12,10 @@ CÓMO SE USA
    - Acepta el permiso de administrador.
 4. Espera unos 20 minutos sin usar el computador. Se abren solos HWiNFO y OCCT: no los toques.
    El computador se va a calentar y el ventilador va a sonar fuerte: es normal, es la prueba.
-5. Al final queda en tu Escritorio un archivo "Diagnostico_para_Isaac_....kitdiag".
-   Mándaselo a Isaac por WhatsApp o correo. Va cifrado: solo él lo puede abrir.
+5. Al final queda en tu Escritorio un archivo "Diagnostico_para_Isaac_....kitdiag" y se abre
+   la carpeta donde está (si tu Escritorio se respalda en OneDrive, queda en la carpeta
+   "Diagnostico_para_Isaac" de tu usuario). Mándaselo a Isaac por WhatsApp o correo.
+   Va cifrado: solo él lo puede abrir.
 
 Después puedes borrar la carpeta del diagnóstico.
 

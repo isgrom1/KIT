@@ -47,6 +47,7 @@ function Get-DatosWindows {
         Soporte         = Invoke-Paso 'ciclo de vida' { Get-SoporteWindows -Build $build -Grupo (Get-GrupoEdicion $cv['EditionID']) }
         Licencia        = Invoke-Paso 'activación' { Get-LicenciaWindows }
         ClaveOem        = Invoke-Paso 'clave OEM firmware' { Get-ClaveOemFirmware }
+        Reinicio        = Invoke-Paso 'reinicio pendiente' { Get-ReinicioPendiente }
     }
     $estado = if ($d.Licencia) { "$($d.Licencia.Estado) ($($d.Licencia.Canal))" } else { 'activación desconocida' }
     $soporte = if ($d.Soporte -and $d.Soporte.Fin) { "soporte hasta $($d.Soporte.Fin)" } else { 'soporte: build fuera de tabla' }
@@ -130,6 +131,15 @@ function Get-ClaveOemFirmware {
     $resultado
 }
 
+function Get-ReinicioPendiente {
+    # Actualización de Windows a medias: claves que Windows crea mientras espera un reinicio. Solo lee
+    # (HKLM se lee sin admin). PendingFileRenameOperations no se usa: muchos instaladores lo dejan y no dice nada.
+    $existe = { param($ruta) $k = Open-ClaveRegistro -Colmena HKLM -Ruta $ruta; if ($k) { $k.Dispose(); $true } else { $false } }
+    $wu = & $existe 'SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'
+    $cbs = & $existe 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
+    [pscustomobject][ordered]@{ Pendiente = ($wu -or $cbs); WindowsUpdate = $wu; Componentes = $cbs }
+}
+
 function Test-AlertasWindows {
     $d = $script:Ctx.Datos.windows
     $l = $d.Licencia
@@ -165,6 +175,10 @@ function Test-AlertasWindows {
             Add-Alerta -Severidad AVISO -Codigo 'WIN-SOPORTE' -Texto "$($s.Producto) $($s.Version) deja de recibir actualizaciones el $($s.Fin) (en $($s.DiasRestantes) días)"
         }
     }
+    if ($d.Reinicio -and $d.Reinicio.Pendiente) {
+        $origen = (@($(if ($d.Reinicio.WindowsUpdate) { 'Windows Update' }), $(if ($d.Reinicio.Componentes) { 'componentes de Windows' })) | Where-Object { $_ }) -join ' y '
+        Add-Alerta -Severidad AVISO -Codigo 'WIN-REINICIO' -Texto "Windows tiene una actualización a medias esperando reinicio ($origen): mientras tanto puede andar más lento. Reiniciar antes de medir o de aplicar cambios"
+    }
     if ($d.Insider -and $d.Insider.Inscrito) {
         Add-Alerta -Severidad INFO -Codigo 'WIN-INSIDER' -Texto "Equipo inscrito en Windows Insider ($($d.Insider.Canal))"
     }
@@ -174,6 +188,7 @@ function Format-ResumenWindows {
     $d = $script:Ctx.Datos.windows
     "Edición    : $($d.Nombre) ($($d.EditionId), grupo $($d.GrupoEdicion)) | $($d.Version) build $($d.BuildCompleto) | rama $($d.Rama) | $($d.Arquitectura)"
     "Idioma     : $($d.Idiomas -join ', ') | instalado/actualizado el $($d.InstaladoEl) | Insider: $(if ($d.Insider -and $d.Insider.Inscrito) { $d.Insider.Canal } else { 'no' })"
+    if ($d.Reinicio) { "Reinicio   : $(if ($d.Reinicio.Pendiente) { 'PENDIENTE (actualización a medias' + $(if ($d.Reinicio.WindowsUpdate) { ', Windows Update' }) + $(if ($d.Reinicio.Componentes) { ', componentes' }) + ')' } else { 'no hay actualizaciones esperando reinicio' })" }
     if ($d.Soporte -and $d.Soporte.EnTabla) { "Soporte    : hasta $($d.Soporte.Fin) ($($d.Soporte.DiasRestantes) días)$(if ($d.Soporte.Nota) { ' | ' + $d.Soporte.Nota })" }
     if ($d.Licencia) {
         $l = $d.Licencia

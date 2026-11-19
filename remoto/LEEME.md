@@ -1,7 +1,8 @@
 # Diagnóstico remoto (herramienta aparte del kit)
 
 Para mandarle a un familiar o cliente: con doble clic revisa su computador, hace la prueba CALOR
-(HWiNFO grabando + OCCT cargando la CPU) y deja en su Escritorio un archivo `.kitdiag` cifrado que
+(HWiNFO grabando + OCCT cargando la CPU) y deja en su Escritorio (o en `%USERPROFILE%\Diagnostico_para_Isaac`
+si el Escritorio se respalda en OneDrive) un archivo `.kitdiag` cifrado que
 solo Isaac puede abrir. No instala nada ni cambia la configuración de Windows.
 
 ## Una sola vez, en el PC de Isaac

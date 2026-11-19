@@ -7,7 +7,8 @@
     1. Diagnóstico del kit (solo lee, sin red) en una carpeta temporal.
     2. Prueba CALOR: HWiNFO grabando, -ReposoMin de reposo y -Minutos de OCCT cargando la CPU.
     3. RESUMEN.txt con lo principal.
-    4. ZIP de todo, cifrado con la llave pública de Isaac (llave_publica.xml), en el Escritorio.
+    4. ZIP de todo, cifrado con la llave pública de Isaac (llave_publica.xml), en el Escritorio (o en
+       %USERPROFILE%\Diagnostico_para_Isaac si el Escritorio se respalda en OneDrive).
     5. Borra la carpeta temporal: en el equipo solo queda el archivo cifrado.
     No instala nada ni cambia la configuración de Windows. Necesita administrador (OCCT y HWiNFO lo piden).
 #>
@@ -17,7 +18,7 @@ param(
     [double]$Minutos = 10,
     [double]$ReposoMin = 5,
     [switch]$SinCalor,
-    [string]$Destino = [Environment]::GetFolderPath('Desktop')
+    [string]$Destino
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression
@@ -29,6 +30,22 @@ $herr = Join-Path $raiz 'herramientas'
 . (Join-Path $motor 'Cifrado.ps1')
 
 function Write-Titulo([string]$Texto) { Write-Host ''; Write-Host " $Texto" -ForegroundColor Cyan }
+
+# Dónde dejar el .kitdiag: el Escritorio, salvo que OneDrive lo respalde (se subiría solo a la nube y,
+# con OneDrive lleno, queda con error). En ese caso, una carpeta local del perfil.
+$enOneDrive = $false
+if (-not $Destino) {
+    $Destino = [Environment]::GetFolderPath('Desktop')
+    $raicesOd = @(@($env:OneDrive, $env:OneDriveConsumer, $env:OneDriveCommercial) | Where-Object { $_ })
+    try {
+        $k = 'HKCU:\Software\Microsoft\OneDrive\Accounts'
+        if (Test-Path $k) { $raicesOd += @(Get-ChildItem $k | ForEach-Object { (Get-ItemProperty $_.PSPath -Name UserFolder -ErrorAction SilentlyContinue).UserFolder } | Where-Object { $_ }) }
+    } catch { Write-Verbose $_ }
+    if (@($raicesOd | Where-Object { $Destino.StartsWith($_.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase) }).Count) {
+        $enOneDrive = $true
+        $Destino = Join-Path $env:USERPROFILE 'Diagnostico_para_Isaac'
+    }
+}
 
 $Host.UI.RawUI.WindowTitle = 'Diagnóstico para Isaac - no cierres esta ventana'
 Write-Host ''
@@ -147,5 +164,6 @@ Write-Host ' LISTO.' -ForegroundColor Green
 Write-Host " Mándale a Isaac este archivo (por WhatsApp o correo):" -ForegroundColor Green
 Write-Host "   $archivo"
 Write-Host ' Va cifrado: solo él lo puede abrir.' -ForegroundColor Gray
+if ($enOneDrive) { Write-Host ' (No quedó en el Escritorio porque tu Escritorio se sube a OneDrive. Se abre la carpeta donde está.)' -ForegroundColor Gray }
 Start-Process explorer.exe -ArgumentList "/select,`"$archivo`""
 exit 0

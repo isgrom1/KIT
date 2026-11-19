@@ -277,6 +277,17 @@ function Get-ServiciosCliente {
     }
     $err = @($d.dispositivos.ConError | Where-Object { $_ })
     if ($err.Count) { $hall.Add("$($err.Count) dispositivo(s) sin driver o con error."); $gana.Add('Todo funcionando') }
+    if ($d.windows.Reinicio -and $d.windows.Reinicio.Pendiente) { $hall.Add('Windows tiene una actualización a medias esperando reinicio.'); $gana.Add('Windows al día'); $imp = [math]::Max($imp, 2) }
+    $od = $d.espacio.OneDrive
+    if ($od -and $od.Vinculado) {
+        $limiteOd = [double]$script:Ctx.Config.umbrales.onedrive_gratis_gb
+        $personal = @($od.Cuentas | Where-Object Tipo -EQ 'Personal').Count -gt 0
+        if ($personal -and $od.Recorrido -and [double]$od.Recorrido.TotalGB -gt $limiteOd) {
+            $hall.Add("OneDrive guarda $(Format-Numero ([double]$od.Recorrido.TotalGB) 1) GB y la cuenta gratis trae $(Format-Numero $limiteOd 0) GB: lo nuevo probablemente no se está respaldando.")
+            $gana.Add('Respaldo funcionando'); $imp = [math]::Max($imp, 3)
+        }
+        if (@($od.Duplicadas).Count -or @($od.CopiasLocales).Count) { $hall.Add('Hay carpetas repetidas entre OneDrive y el equipo (por ejemplo Documents y Documentos).'); $gana.Add('Archivos ordenados') }
+    }
     $e = $d.estabilidad
     if ($e -and ([int]$e.Apagados + [int]$e.Pantallazos) -ge 2) { $hall.Add("$([int]$e.Apagados + [int]$e.Pantallazos) apagados o pantallazos inesperados en $($e.Dias) días: reviso la causa."); $gana.Add('Más estabilidad'); $imp = [math]::Max($imp, 2) }
     if ($hall.Count) {
@@ -811,6 +822,17 @@ function ConvertTo-HojaTecnica {
     [void]$sb.Append('</table><h2>Lo que más ocupa</h2><table><tr><th>Carpeta</th><th>GB</th></tr>')
     foreach ($x in @($d.espacio.TopCarpetas | Where-Object { $_ } | Sort-Object { [double]$_.TamanoGB } -Descending | Select-Object -First 15)) { [void]$sb.Append("<tr><td>$(& $H $x.Carpeta)</td><td>$(Format-Numero ([double]$x.TamanoGB) 1)</td></tr>") }
     [void]$sb.Append("</table><p>Papelera: $(Format-Numero (Get-PapeleraGB -Doc $Doc) 1) GB$(if ($d.energia.Hibernacion) { " · hiberfil.sys: $(Format-Numero ([double]$d.energia.Hibernacion.HiberfilGB) 1) GB" })</p>")
+    if ($d.windows.Reinicio -and $d.windows.Reinicio.Pendiente) { [void]$sb.Append("<div class='aviso'><b>Reinicio pendiente:</b> Windows tiene una actualización a medias. Reiniciar y dejar que termine antes de medir el DESPUÉS.</div>") }
+    $od = $d.espacio.OneDrive
+    if ($od -and $od.Vinculado) {
+        [void]$sb.Append('<h2>OneDrive</h2><table>')
+        [void]$sb.Append("<tr><td>Cuentas</td><td>$(& $H ((@($od.Cuentas) | ForEach-Object Tipo) -join ', '))$(if ($od.EnEjecucion) { ' · abierto' } else { ' · cerrado' })</td></tr>")
+        [void]$sb.Append("<tr><td>Respalda</td><td>$(& $H $(if (@($od.Respaldadas).Count) { (@($od.Respaldadas) | ForEach-Object Carpeta) -join ', ' } else { 'ninguna carpeta de Windows' }))</td></tr>")
+        if ($od.Recorrido) { [void]$sb.Append("<tr><td>Tamaño</td><td>$(Format-Numero ([double]$od.Recorrido.TotalGB) 1) GB en $('{0:N0}' -f $od.Recorrido.Archivos) archivos ($(Format-Numero ([double]$od.Recorrido.LocalGB) 1) GB en el disco, $(Format-Numero ([double]$od.Recorrido.SoloNubeGB) 1) GB solo en la nube)$(if (-not $od.Recorrido.Completo) { ' · PARCIAL' }) · $($od.Recorrido.Conflictos) archivos en conflicto</td></tr>") }
+        foreach ($x in @($od.Duplicadas)) { [void]$sb.Append("<tr><td>Repetidas</td><td>$(& $H $x.Carpetas) ($(& $H $x.Motivo))</td></tr>") }
+        foreach ($x in @($od.CopiasLocales)) { [void]$sb.Append("<tr><td>Copia local</td><td>$(& $H $x.Carpeta): $($x.Archivos) archivos en $(& $H $x.Ruta) (Windows usa la de OneDrive)</td></tr>") }
+        [void]$sb.Append("</table><p>Con el cliente: liberar espacio en OneDrive, contratar más o dejar de respaldar carpetas (OneDrive &gt; Configuración &gt; Sincronizar y hacer copia de seguridad). Las carpetas repetidas se juntan moviendo, nunca borrando.</p>")
+    }
     $err = @($d.dispositivos.ConError | Where-Object { $_ })
     if ($err.Count) {
         [void]$sb.Append('<h2>Dispositivos con error</h2><table><tr><th>Dispositivo</th><th>Código</th><th>Problema</th><th>ID</th></tr>')

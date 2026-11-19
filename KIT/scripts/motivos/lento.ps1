@@ -19,6 +19,11 @@ $script:RutaGpu = 'Software\Microsoft\DirectX\UserGpuPreferences'
 $script:InicioIntocable = '(?i)securityhealth|windows ?defender|seguridad de windows|antivirus|avast|avg|kaspersky|eset|bitdefender|norton|mcafee|malwarebytes'
 $script:InicioRevisar = '(?i)realtek|audio|synaptics|elan|touchpad|nitrosense|predatorsense|armoury|myasus|vantage|dell|hp |intel|nvidia|amd|radeon|logitech|lghub|razer|corsair|onedrive|vanguard|anti-?cheat|easyanticheat|battleye|faceit'
 $script:CategoriasAccion = 'optimizador', 'driver_updater', 'limpiador', 'pup', 'bloat', 'activador'
+# De Microsoft, solo esto se ofrece desactivar al inicio (lo demás de Microsoft no se toca).
+$script:InicioMicrosoftOpcional = '(?i)^MicrosoftEdgeAutoLaunch|^OneDrive|teams'
+$script:RutaStoreInicio = 'Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData'
+# Apps de la Store: nombre para el técnico según el paquete.
+$script:NombresStore = @{ 'MSTeams' = 'Microsoft Teams'; 'MicrosoftWindows.CrossDevice' = 'Vínculo móvil (CrossDevice)'; 'Microsoft.YourPhone' = 'Vínculo móvil'; 'Microsoft.StartExperiencesApp' = 'Noticias del menú Inicio'; 'Microsoft.GamingApp' = 'Xbox'; 'Microsoft.WindowsTerminal' = 'Terminal'; 'SpotifyAB.SpotifyMusic' = 'Spotify' }
 
 # ---------------------------------------------------------------- métricas
 
@@ -75,13 +80,25 @@ function Get-AccionesLento {
     $mapa = @{ 'HKCU\Run' = @('HKCU', 'Run'); 'HKLM\Run' = @('HKLM', 'Run'); 'HKLM\Run (32 bits)' = @('HKLM', 'Run32'); 'Inicio (usuario)' = @('HKCU', 'StartupFolder'); 'Inicio (todos)' = @('HKLM', 'StartupFolder') }
     foreach ($e in @($d.arranque.Entradas | Where-Object { $_ -and $_.Habilitado -and $mapa.ContainsKey("$($_.Ubicacion)") })) {
         $texto = "$($e.Nombre) $($e.Comando) $($e.Empresa)"
-        if ($texto -match $script:InicioIntocable -or "$($e.Empresa)" -match '(?i)^microsoft' -or ($e.Ejecutable -and $av -contains $e.Ejecutable)) { continue }
+        if ($texto -match $script:InicioIntocable -or ("$($e.Empresa)" -match '(?i)^microsoft' -and $e.Nombre -notmatch $script:InicioMicrosoftOpcional) -or ($e.Ejecutable -and $av -contains $e.Ejecutable)) { continue }
         $m = $mapa["$($e.Ubicacion)"]
         $riesgo = if ($texto -match $script:InicioRevisar) { 'revisar' } else { 'bajo' }
         $titulo = if ($e.Existe -eq $false) { "Desactivar entrada de inicio huérfana: $($e.Nombre)" } else { "Desactivar al inicio: $($e.Nombre)$(if ($e.Empresa) { " ($($e.Empresa))" })" }
         $acciones.Add((ConvertTo-AccionLento -Id "inicio|$($m[0])|$($m[1])|$($e.Nombre)" -Tipo 'inicio' -Titulo $titulo -Admin ($m[0] -eq 'HKLM') -Riesgo $riesgo `
                     -QueHace 'La marca como deshabilitada al inicio (igual que el Administrador de tareas). El programa sigue instalado y se puede abrir a mano.' `
                     -Deshacer 'Se restaura el estado anterior del inicio.' -Datos ([ordered]@{ Colmena = $m[0]; Clave = $m[1]; Nombre = $e.Nombre })))
+    }
+    # Apps de la Store que arrancan solas (Teams, Vínculo móvil, noticias...): el mismo interruptor que
+    # Configuración > Aplicaciones > Inicio (State = 1, deshabilitada por el usuario).
+    foreach ($s in @($d.arranque.AppsStore | Where-Object { $_ -and $_.Habilitado -and $_.Comando })) {
+        $texto = "$($s.Nombre) $($s.Comando)"
+        if ($texto -match $script:InicioIntocable) { continue }
+        $corto = "$($s.Ubicacion)" -replace '^Store:\s*', ''
+        $nombre = if ($script:NombresStore.ContainsKey($corto)) { $script:NombresStore[$corto] } else { $corto }
+        $riesgo = if ($texto -match $script:InicioRevisar) { 'revisar' } else { 'bajo' }
+        $acciones.Add((ConvertTo-AccionLento -Id "store|$($s.Comando)|$($s.Nombre)" -Tipo 'inicio_store' -Titulo "Desactivar al inicio (app de la Store): $nombre" -Admin $false -Riesgo $riesgo `
+                    -QueHace 'La deja de arrancar con Windows (igual que Configuración > Aplicaciones > Inicio). La app sigue instalada y se abre a mano.' `
+                    -Deshacer 'Se restaura el estado anterior del inicio.' -Datos ([ordered]@{ Paquete = $s.Comando; Tarea = $s.Nombre })))
     }
     # Servicios y tareas de software conocido como innecesario (optimizadores, PUP, bloat...).
     foreach ($s in @($d.arranque.Servicios.Terceros | Where-Object { $_ -and "$($_.Inicio)" -like 'Autom*' })) {
@@ -133,8 +150,20 @@ function Get-AccionesLento {
     foreach ($s in @($d.software.Detectados | Where-Object { $_ -and $_.Categoria -in $script:CategoriasAccion })) {
         $acciones.Add((ConvertTo-AccionLento -Id "manual|desinstalar|$($s.Nombre)" -Tipo 'manual' -Titulo "Desinstalar $($s.Nombre) ($($s.Texto))" -Admin $false -QueHace 'Desde Configuración > Aplicaciones, con el cliente de acuerdo.' -Deshacer 'Reinstalar desde el sitio oficial.' -Datos ([ordered]@{})))
     }
-    foreach ($a in @($doc.alertas | Where-Object { $_.Codigo -in 'HW-GPU-DRIVER', 'HW-GPU-GENERICO', 'HW-RAM-POCA', 'HW-DISCO-HDD', 'ESP-LIBRE' })) {
-        $acciones.Add((ConvertTo-AccionLento -Id "manual|$($a.Codigo)" -Tipo 'manual' -Titulo $a.Texto -Admin $false -QueHace $(switch ($a.Codigo) { 'ESP-LIBRE' { 'Liberar espacio con el motivo ARCHIVOS.' } 'HW-DISCO-HDD' { 'Ofrecer cambio a SSD.' } 'HW-RAM-POCA' { 'Ofrecer ampliación de RAM.' } default { 'Instalar el driver de la página oficial (③ Trabajo → Drivers).' } }) -Deshacer '' -Datos ([ordered]@{})))
+    $vistas = @{}
+    foreach ($a in @($doc.alertas | Where-Object { $_.Codigo -in 'HW-GPU-DRIVER', 'HW-GPU-GENERICO', 'HW-RAM-POCA', 'HW-DISCO-HDD', 'ESP-LIBRE', 'WIN-REINICIO', 'ESP-ONEDRIVE', 'ESP-ONEDRIVE-DUP', 'ESP-ONEDRIVE-LOCAL' })) {
+        if ($vistas.ContainsKey("$($a.Codigo)|$($a.Texto)")) { continue }
+        $vistas["$($a.Codigo)|$($a.Texto)"] = $true
+        $que = switch ($a.Codigo) {
+            'ESP-LIBRE' { 'Liberar espacio con el motivo ARCHIVOS.' }
+            'HW-DISCO-HDD' { 'Ofrecer cambio a SSD.' }
+            'HW-RAM-POCA' { 'Ofrecer ampliación de RAM.' }
+            'WIN-REINICIO' { 'Reiniciar y dejar que Windows termine la actualización antes de medir el DESPUÉS.' }
+            'ESP-ONEDRIVE' { 'Con el cliente: liberar espacio en OneDrive, contratar más o dejar de respaldar carpetas (OneDrive > Configuración > Sincronizar y hacer copia de seguridad).' }
+            { $_ -in 'ESP-ONEDRIVE-DUP', 'ESP-ONEDRIVE-LOCAL' } { 'Con el cliente: juntar las carpetas repetidas. Nunca borrar: mover, y si sobra algo, con el motivo ARCHIVOS.' }
+            default { 'Instalar el driver de la página oficial (③ Trabajo → Drivers).' }
+        }
+        $acciones.Add((ConvertTo-AccionLento -Id "manual|$($a.Codigo)|$($vistas.Count)" -Tipo 'manual' -Titulo $a.Texto -Admin $false -QueHace $que -Deshacer '' -Datos ([ordered]@{})))
     }
     $acciones.ToArray()
 }
@@ -193,6 +222,14 @@ function Invoke-CambioLento {
             } finally { $k.Close() }
             return [ordered]@{ previo = $(if ($previo) { [Convert]::ToBase64String([byte[]]$previo) } else { $null }) }
         }
+        'inicio_store' {
+            $ruta = "$script:RutaStoreInicio\$($x.Paquete)\$($x.Tarea)"
+            $previo = Get-ValorRegistro -Colmena HKCU -Ruta $ruta -Nombre 'State'
+            if ($null -eq $previo) { throw "No existe la tarea de inicio $($x.Tarea) de $($x.Paquete)" }
+            $k = Open-ClaveEscritura -Colmena HKCU -Ruta $ruta
+            try { $k.SetValue('State', 1, [Microsoft.Win32.RegistryValueKind]::DWord) } finally { $k.Close() }
+            return [ordered]@{ previo = [int]$previo }
+        }
         'servicio' {
             $s = Get-Cim -Clase Win32_Service -Filtro "Name='$($x.Servicio -replace "'", "''")'" -Propiedades StartMode
             $retrasado = (Get-ValorRegistro -Colmena HKLM -Ruta "SYSTEM\CurrentControlSet\Services\$($x.Servicio)" -Nombre 'DelayedAutostart') -eq 1
@@ -244,6 +281,10 @@ function Undo-CambioLento {
         'inicio' {
             $k = Open-ClaveEscritura -Colmena $x['Colmena'] -Ruta "$script:RutaAprobado\$($x['Clave'])"
             try { if ($p['previo']) { $k.SetValue($x['Nombre'], [Convert]::FromBase64String($p['previo']), [Microsoft.Win32.RegistryValueKind]::Binary) } else { $k.DeleteValue($x['Nombre'], $false) } } finally { $k.Close() }
+        }
+        'inicio_store' {
+            $k = Open-ClaveEscritura -Colmena HKCU -Ruta "$script:RutaStoreInicio\$($x['Paquete'])\$($x['Tarea'])"
+            try { $k.SetValue('State', [int]$p['previo'], [Microsoft.Win32.RegistryValueKind]::DWord) } finally { $k.Close() }
         }
         'servicio' {
             $r = Invoke-Externo -Exe (Get-RutaSistema 'sc.exe') -Argumentos "config `"$($x['Servicio'])`" start= $($p['previo'])"

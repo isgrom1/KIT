@@ -180,6 +180,7 @@ function Get-DatosEspacio {
         Omitidas        = @()
     }
     Add-Tabla -Nombre 'volumenes' -Filas ($vols | Select-Object * -ExcludeProperty UsadoBytes)
+    $d.OneDrive = Invoke-Paso 'OneDrive' { Get-OneDriveKit -Recorrer:(-not $script:Ctx.Parametros.SinEspacio) }
     if ($script:Ctx.Parametros.SinEspacio) {
         Write-LogKit -Mensaje 'Recorrido de carpetas omitido (-SinEspacio)'
         return $d
@@ -218,6 +219,110 @@ function Get-DatosEspacio {
     $d
 }
 
+function Get-OneDriveKit {
+    # OneDrive del usuario actual. Solo lee: cuentas vinculadas (tipo y carpeta, nunca el correo), qué
+    # carpetas de Windows manda a la nube, carpetas repetidas (Documents/Documentos, copias "-<EQUIPO>") y,
+    # con -Recorrer, cuánto pesa (local y solo en la nube) y cuántos archivos son copias en conflicto.
+    # Solo cuenta archivos: nunca guarda nombres de archivos ni los abre.
+    param([switch]$Recorrer)
+    $cuentas = New-Object System.Collections.Generic.List[object]
+    foreach ($c in @(Get-SubclavesRegistro -Colmena HKCU -Ruta 'Software\Microsoft\OneDrive\Accounts')) {
+        $carpeta = "$(Get-ValorRegistro -Colmena HKCU -Ruta "Software\Microsoft\OneDrive\Accounts\$c" -Nombre 'UserFolder')"
+        if (-not $carpeta) { continue }
+        $cuentas.Add([pscustomobject][ordered]@{ Cuenta = $c; Tipo = $(if ($c -like 'Business*') { 'Empresa o colegio' } else { 'Personal' }); Carpeta = $carpeta; Existe = [IO.Directory]::Exists($carpeta) })
+    }
+    $r = [ordered]@{ Vinculado = ($cuentas.Count -gt 0); Cuentas = $cuentas.ToArray(); Respaldadas = @(); Duplicadas = @(); CopiasLocales = @(); Recorrido = $null; EnEjecucion = [bool](Get-Process -Name OneDrive -ErrorAction SilentlyContinue) }
+    if (-not $cuentas.Count) { return [pscustomobject]$r }
+
+    # Carpetas de Windows que apuntan dentro de OneDrive (copia de seguridad de carpetas).
+    $shell = Get-ValoresRegistro -Colmena HKCU -Ruta 'Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders'
+    $raices = @($cuentas | ForEach-Object { $_.Carpeta.TrimEnd('\') + '\' })
+    $resp = New-Object System.Collections.Generic.List[object]
+    foreach ($par in @(@('Desktop', 'Escritorio'), @('Personal', 'Documentos'), @('My Pictures', 'Imágenes'), @('My Music', 'Música'), @('My Video', 'Videos'))) {
+        $v = [Environment]::ExpandEnvironmentVariables("$($shell[$par[0]])")
+        $dentro = @($raices | Where-Object { $v -and $v.StartsWith($_, [StringComparison]::OrdinalIgnoreCase) }).Count -gt 0
+        if ($dentro) { $resp.Add([pscustomobject][ordered]@{ Carpeta = $par[1]; Ruta = $v }) }
+    }
+    $r.Respaldadas = $resp.ToArray()
+
+    # Carpetas repetidas dentro de OneDrive: el mismo tipo con nombre en inglés y en español, o la copia que
+    # OneDrive crea con el nombre del equipo cuando choca ("Escritorio-BELI").
+    $dup = New-Object System.Collections.Generic.List[object]
+    $equipo = $env:COMPUTERNAME
+    foreach ($raiz in @($cuentas | Where-Object Existe | ForEach-Object Carpeta)) {
+        $nombres = @(try { [IO.Directory]::GetDirectories($raiz) | ForEach-Object { [IO.Path]::GetFileName($_) } } catch { Write-Verbose $_ })
+        foreach ($par in @(@('Documents', 'Documentos'), @('Desktop', 'Escritorio'), @('Pictures', 'Imágenes'), @('Music', 'Música'), @('Videos', 'Vídeos'))) {
+            if ($nombres -contains $par[0] -and $nombres -contains $par[1]) { $dup.Add([pscustomobject][ordered]@{ Raiz = $raiz; Carpetas = "$($par[0]) y $($par[1])"; Motivo = 'el mismo tipo de carpeta en inglés y en español' }) }
+        }
+        foreach ($n in @($nombres | Where-Object { $equipo -and $_ -match "-$([regex]::Escape($equipo))(-\d+)?$" })) { $dup.Add([pscustomobject][ordered]@{ Raiz = $raiz; Carpetas = $n; Motivo = 'copia creada por OneDrive al chocar con otra carpeta' }) }
+    }
+    $r.Duplicadas = $dup.ToArray()
+
+    # Carpetas locales que quedaron con archivos después de mover la carpeta a OneDrive.
+    $perfil = [Environment]::GetFolderPath('UserProfile')
+    $loc = New-Object System.Collections.Generic.List[object]
+    foreach ($x in @(@('Desktop', 'Escritorio'), @('Documents', 'Documentos'), @('Pictures', 'Imágenes'))) {
+        $local = Join-Path $perfil $x[0]
+        if (-not @($resp | Where-Object Carpeta -EQ $x[1]).Count -or -not [IO.Directory]::Exists($local)) { continue }
+        $n = 0
+        try { foreach ($f in [IO.Directory]::EnumerateFiles($local)) { if ([IO.Path]::GetFileName($f) -ine 'desktop.ini') { $n++ } } } catch { Write-Verbose $_ }
+        if ($n -gt 0) { $loc.Add([pscustomobject][ordered]@{ Carpeta = $x[1]; Ruta = $local; Archivos = $n }) }
+    }
+    $r.CopiasLocales = $loc.ToArray()
+
+    if ($Recorrer) {
+        # Tamaño con tope de tiempo. Los archivos "solo en la nube" (marcados para descargarse al abrir) no ocupan disco.
+        $reloj = [Diagnostics.Stopwatch]::StartNew()
+        $limite = 60
+        $total = 0.0; $nube = 0.0; $archivos = 0; $conflictos = 0; $completo = $true
+        $pila = New-Object System.Collections.Generic.Stack[string]
+        foreach ($raiz in @($cuentas | Where-Object Existe | ForEach-Object Carpeta)) { $pila.Push($raiz) }
+        while ($pila.Count) {
+            if ($reloj.Elapsed.TotalSeconds -ge $limite) { $completo = $false; break }
+            $dir = New-Object IO.DirectoryInfo($pila.Pop())
+            try {
+                foreach ($i in $dir.EnumerateFileSystemInfos()) {
+                    if ($i -is [IO.DirectoryInfo]) {
+                        # Las carpetas de OneDrive con "archivos a petición" son reparse points con atributos de nube
+                        # (0x40000 recall on open, 0x80000 pinned, 0x100000 unpinned, 0x400000 recall on data access):
+                        # esas se recorren. Otros reparse points (junctions, enlaces) no se siguen.
+                        if (($i.Attributes -band [IO.FileAttributes]::ReparsePoint) -and -not ([int]$i.Attributes -band 0x5C0000)) { continue }
+                        $pila.Push($i.FullName); continue
+                    }
+                    $archivos++
+                    $total += $i.Length
+                    if (([int]$i.Attributes -band 0x400000) -or ($i.Attributes -band [IO.FileAttributes]::Offline)) { $nube += $i.Length }
+                    if ($equipo -and $i.Name -match "-$([regex]::Escape($equipo))(-\d+)?\.[^.]+$") { $conflictos++ }
+                }
+            } catch { Write-Verbose $_ }
+        }
+        $r.Recorrido = [pscustomobject][ordered]@{ Completo = $completo; Segundos = [math]::Round($reloj.Elapsed.TotalSeconds, 1); Archivos = $archivos; TotalGB = (ConvertTo-GB $total 2); SoloNubeGB = (ConvertTo-GB $nube 2); LocalGB = (ConvertTo-GB ($total - $nube) 2); Conflictos = $conflictos }
+    }
+    [pscustomobject]$r
+}
+
+function Test-AlertasOneDrive {
+    param($OneDrive)
+    $o = $OneDrive
+    if (-not $o -or -not $o.Vinculado) { return }
+    $personal = @($o.Cuentas | Where-Object Tipo -EQ 'Personal').Count -gt 0
+    $gb = if ($o.Recorrido) { [double]$o.Recorrido.TotalGB } else { $null }
+    $limite = [double](Get-Umbral 'onedrive_gratis_gb')
+    if ($personal -and $null -ne $gb -and $gb -gt $limite) {
+        $carp = if (@($o.Respaldadas).Count) { " (respalda: $((@($o.Respaldadas) | ForEach-Object Carpeta) -join ', '))" } else { '' }
+        Add-Alerta -Severidad AVISO -Codigo 'ESP-ONEDRIVE' -Texto "OneDrive personal guarda $(Format-Numero $gb 1) GB$carp y la cuenta gratis trae $(Format-Numero $limite 0) GB: si no tiene un plan pagado, está lleno y lo nuevo no se respalda"
+    }
+    if (@($o.Duplicadas).Count) {
+        Add-Alerta -Severidad INFO -Codigo 'ESP-ONEDRIVE-DUP' -Texto "Carpetas repetidas en OneDrive: $((@($o.Duplicadas) | ForEach-Object Carpetas) -join '; ')"
+    }
+    if (@($o.CopiasLocales).Count) {
+        Add-Alerta -Severidad INFO -Codigo 'ESP-ONEDRIVE-LOCAL' -Texto "Quedaron archivos en carpetas locales que ya no se usan (Windows usa las de OneDrive): $((@($o.CopiasLocales) | ForEach-Object { "$($_.Carpeta) local, $($_.Archivos) archivos" }) -join '; ')"
+    }
+    if ($o.Recorrido -and [int]$o.Recorrido.Conflictos -gt 0) {
+        Add-Alerta -Severidad INFO -Codigo 'ESP-ONEDRIVE-CONFLICTOS' -Texto "$($o.Recorrido.Conflictos) archivos duplicados por conflictos de sincronización en OneDrive (con el nombre del equipo agregado)"
+    }
+}
+
 function Test-AlertasEspacio {
     $d = $script:Ctx.Datos.espacio
     foreach ($v in $d.Volumenes) {
@@ -237,6 +342,7 @@ function Test-AlertasEspacio {
         Add-Alerta -Severidad AVISO -Codigo 'ESP-PARCIAL' -Texto "Recorrido de espacio PARCIAL: se cortó a los $($d.Recorrido.LimiteSeg) s ($estado). Para completarlo: -TiempoMaxEspacio con más segundos"
     }
     $logs = @($d.LogsGrandes)
+    Test-AlertasOneDrive -OneDrive $d.OneDrive
     if ($logs.Count -gt 0) {
         $lista = @($logs | Select-Object -First 5 | ForEach-Object { "$($_.Archivo) ($(Format-Numero $_.TamanoMB 0) MB)" }) -join ', '
         Add-Alerta -Severidad AVISO -Codigo 'ESP-LOGS' -Texto "$($logs.Count) logs de más de $($script:Ctx.Config.espacio.log_grande_mb) MB: $lista"
@@ -258,6 +364,18 @@ function Format-ResumenEspacio {
         if ($null -ne $v.NoContabilizadoGB) { $rec += ", $(Format-Numero $v.NoContabilizadoGB 1) GB no contabilizados" }
         if ($v.EnNubeGB) { $rec += ", $(Format-Numero $v.EnNubeGB 1) GB solo en la nube" }
         "$($v.Unidad) $($v.Medio)$(if ($v.Etiqueta) { " '$($v.Etiqueta)'" }): $(Format-Numero $v.LibreGB 1) GB libres de $(Format-Numero $v.TotalGB 1) GB ($(Format-Numero $v.LibrePct 1) %)$rec"
+    }
+    $o = $d.OneDrive
+    if ($o) {
+        if (-not $o.Vinculado) { 'OneDrive   : no vinculado' }
+        else {
+            $rec = if ($o.Recorrido) { " | $(Format-Numero ([double]$o.Recorrido.TotalGB) 1) GB en $('{0:N0}' -f $o.Recorrido.Archivos) archivos ($(Format-Numero ([double]$o.Recorrido.LocalGB) 1) GB en el disco, $(Format-Numero ([double]$o.Recorrido.SoloNubeGB) 1) GB solo en la nube)$(if (-not $o.Recorrido.Completo) { ' PARCIAL' })" } else { '' }
+            "OneDrive   : $((@($o.Cuentas) | ForEach-Object Tipo) -join ', ')$rec | $(if ($o.EnEjecucion) { 'abierto' } else { 'cerrado' })"
+            "             respalda: $(if (@($o.Respaldadas).Count) { (@($o.Respaldadas) | ForEach-Object Carpeta) -join ', ' } else { 'ninguna carpeta de Windows' })"
+            foreach ($x in @($o.Duplicadas)) { "             repetidas: $($x.Carpetas) ($($x.Motivo))" }
+            foreach ($x in @($o.CopiasLocales)) { "             $($x.Carpeta) local con $($x.Archivos) archivos (Windows usa la de OneDrive)" }
+            if ($o.Recorrido -and $o.Recorrido.Conflictos) { "             $($o.Recorrido.Conflictos) archivos en conflicto (copias con el nombre del equipo)" }
+        }
     }
     if (-not $d.Recorrido.Ejecutado) { 'Recorrido de carpetas: no se ejecutó (-SinEspacio)'; return }
     "Recorrido  : $(Format-Numero $d.Recorrido.Segundos 1) s de $($d.Recorrido.LimiteSeg) s$(if ($d.Recorrido.Parcial) { ' -> PARCIAL' } else { ' -> completo' }) | profundidad del top: $($d.Recorrido.ProfundidadTop)"
