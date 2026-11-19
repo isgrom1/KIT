@@ -10,7 +10,9 @@
     "StabilitySchedule.Periods[0].CpuOnlyOcctConfig.OcctInstructionSet": "Auto",
     "StabilitySchedule.Periods[0].CpuOnlyOcctConfig.Threads": "Auto",
     "StabilitySchedule.Periods[0].CpuOnlyOcctConfig.StartAtCycle": 1,
-    "AllowOcbaseUpload": false
+    "AllowOcbaseUpload": false,
+    "SelectedArea": 0,
+    "WindowState": 0
   },
   "quitar": ["SaveReportPath", "SaveScreenshotPath", "MotherboardName"]
 }

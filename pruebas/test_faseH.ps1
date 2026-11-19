@@ -137,7 +137,7 @@ try {
     [IO.File]::WriteAllBytes("$occt\OCCT.exe", [byte[]](0x4D, 0x5A))
     $falsa = [ordered]@{
         Version = 1210; EulaVersion = 20240402; SaveReportPath = 'C:\Users\alguien\Documents'; SaveScreenshotPath = 'C:\Users\alguien\Documents'; MotherboardName = 'PLACA X'
-        FontSizeOffset = 0.0; AllowOcbaseUpload = $true; EnabledFanSensors = @()
+        FontSizeOffset = 0.0; AllowOcbaseUpload = $true; EnabledFanSensors = @(); SelectedArea = 8; WindowState = 1
         StabilitySchedule = [ordered]@{ ScheduleType = 'Stability'; Periods = @([ordered]@{ Duration = '01:00:00'; IsInfinite = $true; TestType = 'CpuOcct'
                     CpuOnlyOcctConfig = [ordered]@{ DataSet = 'Small'; OcctInstructionSet = 'Avx2'; LoadType = 'Variable'; Mode = 'Extreme'; Threads = 'Fixed'; StartAtCycle = 3 }
                     CpuOcctConfig = [ordered]@{ LoadType = 'Variable' } }) }
@@ -152,7 +152,7 @@ try {
     $r = Set-ConfigOcct -Carpeta $occt -Base $base
     $j = [IO.File]::ReadAllText("$occt\OCCT.config.json") | ConvertFrom-Json
     $p = $j.StabilitySchedule.Periods[0]
-    Assert 'fija CPU, 10 min, Normal, Steady' ($r.Estado -eq 'ok' -and $p.TestType -eq 'CpuOnlyOcct' -and $p.Duration -eq '00:10:00' -and $p.IsInfinite -eq $false -and $p.CpuOnlyOcctConfig.Mode -eq 'Normal' -and $p.CpuOnlyOcctConfig.LoadType -eq 'Steady' -and $p.CpuOnlyOcctConfig.StartAtCycle -eq 1 -and $p.CpuOnlyOcctConfig.Threads -eq 'Auto')
+    Assert 'fija CPU, 10 min, Normal, Steady' ($r.Estado -eq 'ok' -and $p.TestType -eq 'CpuOnlyOcct' -and $p.Duration -eq '00:10:00' -and $p.IsInfinite -eq $false -and $p.CpuOnlyOcctConfig.Mode -eq 'Normal' -and $p.CpuOnlyOcctConfig.LoadType -eq 'Steady' -and $p.CpuOnlyOcctConfig.StartAtCycle -eq 1 -and $p.CpuOnlyOcctConfig.Threads -eq 'Auto' -and $j.SelectedArea -eq 0 -and $j.WindowState -eq 0)
     Assert 'quita los datos del último equipo y apaga el envío a internet' (-not $j.PSObject.Properties['SaveReportPath'] -and -not $j.PSObject.Properties['MotherboardName'] -and $j.AllowOcbaseUpload -eq $false)
     Assert 'no toca la licencia ni lo demás' ($j.EulaVersion -eq 20240402 -and $j.Version -eq 1210 -and $p.CpuOcctConfig.LoadType -eq 'Variable' -and @($j.EnabledFanSensors).Count -eq 0)
     $bak = [IO.File]::ReadAllText("$occt\OCCT.config.json.bak")
