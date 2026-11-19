@@ -27,7 +27,8 @@ param(
     [switch]$PermitirSinPunto,
     [int]$DiasVigencia = 7,
     [string]$Salida,
-    [string]$LlavePrivadaXml   # solo para pruebas; lo normal es la llave del PC (DPAPI)
+    [string]$LlavePrivadaXml,  # solo para pruebas; lo normal es la llave del PC (DPAPI)
+    [switch]$PassThru          # devuelve Zip/Carpeta/Plan (pruebas)
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Security
@@ -118,4 +119,4 @@ if ([IO.File]::Exists($zip)) { Remove-Item -LiteralPath $zip -Force }
 Write-Host ''
 Write-Host (" Listo: {0} ({1:N1} MB), {2} acciones, vence el {3}" -f $zip, ((Get-Item -LiteralPath $zip).Length / 1MB), $elegidas.Count, $plan.vence) -ForegroundColor Green
 Write-Host ' Mándaselo al cliente: lo descomprime y abre TRABAJO.cmd. Después te devuelve un archivo .kitdiag.' -ForegroundColor Gray
-[pscustomobject]@{ Zip = $zip; Carpeta = $dir; Plan = $plan.id; Acciones = $elegidas.Count }
+if ($PassThru) { [pscustomobject]@{ Zip = $zip; Carpeta = $dir; Plan = $plan.id; Acciones = $elegidas.Count } }

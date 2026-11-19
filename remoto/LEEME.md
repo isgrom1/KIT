@@ -24,6 +24,13 @@ powershell -ExecutionPolicy Bypass -File .\remoto\armar_paquete.ps1
 Deja `remoto\_salida\Diagnostico_remoto_<fecha>.zip` (~190 MB, con OCCT y HWiNFO). Usa las herramientas
 de `KIT\herramientas` (o `-Herramientas D:\KIT\herramientas`). `remoto\_salida` no va a GitHub.
 
+## Lo más fácil: arrastrar y soltar
+
+- **`remoto\ABRIR_KITDIAG.cmd`**: arrastra encima el `.kitdiag` que te mandaron (diagnóstico o trabajo).
+  Deja al lado una carpeta con el mismo nombre y abre el PDF para el cliente y tu hoja técnica.
+- **`remoto\ARMAR_TRABAJO.cmd`**: arrastra encima esa carpeta. Elige las acciones con números y deja el
+  paquete en `remoto\_salida\Trabajo_<equipo>_<fecha>.zip` para mandárselo al cliente.
+
 ## Abrir lo que te mandan
 
 ```powershell

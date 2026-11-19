@@ -68,7 +68,7 @@ function New-PaquetePrueba {
     param([string]$Nombre, $Identidad, [int]$Dias = 7)
     $carpeta = Join-Path $tmp $Nombre
     New-CarpetaRemota -Ruta $carpeta -Identidad $Identidad
-    $r = & (Join-Path $repo 'remoto\armar_trabajo.ps1') -Carpeta $carpeta -Elegir '1' -Salida (Join-Path $tmp "salida_$Nombre") -LlavePrivadaXml $llaves.Privada -DiasVigencia $Dias 6>$null | Select-Object -Last 1
+    $r = & (Join-Path $repo 'remoto\armar_trabajo.ps1') -Carpeta $carpeta -Elegir '1' -Salida (Join-Path $tmp "salida_$Nombre") -LlavePrivadaXml $llaves.Privada -DiasVigencia $Dias -PassThru 6>$null | Select-Object -Last 1
     # El paquete trae la llave pública de Isaac: para la prueba, la de prueba.
     [IO.File]::WriteAllText((Join-Path $r.Carpeta 'motor\llave_publica.xml'), $llaves.Publica)
     $r

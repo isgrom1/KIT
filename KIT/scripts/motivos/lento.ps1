@@ -136,7 +136,7 @@ function Get-AccionesLento {
     }
     $c = @($d.espacio.Volumenes | Where-Object { $_ -and $_.EsSistema }) | Select-Object -First 1
     if ($en -and $en.Hibernacion -and $en.Hibernacion.HiberfilGB -ge [double]$script:Ctx.Config.umbrales.hiberfil_gb -and $c -and $c.LibrePct -lt [double]$script:Ctx.Config.umbrales.libre_aviso_pct) {
-        $acciones.Add((ConvertTo-AccionLento -Id 'hibernacion|off' -Tipo 'hibernacion' -Titulo "Desactivar la hibernación (libera $($en.Hibernacion.HiberfilGB) GB en C:)" -Admin $true -Riesgo 'revisar' `
+        $acciones.Add((ConvertTo-AccionLento -Id 'hibernacion|off' -Tipo 'hibernacion' -Titulo "Desactivar la hibernación (libera $(Format-Numero ([double]$en.Hibernacion.HiberfilGB) 1) GB en C:)" -Admin $true -Riesgo 'revisar' `
                     -QueHace 'Borra hiberfil.sys y desactiva el inicio rápido; el equipo ya no podrá hibernar.' -Deshacer 'powercfg /hibernate on' -Datos ([ordered]@{})))
     }
     # Apps forzadas a la GPU de ahorro en equipos con 2 GPU.
