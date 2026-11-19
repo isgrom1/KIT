@@ -78,7 +78,7 @@ function Get-ArchivosMaestro {
     param([Parameter(Mandatory)][string]$Maestro)
     $raiz = [IO.Path]::GetFullPath($Maestro).TrimEnd('\')
     foreach ($f in @([IO.Directory]::GetFiles($raiz, '*', [IO.SearchOption]::AllDirectories) | Sort-Object)) {
-        [pscustomobject]@{ Relativa = $f.Substring($raiz.Length + 1); Ruta = $f; Hash = (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash; Bytes = (New-Object IO.FileInfo($f)).Length }
+        [pscustomobject]@{ Relativa = $f.Substring($raiz.Length + 1); Ruta = $f; Hash = (Get-HashArchivo -Ruta $f); Bytes = (New-Object IO.FileInfo($f)).Length }
     }
 }
 

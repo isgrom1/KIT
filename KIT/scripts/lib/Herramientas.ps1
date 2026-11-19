@@ -137,8 +137,8 @@ function Set-ConfigOcct {
         # El respaldo guarda la prueba anterior, pero tampoco los datos del equipo anterior.
         $respaldo = $original | ConvertFrom-Json
         foreach ($q in @($b.quitar)) { if ($respaldo.PSObject.Properties[$q]) { $respaldo.PSObject.Properties.Remove($q) } }
-        [IO.File]::WriteAllText("$ruta.bak", ($respaldo | ConvertTo-Json -Depth 100), (New-Object Text.UTF8Encoding($false)))
-        [IO.File]::WriteAllText($ruta, ($cfg | ConvertTo-Json -Depth 100), (New-Object Text.UTF8Encoding($false)))
+        [IO.File]::WriteAllText("$ruta.bak", ($respaldo | ConvertTo-Json -Depth 100), $script:Utf8SinBom)
+        [IO.File]::WriteAllText($ruta, ($cfg | ConvertTo-Json -Depth 100), $script:Utf8SinBom)
     }
     [pscustomobject]@{ Estado = $(if ($faltan.Count) { 'parcial' } else { 'ok' }); Cambios = $cambios; NoEncontrados = $faltan.ToArray() }
 }

@@ -18,6 +18,11 @@ function Read-JsonKitOpcional {
     if ($Ruta -and [IO.File]::Exists($Ruta)) { Read-JsonKit $Ruta } else { $null }
 }
 
+function Get-HashArchivo {
+    param([Parameter(Mandatory)][string]$Ruta)
+    (Get-FileHash -LiteralPath $Ruta -Algorithm SHA256).Hash
+}
+
 function Merge-ConfigLocal {
     # Pone encima de config.json lo de config_local.json (los datos propios del técnico, como su contacto,
     # que no se suben al repositorio). Solo pisa las claves que trae; las demás quedan como están.
@@ -32,7 +37,7 @@ function Merge-ConfigLocal {
 }
 
 # Versión del kit. La copia que hace actualizar_pendrive.ps1 agrega el commit y la fecha (KIT\version.json).
-$script:VersionBase = '0.4.2'
+$script:VersionBase = '0.4.3'
 
 function Get-VersionKit {
     # "0.2.0 · 2f98fd2 · 2026-11-08" si el kit vino de actualizar_pendrive.ps1; si no, la versión base.
