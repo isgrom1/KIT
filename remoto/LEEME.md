@@ -39,6 +39,33 @@ el nombre en la portada; `-SinInforme` no lo arma. El PDF lleva tu contacto de `
 El kit del pendrive puede usar la misma librería (`Export-InformeVisual -Origen kit`) con el
 `diagnostico.json` de una atención; falta ponerle un botón en la ventana.
 
+## Trabajo remoto (aplicar LENTO a distancia)
+
+Después de abrir un diagnóstico remoto:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\remoto\armar_trabajo.ps1 -Carpeta "<carpeta que dejó abrir_diagnostico>"
+```
+
+- Muestra las acciones de LENTO de ese equipo (ninguna marcada) y eliges con números. `-PermitirSinPunto`
+  deja aplicar si Windows no puede crear el punto de restauración (por defecto no aplica nada).
+- Deja `remoto\_salida\Trabajo_<equipo>_<fecha>.zip` (unos pocos MB, sin OCCT ni HWiNFO) con `TRABAJO.cmd`,
+  `DESHACER.cmd`, `LEEME.txt`, el motor y `plan\plan.json` **firmado con tu llave** (RSA-3072, SHA-256),
+  amarrado a la serie del equipo y con vencimiento (`-DiasVigencia`, 7 por defecto).
+- En el equipo del cliente, `TRABAJO.cmd`:
+  1. Revisa la firma, que sea el mismo equipo y que no esté vencido **antes de pedir admin**: si algo no calza, no toca nada.
+  2. Muestra los cambios y pide escribir SI. Punto de restauración, aplica con el motor de LENTO (guarda cada
+     valor anterior) y deja todo en `%USERPROFILE%\Diagnostico_para_Isaac\Trabajo_<id>` con `DESHACER.cmd`.
+  3. Pide reiniciar. Al volver a abrirlo espera 5 min desde el encendido, mide el DESPUÉS y deja
+     `Trabajo_para_Isaac_<PC>_<fecha>.kitdiag` cifrado (en el Escritorio o, si se respalda en OneDrive, en
+     `%USERPROFILE%\Diagnostico_para_Isaac`).
+- Ese `.kitdiag` se abre con `abrir_diagnostico.ps1` como siempre: sale el **informe del trabajo** (página
+  "Lo que hicimos y cómo cambió": tarjetas y barras antes/después, lo hecho en palabras del cliente).
+
+Lo que la firma protege y lo que no: impide que alguien cambie el plan en el camino o lo use en otro equipo;
+no impide que alguien reemplace el paquete entero (eso requiere certificado de firma de código, descartado).
+El motor solo conoce acciones de LENTO: nunca antivirus, Seguridad de Windows ni archivos del cliente.
+
 ## Qué hace en el equipo del familiar (`motor\remoto.ps1`)
 
 1. Diagnóstico del kit (solo lectura, sin red) en una carpeta temporal.

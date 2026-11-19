@@ -1,0 +1,21 @@
+﻿TRABAJO DE ISAAC EN TU COMPUTADOR
+=================================
+
+Isaac revisó tu computador con el diagnóstico y preparó estos cambios para que ande más rápido.
+Solo sirve para tu computador, y todo se puede deshacer.
+
+CÓMO SE USA
+1. Descomprime el ZIP (clic derecho > Extraer todo).
+2. Abre la carpeta y haz doble clic en TRABAJO.cmd. Acepta el permiso de administrador.
+   - Si Windows dice "Windows protegió su PC": Más información > Ejecutar de todas formas.
+3. Te muestra los cambios. Escribe SI y presiona Enter para aplicarlos.
+4. REINICIA el computador.
+5. Vuelve a abrir TRABAJO.cmd. Espera unos minutos sin usar el computador: mide cómo quedó.
+6. Al final queda un archivo "Trabajo_para_Isaac_....kitdiag". Mándaselo a Isaac por WhatsApp
+   o correo. Va cifrado: solo él lo puede abrir.
+
+SI QUIERES VOLVER ATRÁS
+Haz doble clic en DESHACER.cmd (en esta carpeta o en la carpeta Diagnostico_para_Isaac de tu
+usuario) y reinicia. También queda un punto de restauración de Windows de antes de los cambios.
+
+No se borra nada tuyo: solo se cambia qué programas arrancan solos con Windows y ajustes parecidos.

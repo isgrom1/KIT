@@ -50,6 +50,28 @@ function Protect-DatosRemoto {
     , $salida
 }
 
+function Get-FirmaRemoto {
+    # Firma RSA-3072 (SHA-256, PKCS#1 v1.5) de los datos con la llave privada de Isaac.
+    param([Parameter(Mandatory)][byte[]]$Datos, [Parameter(Mandatory)][string]$LlavePrivadaXml)
+    $rsa = New-Object Security.Cryptography.RSACryptoServiceProvider
+    try {
+        $rsa.PersistKeyInCsp = $false
+        $rsa.FromXmlString($LlavePrivadaXml)
+        , $rsa.SignData($Datos, [Security.Cryptography.HashAlgorithmName]::SHA256, [Security.Cryptography.RSASignaturePadding]::Pkcs1)
+    } finally { $rsa.Dispose() }
+}
+
+function Test-FirmaRemoto {
+    # $true solo si la firma corresponde a esos datos y a esa llave pública.
+    param([Parameter(Mandatory)][byte[]]$Datos, [Parameter(Mandatory)][byte[]]$Firma, [Parameter(Mandatory)][string]$LlavePublicaXml)
+    $rsa = New-Object Security.Cryptography.RSACryptoServiceProvider
+    try {
+        $rsa.PersistKeyInCsp = $false
+        $rsa.FromXmlString($LlavePublicaXml)
+        $rsa.VerifyData($Datos, $Firma, [Security.Cryptography.HashAlgorithmName]::SHA256, [Security.Cryptography.RSASignaturePadding]::Pkcs1)
+    } catch { $false } finally { $rsa.Dispose() }
+}
+
 function Unprotect-DatosRemoto {
     param([Parameter(Mandatory)][byte[]]$Datos, [Parameter(Mandatory)][string]$LlavePrivadaXml)
     $m = $script:MagiaRemoto

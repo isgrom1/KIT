@@ -569,11 +569,13 @@ td.k { color:var(--suave); width:34%; }
 
 function ConvertTo-InformeVisual {
     # Arma el HTML del informe. -Origen: 'remoto' o 'kit' (cambia la frase de cómo se hizo).
-    param([Parameter(Mandatory)]$Doc, $Sensores, [string]$Origen = 'remoto', [string]$Cliente)
+    # Con -Resultado (Get-ResultadoTrabajo) es el informe de un trabajo hecho: $Doc es el DESPUÉS, $DocAntes el ANTES.
+    param([Parameter(Mandatory)]$Doc, $Sensores, [string]$Origen = 'remoto', [string]$Cliente, $DocAntes, $Resultado)
     $d = $Doc.datos
     $H = { param($t) Get-HtmlVisual $t }
     $areas = @(Get-AreasSalud -Doc $Doc -Sensores $Sensores)
     $puntaje = Get-PuntajeGeneral -Areas $areas
+    $puntajeAntes = if ($DocAntes) { Get-PuntajeGeneral -Areas @(Get-AreasSalud -Doc $DocAntes -Sensores $Sensores) } else { $null }
     $tecnico = $script:Ctx.Config.tecnico
     $contacto = "$($tecnico.contacto)"
     $fechaDoc = [datetime]::ParseExact(("$($Doc.kit.generado)").Substring(0, 10), 'yyyy-MM-dd', $script:InvVisual)
@@ -589,8 +591,12 @@ function ConvertTo-InformeVisual {
     $malas = @($areas | Where-Object { $null -ne $_.Puntaje -and $_.Puntaje -lt 70 } | Sort-Object Puntaje)
     $frase = if (-not $malas.Count) { 'El equipo está en buena forma. Abajo están los detalles y algunas ideas para mantenerlo así.' }
     else { "El equipo funciona, y hay $(if ($malas.Count -eq 1) { 'un punto' } else { "$($malas.Count) puntos" }) que conviene atender: " + (($malas | ForEach-Object { $_.Nombre.ToLower() }) -join ', ') + '. En las páginas siguientes te explico qué significa cada uno y qué hacer.' }
-    [void]$sb.Append("<div class='hoja portada'><div class='arriba'><div class='marca'>Informe de diagnóstico$(if ($Origen -eq 'remoto') { ' · a distancia' })</div>")
-    [void]$sb.Append("<h1>$(& $H $modelo)</h1><div class='sub'>Revisión completa del equipo$(if ($Sensores) { ' y prueba de temperatura' }): cómo está, qué significa y qué conviene hacer.</div>")
+    if ($Resultado) {
+        $frase = 'Terminé el trabajo en tu equipo. En la página siguiente está lo que hice y cómo cambió; después, cómo quedó cada área.'
+        if ($null -ne $puntajeAntes -and $null -ne $puntaje) { $frase = "Antes del trabajo la salud general era $puntajeAntes; ahora es $puntaje. " + $frase }
+    }
+    [void]$sb.Append("<div class='hoja portada'><div class='arriba'><div class='marca'>$(if ($Resultado) { 'Informe de trabajo' } else { 'Informe de diagnóstico' })$(if ($Origen -eq 'remoto') { ' · a distancia' })</div>")
+    [void]$sb.Append("<h1>$(& $H $modelo)</h1><div class='sub'>$(if ($Resultado) { 'Lo que se hizo en tu equipo y cómo quedó.' } else { "Revisión completa del equipo$(if ($Sensores) { ' y prueba de temperatura' }): cómo está, qué significa y qué conviene hacer." })</div>")
     [void]$sb.Append("<div class='datos'><div>Fecha<b>$(& $H $fechaTxt)</b></div><div>Equipo<b>$(& $H $eq.NombreEquipo)</b></div><div>Windows<b>$(& $H ("$($d.windows.Nombre)" -replace '^Windows (\d+) (Home|Pro).*$', 'Windows $1 $2')) $(& $H $d.windows.Version)</b></div><div>$(if ($Cliente) { 'Cliente' } else { 'Técnico' })<b>$(& $H $(if ($Cliente) { $Cliente } else { $tecnico.nombre }))</b></div></div></div>")
     [void]$sb.Append("<div class='puntaje'><div>$(Get-SvgAnillo -Puntaje $puntaje -Tam 150)</div><div><div class='eti' style='color:#cfe0f5'>Salud general</div><div class='nivel'>$(& $H $nivel)</div><p>$(& $H $frase)</p></div></div>")
     [void]$sb.Append("<div class='areas-mini'>")
@@ -598,6 +604,29 @@ function ConvertTo-InformeVisual {
         [void]$sb.Append("<div class='am'><div class='bola' style='background:$(Get-ColorPuntaje $a.Puntaje)'>$(if ($null -ne $a.Puntaje) { $a.Puntaje } else { '–' })</div><div><div class='n'>$(& $H $a.Nombre)</div><div class='v'>$(& $H $a.Valor)</div></div></div>")
     }
     [void]$sb.Append("</div><div class='pie-portada'><div>$(& $H "$($tecnico.nombre)") · Servicio técnico de notebooks y PC</div><div>$(& $H $contacto)</div></div></div>")
+
+    # ---- Trabajo hecho: antes -> después y lo aplicado
+    if ($Resultado) {
+        [void]$sb.Append("<div class='hoja'><div class='sec'><h2><span class='num-sec'>✓</span>Lo que hicimos y cómo cambió<small>Medido con el mismo diagnóstico antes y después del trabajo, con el equipo recién encendido y en reposo.</small></h2>")
+        [void]$sb.Append("<div style='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 14px'>")
+        foreach ($t in @($Resultado.Tarjetas | Where-Object { $_ -and ($null -ne $_.Antes -or $null -ne $_.Despues) })) {
+            $col = if ($t.Mejoro -eq $true) { '#1e8a52' } elseif ($t.Mejoro -eq $false) { '#c0392b' } else { '#5a6675' }
+            $fmt = { param($v) if ($null -eq $v) { '–' } elseif ($v -is [bool]) { if ($v) { 'Sí' } else { 'No' } } else { (Format-Numero ([double]$v) $(if ([double]$v -ge 100 -or [double]$v -eq [math]::Floor([double]$v)) { 0 } else { 1 })) + $(if ($t.Unidad) { " $($t.Unidad)" } else { '' }) } }
+            $dif = ''
+            if ($null -ne $t.Antes -and $null -ne $t.Despues -and $t.Antes -isnot [bool] -and [double]$t.Antes -ne 0) {
+                $pct = 100 * ([double]$t.Despues - [double]$t.Antes) / [double]$t.Antes
+                $dif = "<div style='font-size:9pt;font-weight:700;color:$col'>$(if ($pct -gt 0) { '+' })$(Format-Numero $pct 0) %</div>"
+            }
+            [void]$sb.Append("<div class='caja' style='border-top:4px solid $col'><div class='eti'>$(& $H $t.Titulo)</div><div style='display:flex;align-items:baseline;gap:10px;margin-top:4px'><span style='font-size:13pt;color:var(--suave)'>$(& $H (& $fmt $t.Antes))</span><span style='color:var(--suave)'>→</span><span style='font-size:19pt;font-weight:700;color:$col'>$(& $H (& $fmt $t.Despues))</span></div>$dif</div>")
+        }
+        [void]$sb.Append("</div><div class='caja'><h3>Lo que se hizo</h3><ul style='margin:4px 0 0 18px;padding:0'>")
+        foreach ($x in @($Resultado.Hechas)) { [void]$sb.Append("<li style='margin:3px 0'>$(& $H $x)</li>") }
+        if (-not @($Resultado.Hechas).Count) { [void]$sb.Append('<li>Sin cambios aplicados (se deshicieron o no hacía falta ninguno).</li>') }
+        [void]$sb.Append("</ul><p style='font-size:8.8pt;color:var(--suave);margin:8px 0 0'>Todo quedó respaldado: hay un punto de restauración de antes del trabajo y cada cambio se puede deshacer.</p></div>")
+        $barras = Get-SvgAntesDespues -Tarjetas $Resultado.Tarjetas
+        if ($barras) { [void]$sb.Append("<div class='caja' style='margin-top:12px'><div class='eti' style='margin-bottom:6px'>Antes y después, lado a lado</div>$barras</div>") }
+        [void]$sb.Append("</div>$(& $pie '·')</div>")
+    }
 
     # ---- Página 2: áreas y equipo
     [void]$sb.Append("<div class='hoja'>")
@@ -676,27 +705,13 @@ function ConvertTo-InformeVisual {
         $col = if ([double]$v.LibrePct -lt 10) { '#c0392b' } elseif ([double]$v.LibrePct -lt 20) { '#d4900a' } else { '#1e8a52' }
         [void]$sb.Append("<div style='text-align:center'>$(Get-SvgDona -Pct $uso -Color $col -Centro "$(Format-Numero $uso 0) %" -Abajo "$($v.Unidad) usado" -Tam 112)<div style='font-size:8.6pt;color:var(--suave)'>$(Format-Numero ([double]$v.LibreGB) 0) GB libres de $(Format-Numero ([double]$v.TotalGB) 0)<br>$(if ($v.Medio -eq 'SSD') { 'SSD' } elseif ($v.Medio -eq 'HDD') { 'Disco duro' } else { '' })$(if ($v.EsSistema) { ' · Windows' })</div></div>")
     }
-    # Lo que más ocupa, por carpeta de primer nivel: el top omite carpetas que solo contienen a otra, así que
-    # cada carpeta de primer nivel toma el tamaño de su entrada más grande.
-    $porRaiz = @{}
-    foreach ($x in @($d.espacio.TopCarpetas | Where-Object { $_ -and $_.Carpeta -notmatch '\$RECYCLE\.BIN' })) {
-        $p = "$($x.Carpeta)".Split('\')
-        if ($p.Count -lt 2) { continue }
-        $raiz = "$($p[0])\$($p[1])"
-        if (-not $porRaiz.ContainsKey($raiz) -or [double]$x.TamanoGB -gt $porRaiz[$raiz]) { $porRaiz[$raiz] = [double]$x.TamanoGB }
-    }
-    $top = @($porRaiz.GetEnumerator() | Sort-Object Value -Descending | Select-Object -First 6 | ForEach-Object { [pscustomobject]@{ Carpeta = $_.Key; TamanoGB = $_.Value } })
-    if ($top.Count) {
-        $mx = [double]$top[0].TamanoGB
-        [void]$sb.Append("<div style='flex:1;min-width:250px'><div class='eti' style='margin-bottom:5px'>Lo que más ocupa</div>")
-        foreach ($x in $top) {
-            $nombre = $x.Carpeta -replace '\\Users\\[^\\]+', '\Usuario' -replace '^([A-Z]:)\\', '$1 '
-            [void]$sb.Append("<div style='display:grid;grid-template-columns:150px 1fr 52px;gap:8px;align-items:center;font-size:8.8pt;margin:4px 0'><div style='white-space:nowrap;overflow:hidden;text-overflow:ellipsis'>$(& $H $nombre)</div><div class='barra'><div style='width:$(Get-NumSvg (100 * [double]$x.TamanoGB / $mx) 0)%;background:#1f5fa8'></div></div><div style='text-align:right'>$(Format-Numero ([double]$x.TamanoGB) 1) GB</div></div>")
-        }
-        $pap = Get-PapeleraGB -Doc $Doc
-        if ($pap -ge 1) { [void]$sb.Append("<div style='display:grid;grid-template-columns:150px 1fr 52px;gap:8px;align-items:center;font-size:8.8pt;margin:4px 0;color:var(--rojo)'><div>Papelera</div><div class='barra'><div style='width:$(Get-NumSvg ([math]::Min(100, 100 * $pap / $mx)) 0)%;background:#c0392b'></div></div><div style='text-align:right'>$(Format-Numero $pap 1) GB</div></div>") }
-        [void]$sb.Append('</div>')
-    }
+    # Sin nombres de carpetas (pueden ser incómodos para el cliente: van en la hoja técnica). Solo qué rol tiene
+    # cada disco y cuál importa para la velocidad.
+    $sis = @($vols | Where-Object EsSistema) | Select-Object -First 1
+    $otros = @($vols | Where-Object { -not $_.EsSistema })
+    $txtDiscos = if ($sis) { "<b>$(& $H $sis.Unidad)</b> es el disco de Windows y los programas: es el que importa para la velocidad, y por eso conviene que tenga al menos 20 % libre." } else { '' }
+    if ($otros.Count) { $txtDiscos += " <b>$(& $H (($otros | ForEach-Object Unidad) -join ', '))</b> $(if ($otros.Count -eq 1) { 'guarda' } else { 'guardan' }) archivos, juegos y descargas: que se llene no pone lento el equipo, solo deja menos espacio para guardar." }
+    if ($txtDiscos) { [void]$sb.Append("<div style='flex:1;min-width:250px;font-size:9.4pt'><div class='eti' style='margin-bottom:5px'>Para qué sirve cada disco</div><p>$txtDiscos</p></div>") }
     [void]$sb.Append('</div></div></div>')
 
     # Memoria y encendido
@@ -804,6 +819,58 @@ function ConvertTo-InformeVisual {
     $sb.ToString()
 }
 
+function Get-HechasCliente {
+    # Lo aplicado (lento_acciones.json, sin lo deshecho) en palabras del cliente. Los programas que se sacaron
+    # del inicio van juntos en una línea.
+    param([object[]]$Acciones)
+    $inicio = New-Object System.Collections.Generic.List[string]
+    $otras = New-Object System.Collections.Generic.List[string]
+    foreach ($a in @($Acciones | Where-Object { $_ -and -not $_.deshecha })) {
+        $t = "$($a.titulo)"
+        if ($t -match '^Desactivar al inicio(?: \(app de la Store\))?: (.+?)(?: \([^()]*\))?$' -or $t -match '^Desactivar entrada de inicio huérfana: (.+)$') { $inicio.Add((Get-NombreInicioCliente -Nombre $Matches[1])) }
+        elseif ($t -match '^Servicio a manual: (.+?) \(') { $otras.Add("El servicio de $($Matches[1]) ya no arranca solo") }
+        elseif ($t -match '^Desactivar tarea: (.+?) \(') { $otras.Add("Se desactivó una tarea automática de $($Matches[1])") }
+        elseif ($t -match '^Desactivar la hibernación \(libera ([^)]+)\)') { $otras.Add("Se recuperaron $($Matches[1]) del archivo de hibernación") }
+        else { $otras.Add($t) }
+    }
+    $r = @()
+    if ($inicio.Count) { $r += "Ya no arrancan solos con Windows: $((@($inicio | Select-Object -Unique)) -join ', ')." }
+    $r + @($otras)
+}
+
+function Get-SvgAntesDespues {
+    # Barras horizontales antes (gris) y después (verde si mejoró, rojo si empeoró) por medida, cada una a su escala.
+    param([object[]]$Tarjetas)
+    $t = @($Tarjetas | Where-Object { $_ -and $null -ne $_.Antes -and $null -ne $_.Despues -and $_.Antes -isnot [bool] })
+    if (-not $t.Count) { return '' }
+    $W = 700; $fila = 74; $H = $t.Count * $fila + 10; $L = 170; $R = 90
+    $sb = New-Object Text.StringBuilder
+    [void]$sb.Append("<svg viewBox='0 0 $W $H' width='100%' font-family='Segoe UI, Arial'>")
+    for ($i = 0; $i -lt $t.Count; $i++) {
+        $x = $t[$i]; $y = 8 + $i * $fila
+        $max = [math]::Max([double]$x.Antes, [double]$x.Despues); if ($max -le 0) { $max = 1 }
+        $col = if ($x.Mejoro -eq $true) { '#1e8a52' } elseif ($x.Mejoro -eq $false) { '#c0392b' } else { '#5a6675' }
+        $u = if ($x.Unidad) { " $($x.Unidad)" } else { '' }
+        $wa = ($W - $L - $R) * [double]$x.Antes / $max; $wd = ($W - $L - $R) * [double]$x.Despues / $max
+        [void]$sb.Append("<text x='0' y='$($y + 24)' font-size='12' font-weight='600' fill='#1b2430'>$(Get-HtmlVisual $x.Titulo)</text>")
+        [void]$sb.Append("<text x='$($L - 10)' y='$($y + 17)' text-anchor='end' font-size='10' fill='#9aa5b1'>antes</text><rect x='$L' y='$($y + 6)' width='$(Get-NumSvg $wa)' height='16' rx='4' fill='#c3ccd6'/><text x='$(Get-NumSvg ($L + $wa + 6))' y='$($y + 18)' font-size='11' fill='#5a6675'>$(Format-Numero ([double]$x.Antes) $(if ([double]$x.Antes -eq [math]::Floor([double]$x.Antes)) { 0 } else { 1 }))$u</text>")
+        [void]$sb.Append("<text x='$($L - 10)' y='$($y + 41)' text-anchor='end' font-size='10' fill='$col'>después</text><rect x='$L' y='$($y + 30)' width='$(Get-NumSvg $wd)' height='16' rx='4' fill='$col'/><text x='$(Get-NumSvg ($L + $wd + 6))' y='$($y + 42)' font-size='11' font-weight='700' fill='$col'>$(Format-Numero ([double]$x.Despues) $(if ([double]$x.Despues -eq [math]::Floor([double]$x.Despues)) { 0 } else { 1 }))$u</text>")
+    }
+    [void]$sb.Append('</svg>')
+    $sb.ToString()
+}
+
+function Get-ResultadoTrabajo {
+    # Antes -> después de una atención con LENTO aplicado (métricas y lo hecho). $null si no hay después.
+    param([Parameter(Mandatory)][string]$RutaAtencion)
+    if (-not [IO.File]::Exists((Join-Path (Join-Path $RutaAtencion 'despues') 'metricas.json'))) { return $null }
+    $exp = [pscustomobject]@{ Ruta = (Split-Path -Parent $RutaAtencion) }
+    $m = Get-MetricasLento -Expediente $exp -Atencion (Split-Path -Leaf $RutaAtencion)
+    $reg = Join-Path $RutaAtencion 'lento_acciones.json'
+    $acciones = if ([IO.File]::Exists($reg)) { @((Read-JsonKit $reg).acciones) } else { @() }
+    [pscustomobject]@{ Tarjetas = @($m.Tarjetas); Advertencias = @($m.Advertencias); Hechas = @(Get-HechasCliente -Acciones $acciones) }
+}
+
 function ConvertTo-HojaTecnica {
     # Para el técnico, NO para el cliente: qué hacer en concreto (lo que el informe del cliente solo menciona
     # como servicio). Recomendaciones con detalle, programas al inicio, lo que más ocupa y dispositivos con error.
@@ -847,11 +914,14 @@ function Export-InformeVisual {
     # Lee el diagnostico.json (y el CSV de sensores si se da), escribe el HTML y lo imprime a PDF con Edge.
     # Además deja la hoja técnica (<nombre>_tecnico.html), que no es para el cliente.
     # Devuelve [pscustomobject]@{ Html; Pdf; Tecnico; Error } (Pdf $null si Edge no pudo, con el motivo en Error).
-    param([Parameter(Mandatory)][string]$Diagnostico, [string]$CsvSensores, [Parameter(Mandatory)][string]$Salida, [string]$Origen = 'remoto', [string]$Cliente)
+    # Con -Antes (diagnostico.json del ANTES) y -RutaAtencion es el informe de un trabajo hecho: -Diagnostico es el DESPUÉS.
+    param([Parameter(Mandatory)][string]$Diagnostico, [string]$CsvSensores, [Parameter(Mandatory)][string]$Salida, [string]$Origen = 'remoto', [string]$Cliente, [string]$Antes, [string]$RutaAtencion)
     $doc = Read-JsonKit $Diagnostico
     $sens = $null
     if ($CsvSensores -and [IO.File]::Exists($CsvSensores)) { $sens = Read-SensoresCsv -Ruta $CsvSensores }
-    $html = ConvertTo-InformeVisual -Doc $doc -Sensores $sens -Origen $Origen -Cliente $Cliente
+    $docAntes = $null; $resultado = $null
+    if ($Antes -and $RutaAtencion) { $docAntes = Read-JsonKit $Antes; $resultado = Get-ResultadoTrabajo -RutaAtencion $RutaAtencion }
+    $html = ConvertTo-InformeVisual -Doc $doc -Sensores $sens -Origen $Origen -Cliente $Cliente -DocAntes $docAntes -Resultado $resultado
     $rutaHtml = [IO.Path]::ChangeExtension($Salida, '.html')
     [IO.File]::WriteAllText($rutaHtml, $html, (New-Object Text.UTF8Encoding $true))
     $rutaTec = [IO.Path]::Combine([IO.Path]::GetDirectoryName($Salida), [IO.Path]::GetFileNameWithoutExtension($Salida) + '_tecnico.html')

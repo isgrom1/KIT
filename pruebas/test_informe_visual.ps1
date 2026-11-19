@@ -150,6 +150,8 @@ try {
     Assert 'trazos del SVG con punto' (-not [regex]::IsMatch($html, "d='M[^']*\d,\d"))
     Assert 'portada con el modelo' ($html -match 'Acer Nitro 5 AN515-43')
     Assert 'sin la serie del equipo' ($html -notmatch 'SERIE-SECRETA')
+    Assert 'sin nombres de carpetas del cliente' ($html -cnotmatch 'D:\\Juegos|Instaladores') ([regex]::Match($html, 'D:\\Juegos|Instaladores').Value)
+    Assert 'explica para qué sirve cada disco' ([Net.WebUtility]::HtmlDecode($html) -match 'Para qué sirve cada disco')
     $dec = [Net.WebUtility]::HtmlDecode($html)
     Assert 'secciones principales' ($dec -match 'Cómo está cada área' -and $dec -match 'Prueba de temperatura<small>' -and $dec -match 'Espacio en disco' -and $dec -match 'Lo que te propongo')
     Assert 'nada de NaN ni Infinity' ($html -notmatch 'NaN|Infinity')

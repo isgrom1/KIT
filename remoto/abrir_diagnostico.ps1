@@ -55,14 +55,22 @@ $tec = $null
 if (-not $SinInforme) {
     try {
         $scripts = Join-Path (Split-Path -Parent $PSScriptRoot) 'KIT\scripts'
-        foreach ($lib in 'Comun', 'Log', 'Sensores', 'Mejoras', 'Informe', 'InformeVisual') { . (Join-Path $scripts "lib\$lib.ps1") }
+        foreach ($lib in 'Comun', 'Log', 'Sensores', 'Mejoras', 'Expediente', 'Informe', 'InformeVisual') { . (Join-Path $scripts "lib\$lib.ps1") }
+        . (Join-Path $scripts 'motivos\lento.ps1')
         Initialize-Contexto -RaizScripts $scripts
-        $json = Get-ChildItem -LiteralPath $Destino -Recurse -Filter diagnostico.json | Select-Object -First 1
+        # Diagnóstico remoto: solo ANTES. Trabajo remoto (Trabajo_para_Isaac_*.kitdiag): ANTES y DESPUÉS.
+        $todos = @(Get-ChildItem -LiteralPath $Destino -Recurse -Filter diagnostico.json)
+        $json = @($todos | Where-Object { $_.Directory.Name -eq 'antes' }) | Select-Object -First 1
+        $despues = @($todos | Where-Object { $_.Directory.Name -eq 'despues' }) | Select-Object -First 1
         $csv = Join-Path $Destino 'calor\sensores_calor.csv'
         if (-not $json) { throw 'no viene diagnostico.json' }
-        $doc = Read-JsonKit $json.FullName
-        $nombre = ('Informe_{0}_{1}' -f ("$($doc.datos.equipo.Fabricante) $($doc.datos.equipo.Modelo)" -replace '[^\w-]+', '_').Trim('_'), ("$($doc.kit.generado)").Substring(0, 10))
-        $r = Export-InformeVisual -Diagnostico $json.FullName -CsvSensores $csv -Salida (Join-Path $Destino "$nombre.pdf") -Origen 'remoto' -Cliente $Cliente
+        $doc = Read-JsonKit $(if ($despues) { $despues.FullName } else { $json.FullName })
+        $nombre = ('{0}_{1}_{2}' -f $(if ($despues) { 'Informe_trabajo' } else { 'Informe' }), ("$($doc.datos.equipo.Fabricante) $($doc.datos.equipo.Modelo)" -replace '[^\w-]+', '_').Trim('_'), ("$($doc.kit.generado)").Substring(0, 10))
+        if ($despues) {
+            $r = Export-InformeVisual -Diagnostico $despues.FullName -Antes $json.FullName -RutaAtencion $json.Directory.Parent.FullName -Salida (Join-Path $Destino "$nombre.pdf") -Origen 'remoto' -Cliente $Cliente
+        } else {
+            $r = Export-InformeVisual -Diagnostico $json.FullName -CsvSensores $csv -Salida (Join-Path $Destino "$nombre.pdf") -Origen 'remoto' -Cliente $Cliente
+        }
         $tec = $r.Tecnico
         Write-Host "Hoja técnica (solo para ti): $tec" -ForegroundColor Cyan
         if ($r.Pdf) { $pdf = $r.Pdf; Write-Host "Informe para el cliente: $pdf" -ForegroundColor Green }
