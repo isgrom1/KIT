@@ -4,6 +4,9 @@ param()
 
 $script:OrdenSeveridad = @{ CRITICO = 0; AVISO = 1; INFO = 2 }
 
+# Las mejoras recomendadas viven aparte, pero se cargan con las alertas (todo lo que usa Alertas las necesita).
+. (Join-Path $PSScriptRoot 'Mejoras.ps1')
+
 function Add-Alerta {
     param(
         [Parameter(Mandatory)][ValidateSet('CRITICO', 'AVISO', 'INFO')][string]$Severidad,

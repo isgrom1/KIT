@@ -28,6 +28,9 @@ function ConvertTo-CeldaCsv {
 
 function Export-Resultados {
     $carpeta = $script:Ctx.CarpetaCliente
+    # Fuera del [ordered]: un $( ) que no devuelve nada deja $null y en el JSON quedaría null en vez de [].
+    $mejoras = @()
+    try { $mejoras = @(Get-MejorasRecomendadas -Datos $script:Ctx.Datos -Alertas (Get-AlertasOrdenadas)) } catch { Add-ErrorPaso -Paso 'mejoras recomendadas' -Registro $_ }
     $doc = [ordered]@{
         kit         = [ordered]@{
             version      = $script:Ctx.Version
@@ -40,6 +43,7 @@ function Export-Resultados {
             secciones    = $script:Ctx.Secciones
         }
         alertas     = Get-AlertasOrdenadas
+        mejoras     = $mejoras
         incompletos = $script:Ctx.Incompletos
         errores     = $script:Ctx.Errores
         datos       = $script:Ctx.Datos
@@ -257,6 +261,13 @@ function Export-Resumen {
     $l.Add($simple)
     if ($alertas.Count -eq 0) { $l.Add('(sin alertas)') }
     foreach ($a in $alertas) { $l.Add(('{0,-9} {1}' -f "[$($a.Severidad)]", $a.Texto)) }
+
+    $l.Add('')
+    $l.Add('MEJORAS RECOMENDADAS (qué comprar)')
+    $l.Add($simple)
+    try {
+        foreach ($x in @(Format-MejorasTexto -Mejoras @(Get-MejorasRecomendadas -Datos $script:Ctx.Datos -Alertas $alertas))) { $l.Add($x) }
+    } catch { $l.Add("(no se pudieron calcular: $($_.Exception.Message))") }
 
     $l.Add('')
     $l.Add('SECCIONES')

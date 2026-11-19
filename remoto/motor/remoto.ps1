@@ -89,13 +89,15 @@ else {
     $csv = Join-Path $trabajo 'calor\sensores_calor.csv'
     if ([IO.File]::Exists($csv)) {
         try {
-            foreach ($lib in 'Comun', 'Log', 'Sensores') { . (Join-Path $scripts "lib\$lib.ps1") }
+            foreach ($lib in 'Comun', 'Log', 'Sensores', 'Mejoras') { . (Join-Path $scripts "lib\$lib.ps1") }
             Initialize-Contexto -RaizScripts $scripts
             $r = Read-SensoresCsv -Ruta $csv
             $m = $r.metricas
             $cpuT = if ($m.cpu_temp_paquete) { $m.cpu_temp_paquete } else { $m.cpu_temp_nucleo_max }
             $lineas.Add(('CSV: {0}, {1} filas, {2:N1} min' -f $r.formato, $r.filas, $r.duracion_min))
             if ($cpuT) { $lineas.Add(('CPU: {0} °C promedio, {1} °C máximo' -f $cpuT.media, $cpuT.max)) }
+            $mt = if ($cpuT) { Get-MejoraTermica -TempMaxC ([double]$cpuT.max) } else { $null }
+            if ($mt) { $lineas.Add('MEJORA POR TEMPERATURA:'); foreach ($x in @(Format-MejorasTexto -Mejoras @($mt))) { $lineas.Add($x) } }
             $lineas.Add($(if ($r.carga) { 'Carga detectada: {0:N1} min' -f $r.carga.minutos } else { 'Carga detectada: no' }))
         } catch { $lineas.Add("No se pudo leer el CSV de sensores: $($_.Exception.Message)") }
     } else { $lineas.Add('No quedó CSV de sensores') }

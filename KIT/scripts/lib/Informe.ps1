@@ -77,9 +77,11 @@ function Get-HechoSimple {
 
 function Get-RecomendacionesAlertas {
     # Consejos para el cliente según las alertas de una medición: las críticas primero y sin repetir.
-    param([object[]]$Alertas)
+    # -Excluir: códigos que ya explica otra sección (las mejoras recomendadas), para no repetirlos.
+    param([object[]]$Alertas, [string]$Excluir)
     $vistas = New-Object System.Collections.Generic.List[string]
     foreach ($al in @($Alertas | Where-Object { $_ } | Sort-Object { $script:OrdenSeveridadInforme["$($_.Severidad)"] })) {
+        if ($Excluir -and $al.Codigo -match $Excluir) { continue }
         foreach ($k in $script:Recomendacion.Keys) { if ($al.Codigo -match $k -and -not $vistas.Contains($script:Recomendacion[$k])) { $vistas.Add($script:Recomendacion[$k]) } }
     }
     $vistas.ToArray()
@@ -308,10 +310,24 @@ function Get-DatosPreInforme {
         if ($cond['superficie']) { $prueba += "sobre $($cond['superficie'])" }
     }
 
+    # Mejoras de hardware (qué comprar), con la temperatura máxima de la prueba si la hay.
+    $mejoras = @()
+    if ($diag) {
+        $tmax = $null
+        if ($sensores) {
+            $ct = if ($sensores.metricas.cpu_temp_paquete) { $sensores.metricas.cpu_temp_paquete } else { $sensores.metricas.cpu_temp_nucleo_max }
+            if ($ct -and $null -ne $ct.max) { $tmax = [double]$ct.max }
+        }
+        try { $mejoras = @(Get-MejorasRecomendadas -Datos $diag.datos -Alertas @($diag.alertas) -TempMaxC $tmax) } catch { $mejoras = @() }
+    }
+    $cubiertas = @{ 'MEJ-SSD' = 'HW-DISCO-HDD'; 'MEJ-RAM' = 'HW-RAM-POCA'; 'MEJ-RAM-DUAL' = 'HW-RAM-POCA'; 'MEJ-BATERIA' = 'HW-BATERIA' }
+    $excluir = @($mejoras | ForEach-Object { $cubiertas[$_.Codigo] } | Where-Object { $_ } | Select-Object -Unique)
+    $excluirRx = if ($excluir.Count) { '^(' + ($excluir -join '|') + ')$' } else { $null }
+
     $recs = New-Object System.Collections.Generic.List[string]
     $temp = @($sem.Areas | Where-Object { $_.Area -eq 'Temperatura' }) | Select-Object -First 1
-    if ($temp -and $temp.Color -in 'amarillo', 'rojo') { $recs.Add('Una limpieza interna y renovar la pasta térmica podrían bajar la temperatura.') }
-    foreach ($x in @(Get-RecomendacionesAlertas -Alertas $(if ($diag) { $diag.alertas } else { @() }))) { if (-not $recs.Contains($x)) { $recs.Add($x) } }
+    if ($temp -and $temp.Color -in 'amarillo', 'rojo' -and -not ($mejoras | Where-Object { $_.Codigo -eq 'MEJ-TERMICA' })) { $recs.Add('Una limpieza interna y renovar la pasta térmica podrían bajar la temperatura.') }
+    foreach ($x in @(Get-RecomendacionesAlertas -Alertas $(if ($diag) { $diag.alertas } else { @() }) -Excluir $excluirRx)) { if (-not $recs.Contains($x)) { $recs.Add($x) } }
 
     $medicion = $a['mediciones']['antes']
     [pscustomobject][ordered]@{
@@ -327,6 +343,7 @@ function Get-DatosPreInforme {
         Grupos          = $grupos
         Prueba          = ($prueba -join ' · ')
         Recomendaciones = @($recs | Select-Object -First 4)
+        Mejoras         = $mejoras
         Paquete         = $a['paquete']
         Precio          = $a['precio']
         Falta           = $falta.ToArray()
@@ -347,6 +364,11 @@ table.areas { width: 100%; border-collapse: collapse; }
 .areas .a { width: 42mm; font-weight: 600; white-space: nowrap; }
 .punto { display: inline-block; width: 3.2mm; height: 3.2mm; border-radius: 50%; margin-right: 1.5mm; vertical-align: -.3mm; }
 .punto.rojo { background: #cf222e; } .punto.amarillo { background: #d4a72c; } .punto.verde { background: #2da44e; }
+table.mejoras { width: 100%; border-collapse: collapse; }
+.mejoras td { padding: 1.5mm 2mm; border-bottom: .5pt solid #e6e8eb; vertical-align: top; }
+.mejoras .p { width: 20mm; }
+.prio { display: inline-block; font-size: 8.5pt; font-weight: 600; padding: .4mm 2mm; border-radius: 2mm; color: #fff; }
+.prio.Alta { background: #cf222e; } .prio.Media { background: #d4a72c; } .prio.Opcional { background: #57606a; }
 .tecnico { margin-top: 8mm; border-top: 2pt dashed #8c959f; padding-top: 2mm; font-size: 9.5pt; }
 .tecnico .CRITICO { color: #cf222e; font-weight: 600; } .tecnico .AVISO { color: #9a6700; font-weight: 600; } .tecnico .INFO { color: #57606a; }
 @media print { .tecnico { display: none; } }
@@ -385,6 +407,14 @@ table.areas { width: 100%; border-collapse: collapse; }
         [void]$sb.AppendLine("<tr><td class=""a""><span class=""punto $($f.Color)""></span>$(Get-Html $f.Area)</td><td>$(Get-Html $f.Frase)</td></tr>")
     }
     [void]$sb.AppendLine('</table>')
+
+    if (@($d.Mejoras).Count -gt 0) {
+        [void]$sb.AppendLine('<h2>Mejoras que recomendamos</h2><table class="mejoras">')
+        foreach ($m in @($d.Mejoras)) {
+            [void]$sb.AppendLine("<tr><td class=""p""><span class=""prio $(Get-Html $m.Prioridad)"">$(Get-Html $m.Prioridad)</span></td><td><b>$(Get-Html $m.Titulo)</b>. $(Get-Html $m.Beneficio)<div class=""nota"">$(Get-Html $m.Motivo) Se necesita: $(Get-Html $m.Comprar)</div></td></tr>")
+        }
+        [void]$sb.AppendLine('</table>')
+    }
 
     [void]$sb.AppendLine('<div class="dos"><div><h2>Te recomendamos</h2><ul>')
     foreach ($r in @($d.Recomendaciones)) { [void]$sb.AppendLine("<li>$(Get-Html $r)</li>") }
