@@ -37,10 +37,18 @@ try {
         Write-Host ' Mínimo 10 caracteres. Anótala en un lugar seguro: sin ella el respaldo no se abre.' -ForegroundColor Yellow
         $a = & $pedir ' Contraseña'
         $b = & $pedir ' Repítela'
-        $ta = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($a))
-        $tb = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($b))
-        if ($ta -cne $tb) { throw 'Las contraseñas no coinciden.' }
-        if ($ta.Length -lt 10) { throw 'Muy corta: usa al menos 10 caracteres.' }
+        $ba = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($a)
+        $bb = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($b)
+        try {
+            $ta = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ba)
+            $tb = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bb)
+            if ($ta -cne $tb) { throw 'Las contraseñas no coinciden.' }
+            if ($ta.Length -lt 10) { throw 'Muy corta: usa al menos 10 caracteres.' }
+        } finally {
+            # No dejar la contraseña en texto plano más tiempo del necesario.
+            [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ba)
+            [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bb)
+        }
         Set-ClaveRespaldo -Clave $a -Ruta $ArchivoClave
         Write-Host " Guardada para tu usuario en $ArchivoClave" -ForegroundColor Green
         exit 0

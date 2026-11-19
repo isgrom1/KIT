@@ -52,6 +52,53 @@ try {
     $e3 = $null; try { $null = Read-ArchivosRespaldo -Ruta (Join-Path $tmp 'otro.kitresp') -Clave $clave } catch { $e3 = $_.Exception.Message }
     Assert 'un archivo que no es respaldo lo dice' ($e3 -match 'No es un respaldo')
 
+    '== Ruta maliciosa dentro del respaldo'
+    function New-RespaldoConRuta {
+        # Arma a mano un .kitresp válido (abre con $clave) con una sola entrada, en la ruta relativa que se
+        # le pida: para probar que Read-ArchivosRespaldo rechaza rutas que se saldrían de -Destino.
+        param([string]$Ruta, [string]$RutaRelativa, [securestring]$Clave = $clave)
+        $iter = 20000
+        $sal = New-Object byte[] 16; $iv = New-Object byte[] 16
+        $rnd = New-Object Random; $rnd.NextBytes($sal); $rnd.NextBytes($iv)
+        $k = Get-ClavesRespaldo -Clave $Clave -Sal $sal -Iteraciones $iter
+        $fs = [IO.File]::Open($Ruta, [IO.FileMode]::Create)
+        try {
+            $fs.Write($script:MagiaRespaldo, 0, 8)
+            $fs.Write([BitConverter]::GetBytes([int]$iter), 0, 4)
+            $fs.Write($sal, 0, 16); $fs.Write($iv, 0, 16)
+            $fs.Write((New-Object byte[] 32), 0, 32)
+            $aes = [Security.Cryptography.Aes]::Create()
+            $aes.KeySize = 256; $aes.Mode = 'CBC'; $aes.Padding = 'PKCS7'; $aes.Key = $k.Cifrado; $aes.IV = $iv
+            $cs = New-Object Security.Cryptography.CryptoStream($fs, $aes.CreateEncryptor(), [Security.Cryptography.CryptoStreamMode]::Write)
+            $gz = New-Object IO.Compression.GZipStream($cs, [IO.Compression.CompressionMode]::Compress)
+            $bw = New-Object IO.BinaryWriter($gz, [Text.Encoding]::UTF8)
+            $contenido = [Text.Encoding]::UTF8.GetBytes('fuga de prueba')
+            $sha = [Security.Cryptography.SHA256]::Create()
+            try {
+                $hash = $sha.ComputeHash($contenido)
+                $nombre = [Text.Encoding]::UTF8.GetBytes($RutaRelativa)
+                $bw.Write([int]$nombre.Length); $bw.Write($nombre)
+                $bw.Write([long]$contenido.Length)
+                $bw.Write($hash)
+                $bw.Write($contenido)
+                $bw.Write([int]-1)
+            } finally { $sha.Dispose() }
+            $bw.Dispose()
+        } finally { $fs.Dispose() }
+        $firma = Get-FirmaRespaldo -Ruta $Ruta -ClaveFirma $k.Firma
+        $fs2 = [IO.File]::Open($Ruta, [IO.FileMode]::Open, [IO.FileAccess]::Write)
+        try { $null = $fs2.Seek(44, [IO.SeekOrigin]::Begin); $fs2.Write($firma, 0, 32) } finally { $fs2.Dispose() }
+    }
+    foreach ($par in @{ Nombre = 'con \'; Ruta = '..\..\fuera.txt' }, @{ Nombre = 'con /'; Ruta = '../../fuera.txt' }, @{ Nombre = 'mixta'; Ruta = 'carpeta/../../fuera.txt' }) {
+        $rutaMal = Join-Path $tmp "malicioso_$([guid]::NewGuid().ToString('N').Substring(0,4)).kitresp"
+        New-RespaldoConRuta -Ruta $rutaMal -RutaRelativa $par.Ruta
+        $eMal = $null; try { $null = Read-ArchivosRespaldo -Ruta $rutaMal -Clave $clave } catch { $eMal = $_.Exception.Message }
+        Assert "una ruta $($par.Nombre) '..' se rechaza (no se sale de -Destino)" ($eMal -match 'no válida') -D "$($par.Ruta) -> $eMal"
+    }
+    $rutaSana = Join-Path $tmp 'sano.kitresp'
+    New-RespaldoConRuta -Ruta $rutaSana -RutaRelativa 'Cliente Normal\archivo.txt'
+    Assert 'una ruta normal (sin ..) sigue aceptándose' (@(Read-ArchivosRespaldo -Ruta $rutaSana -Clave $clave).Count -eq 1)
+
     '== Restaurar'
     $rest = Join-Path $tmp 'restaurado'
     $l = @(Restore-RespaldoMaestro -Ruta $r.Ruta -Destino $rest -Clave $clave)
