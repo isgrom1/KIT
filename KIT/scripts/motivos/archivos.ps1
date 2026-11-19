@@ -85,9 +85,11 @@ function Get-HashParcial {
     try {
         $n = [int][math]::Min(65536, $fs.Length)
         $buf = New-Object byte[] ($n * 2)
-        [void]$fs.Read($buf, 0, $n)
+        $leidos = 0
+        while ($leidos -lt $n) { $r = $fs.Read($buf, $leidos, $n - $leidos); if ($r -le 0) { break }; $leidos += $r }
         $fs.Seek(-$n, 'End') | Out-Null
-        [void]$fs.Read($buf, $n, $n)
+        $leidos = 0
+        while ($leidos -lt $n) { $r = $fs.Read($buf, $n + $leidos, $n - $leidos); if ($r -le 0) { break }; $leidos += $r }
         [BitConverter]::ToString($md5.ComputeHash($buf)) -replace '-', ''
     } finally { $fs.Close(); $md5.Dispose() }
 }

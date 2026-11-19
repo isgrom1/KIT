@@ -56,8 +56,7 @@ Assert 'temperatura en rojo con el CSV del ANTES' (($s.Areas | Where-Object Area
 
 '== REVISION y LENTO sobre la medición real del Nitro (solo lectura; solo en su PC)'
 $script:Ctx.CarpetaClientes = $clientesReales
-$nitro = $null
-try { $nitro = Get-Expediente -Identidad (Get-IdentidadEquipo) } catch { $nitro = $null }
+$nitro = Get-Expediente -Identidad (Get-IdentidadEquipo)
 if (-not $nitro -or -not (Test-Path (Join-Path $nitro.Ruta '2026-11-01_atencion_2\antes\diagnostico.json'))) {
     '  OMITIDA  medición real del Nitro (no está en este equipo)'
 } else {

@@ -196,8 +196,9 @@ function Get-BateriaKit {
     $doc.Load($xml)
     foreach ($b in $doc.SelectNodes("//*[local-name()='Batteries']/*[local-name()='Battery']")) {
         $valor = { param($n) $nodo = $b.SelectSingleNode("*[local-name()='$n']"); if ($nodo) { $nodo.InnerText.Trim() } else { $null } }
-        $diseno = [double](& $valor 'DesignCapacity')
-        $completa = [double](& $valor 'FullChargeCapacity')
+        # Igual que CycleCount: valida antes de castear, para no perder todo el bloque si el XML trae algo raro.
+        $txtDiseno = "$(& $valor 'DesignCapacity')"; $diseno = $(if ($txtDiseno -match '^\d+$') { [double]$txtDiseno } else { $null })
+        $txtCompleta = "$(& $valor 'FullChargeCapacity')"; $completa = $(if ($txtCompleta -match '^\d+$') { [double]$txtCompleta } else { $null })
         $salud = $null
         if ($diseno -gt 0) { $salud = [math]::Round(100 * $completa / $diseno, 1) }
         [pscustomobject][ordered]@{

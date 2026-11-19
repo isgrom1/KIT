@@ -50,7 +50,7 @@ try {
     '== CSV reales de Isaac (solo se muestran; en otro equipo se omiten)'
     foreach ($a in (Join-Path $docs '08 Datos sueltos (csv-json)\reg.CSV'), (Join-Path $docs '08 Datos sueltos (csv-json)\ESTO.CSV'), (Join-Path $docs 'asdasd.CSV'), (Join-Path $docs 'temp.CSV')) {
         if (-not [IO.File]::Exists($a)) { "  OMITIDA  $(Split-Path -Leaf $a) (no está en este equipo)"; continue }
-        try { Show-Resumen $a } catch { "=== $(Split-Path -Leaf $a): ERROR -> $($_.Exception.Message)" }
+        try { Show-Resumen $a } catch { "  FALLA  $(Split-Path -Leaf $a): $($_.Exception.Message)" }
     }
 
     '== CSV sintéticos y de ejemplo'

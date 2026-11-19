@@ -24,6 +24,10 @@ fltmc >nul 2>&1 && set "ADMIN=SI"
 rem Al relanzar como admin desde un diagnostico se vuelve directo a esa medicion.
 set "MOMENTO=Antes"
 if /i "%~1"=="antes" goto diagnostico
+if /i "%~1"=="despues" (
+    set "MOMENTO=Despues"
+    goto diagnostico
+)
 if /i "%~1"=="consola" goto menu
 
 rem Interfaz grafica (WPF). Si PowerShell esta restringido o WPF no carga, kit.ps1 sale con 10
