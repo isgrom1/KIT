@@ -497,7 +497,7 @@ code { background: #f6f8fa; padding: 0 3px; }
     [void]$sb.AppendLine("<!doctype html><html lang=""es""><head><meta charset=""utf-8""><meta http-equiv=""X-UA-Compatible"" content=""IE=edge""><title>Informe técnico - $(Get-Html "$($eq['fabricante']) $($eq['modelo'])") - $(Get-Html $d.Fecha)</title><style>$css</style></head><body><div class=""hoja"">")
     [void]$sb.AppendLine("<h1>Informe técnico</h1><div>$(Get-Html "$($eq['fabricante']) $($eq['modelo'])") · S/N $(Get-Html $eq['serie']) · expediente <code>$(Get-Html $Expediente.Id)</code> · atención <code>$(Get-Html $d.Carpeta)</code></div>")
     [void]$sb.AppendLine("<p>Cliente: $(Get-Html $d.Cliente['nombre']) · $(Get-Html $d.Cliente['contacto']) · $(Get-Html $d.Cliente['comuna']) | Motivos: $(Get-Html ($d.Motivos -join ', ')) | Síntoma: $(Get-Html $a['sintoma'])</p>")
-    [void]$sb.AppendLine("<p>Equipo: $(Get-Html $eq['cpu']) · $(Get-Html $eq['ram_gb']) GB RAM · $(Get-Html (@($eq['gpu']) -join ' + ')) · $(Get-Html $eq['windows']) · BIOS $(Get-Html $eq['bios'])</p>")
+    [void]$sb.AppendLine("<p>Equipo: $(Get-Html $eq['cpu']) · $(Get-Html $eq['ram_gb']) GB RAM · $(Get-Html (@($eq['gpu']) -join ' + ')) · $(Get-Html $eq['windows']) · BIOS $(Get-Html $eq['bios'])$(if ($eq['placa']) { ' · placa ' + (Get-Html $eq['placa']) })</p>")
     $med = $a['mediciones']
     [void]$sb.AppendLine("<p>Mediciones: ANTES $(Get-Html $(if ($med['antes']) { "$($med['antes']['fecha']) (admin: $(Format-Celda $med['antes']['admin']))" } else { 'no' })) · DESPUÉS $(Get-Html $(if ($med['despues']) { "$($med['despues']['fecha']) (admin: $(Format-Celda $med['despues']['admin']))" } else { 'no' })) | Paquete: $(Get-Html $a['paquete']) · Precio: $(Get-Html $(if ($null -ne $a['precio']) { '$' + (Format-Numero $a['precio'] 0) })) | Garantía hasta $(Get-Html $d.Garantia)</p>")
     if (@($d.Advertencias).Count -gt 0) { [void]$sb.AppendLine("<div class=""adv""><b>Advertencias</b><ul>$((@($d.Advertencias) | ForEach-Object { "<li>$(Get-Html $_)</li>" }) -join '')</ul></div>") }
@@ -565,6 +565,10 @@ code { background: #f6f8fa; padding: 0 3px; }
         }
         [void]$sb.AppendLine('</table>')
         foreach ($b in @($hw.Baterias | Where-Object { $_ })) { [void]$sb.AppendLine("<h2>Batería</h2><p>$(Get-Html "$($b.Fabricante) $($b.Id)") · salud $(Format-Numero $b.SaludPct 1) % ($($b.CargaCompletaMWh) de $($b.DisenoMWh) mWh) · $($b.Ciclos) ciclos · <a href=""$($d.MomentoFinal)/bateria.html"">informe de batería</a></p>") }
+    }
+    # Links a drivers oficiales (lib\Drivers.ps1; quien no la carga, no tiene la sección).
+    if (Get-Command Get-LinksDrivers -ErrorAction SilentlyContinue) {
+        try { [void]$sb.AppendLine((Get-HtmlDrivers -Links @(Get-LinksDrivers -Expediente $Expediente -Atencion $d.Carpeta))) } catch { Write-LogKit -Nivel AVISO -Mensaje "Sin sección de drivers en el informe: $($_.Exception.Message)" }
     }
     [void]$sb.AppendLine('<h2>Archivos</h2><ul>')
     foreach ($mo in 'antes', 'despues') {

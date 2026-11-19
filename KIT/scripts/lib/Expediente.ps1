@@ -164,6 +164,7 @@ function New-Expediente {
                 placa_serie    = $(if ($Identidad.PSObject.Properties['PlacaSerie']) { $Identidad.PlacaSerie } else { $null })
             }
             tipo              = $null
+            placa             = $null
             cpu               = $null
             ram_gb            = $null
             gpu               = @()
@@ -375,6 +376,8 @@ function Update-FichaDesdeDiagnostico {
     if ($Datos.equipo) {
         $eq['tipo'] = $Datos.equipo.Tipo
         $eq['bios'] = "$($Datos.equipo.BiosVersion) ($($Datos.equipo.BiosFecha))"
+        # Placa madre (fabricante y modelo): en un PC armado es lo que identifica el equipo y sus drivers.
+        if ($Datos.equipo.PlacaBase) { $eq['placa'] = "$($Datos.equipo.PlacaBase)" }
     }
     if ($Datos.hardware) {
         $cpu = @($Datos.hardware.Cpu | Where-Object { $_ }) | Select-Object -First 1

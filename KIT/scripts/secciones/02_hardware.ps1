@@ -102,8 +102,12 @@ function Get-GpuKit {
         if ($drv -and $drv.Vram) { $vram = ConvertTo-GB ([double]$drv.Vram) 1 }
         $resolucion = $null
         if ($g.CurrentHorizontalResolution) { $resolucion = '{0}x{1} @ {2} Hz' -f $g.CurrentHorizontalResolution, $g.CurrentVerticalResolution, $g.CurrentRefreshRate }
+        # Fabricante por el ID del hardware: con el driver genérico de Microsoft el nombre no lo dice.
+        $ven = [regex]::Match("$($g.PNPDeviceID)", '(?i)VEN_([0-9A-F]{4})')
+        $fabGpu = if ($ven.Success) { switch ($ven.Groups[1].Value.ToUpperInvariant()) { '10DE' { 'NVIDIA' } '1002' { 'AMD' } '1022' { 'AMD' } '8086' { 'Intel' } default { $null } } } else { $null }
         [pscustomobject][ordered]@{
             Nombre          = $g.Name
+            Fabricante      = $fabGpu
             DriverVersion   = $g.DriverVersion
             DriverFecha     = ConvertTo-TextoFecha $fecha -SoloFecha
             VramGB          = $vram

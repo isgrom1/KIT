@@ -134,7 +134,7 @@ function Get-AccionesLento {
         $acciones.Add((ConvertTo-AccionLento -Id "manual|desinstalar|$($s.Nombre)" -Tipo 'manual' -Titulo "Desinstalar $($s.Nombre) ($($s.Texto))" -Admin $false -QueHace 'Desde Configuración > Aplicaciones, con el cliente de acuerdo.' -Deshacer 'Reinstalar desde el sitio oficial.' -Datos ([ordered]@{})))
     }
     foreach ($a in @($doc.alertas | Where-Object { $_.Codigo -in 'HW-GPU-DRIVER', 'HW-GPU-GENERICO', 'HW-RAM-POCA', 'HW-DISCO-HDD', 'ESP-LIBRE' })) {
-        $acciones.Add((ConvertTo-AccionLento -Id "manual|$($a.Codigo)" -Tipo 'manual' -Titulo $a.Texto -Admin $false -QueHace $(switch ($a.Codigo) { 'ESP-LIBRE' { 'Liberar espacio con el motivo ARCHIVOS.' } 'HW-DISCO-HDD' { 'Ofrecer cambio a SSD.' } 'HW-RAM-POCA' { 'Ofrecer ampliación de RAM.' } default { 'Instalar el driver del sitio del fabricante.' } }) -Deshacer '' -Datos ([ordered]@{})))
+        $acciones.Add((ConvertTo-AccionLento -Id "manual|$($a.Codigo)" -Tipo 'manual' -Titulo $a.Texto -Admin $false -QueHace $(switch ($a.Codigo) { 'ESP-LIBRE' { 'Liberar espacio con el motivo ARCHIVOS.' } 'HW-DISCO-HDD' { 'Ofrecer cambio a SSD.' } 'HW-RAM-POCA' { 'Ofrecer ampliación de RAM.' } default { 'Instalar el driver de la página oficial (③ Trabajo → Drivers).' } }) -Deshacer '' -Datos ([ordered]@{})))
     }
     $acciones.ToArray()
 }

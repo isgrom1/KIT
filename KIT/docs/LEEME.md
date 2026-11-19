@@ -23,8 +23,8 @@ Corre con el Windows PowerShell 5.1 que trae Windows: no instala nada en el equi
    │  ├─ gui\                    principal.xaml, kit.ps1 (ventana) y tarea.ps1 (trabajos en segundo plano)
    │  ├─ herramientas.ps1        menú de herramientas portables
    │  ├─ secciones\              01_equipo.ps1 … 13_estabilidad.ps1
-   │  ├─ lib\                    Comun, Log, Privacidad, Salidas, Alertas, Expediente, Flujo, Sincronizacion...
-   │  └─ config\                 config.json, software_conocido.json, ciclo_vida_windows.json
+   │  ├─ lib\                    Comun, Log, Privacidad, Salidas, Alertas, Expediente, Flujo, Sincronizacion, Drivers...
+   │  └─ config\                 config.json, software_conocido.json, ciclo_vida_windows.json, drivers.json
    ├─ herramientas\              una carpeta por herramienta + versiones.json
    ├─ soporte\                   paquetes de soporte (.zip sin datos del cliente, ver Modo técnico)
    ├─ clientes\                  un expediente por equipo (ver "Expedientes")
@@ -46,6 +46,7 @@ clientes\<fabricante>_<modelo>_<serie>\      (serie genérica → <fabricante>_<
 ```
 
 - **El equipo se reconoce solo** por la serie del BIOS. Si la serie es genérica ("To be filled by O.E.M."), por el UUID o la serie de la placa guardados en la ficha.
+- **La parte "equipo" de la ficha se llena sola** en cada diagnóstico: fabricante, modelo, serie, tipo, placa madre, CPU, RAM, video, discos, Windows y BIOS. En un **PC armado**, donde Windows dice "System Product Name" o "To Be Filled By O.E.M.", el modelo es el de la placa madre (por ejemplo `ASUS_PRIME-B450M-A_...`). Un PC armado que ya tenía expediente como `Generico` se sigue encontrando por la serie, el UUID o la serie de la placa.
 - **Diagnóstico ANTES**: va a la atención de hoy si existe y todavía no tiene "después". Si no hay, abre una nueva.
 - **Diagnóstico DESPUÉS**: va a la atención abierta más reciente que tenga "antes". **No existe "después" sin "antes"**: si no hay, no crea nada y sale con código 4.
 - **Una atención se cierra** al marcarla entregada en la ficha. La garantía queda por defecto hasta la entrega + 30 días (`expediente.garantia_dias`).
@@ -103,6 +104,12 @@ Solo aparece lo de los motivos marcados en la ficha. Nada se aplica sin confirma
   - *Mover* lleva lo marcado a `<unidad>:\_PARA_BORRAR\<fecha_hora>` en el mismo disco, con `_DESHACER.ps1` y `LEEME.txt` para el cliente. **Nunca borra.**
   - *Deshacer* devuelve todo a su lugar. Si no quedó nada apartado, retira la carpeta del lote (solo tenía el LEEME y el `_DESHACER.ps1` del kit) para no dejarle al cliente una carpeta "para borrar" vacía.
 - **REVISION**: semáforo por área (temperatura si hay CSV, discos, batería, Windows y seguridad, rendimiento, espacio) con el motivo de cada color.
+- **Drivers** (para cualquier motivo; en la ventana, **③ Trabajo → Drivers**; en consola, opción **C**). **El kit no instala drivers ni entra a internet.** Cada botón abre una página oficial en el navegador y copia al portapapeles lo que hay que buscar en ella:
+  - *Windows Update: actualizaciones opcionales*: drivers del fabricante publicados por Microsoft. Abre la página de Configuración; no aparece en modo consulta, porque abriría la de tu PC.
+  - *Página del fabricante para ese modelo* (Dell, HP, Lenovo, Acer, ASUS, MSI, Gigabyte, ASRock, Samsung, Huawei, Dynabook, Surface). Copia la serie o el modelo, según cómo busque cada página. En un PC armado se usa la placa madre.
+  - *Video*: NVIDIA, AMD o Intel, según el ID del hardware (sirve también con el driver genérico de Microsoft). Dice la fecha del driver instalado. En un notebook con dos tarjetas de video avisa que primero va el driver del fabricante del notebook.
+  - *Dispositivos sin driver o con error*: búsqueda en el catálogo oficial de Microsoft Update por `VEN_xxxx&DEV_xxxx`, `VID_xxxx&PID_xxxx` o el ID de ACPI. Los que no traen ID de hardware (componentes de software, como los efectos de audio Waves) llevan a la página del fabricante, porque son parte de otro driver suyo. Se omiten los deshabilitados a mano.
+  - Las direcciones están en `config\drivers.json`: si un fabricante las cambia, se corrigen ahí. El link con la serie la envía al sitio del fabricante, igual que si la escribieras en su buscador. El informe técnico trae la misma lista, con links.
 
 - **I) Generar informes**: crea en la carpeta de la atención:
   - `informe_cliente.html`: 1 página A4, en lenguaje simple, con:
@@ -113,7 +120,8 @@ Solo aparece lo de los motivos marcados en la ficha. Nada se aplica sin confirma
   - `informe_tecnico.html`, con todo el detalle:
     - todas las métricas y el gráfico de temperatura (antes y después superpuestos);
     - condiciones de medición, alertas, discos y batería;
-    - acciones con su deshacer, advertencias y enlaces a los CSV.
+    - acciones con su deshacer, advertencias y enlaces a los CSV;
+    - links a las páginas oficiales de drivers (ver **Drivers**).
 
   Son autocontenidos (sin internet). **Guardar PDF** los imprime con Edge sin ventana (`msedge --headless --print-to-pdf`, con un perfil temporal que se borra al terminar) y deja el `.pdf` junto al `.html`; en consola es la opción W de Trabajo. Sin Edge, se imprimen desde el navegador (Ctrl+P, "Guardar como PDF"). Solo se generan con la ficha completa; si falta algo, dice qué. Garantía, próxima mantención y días para borrar lo apartado se ajustan en `config.json` → `expediente`.
 

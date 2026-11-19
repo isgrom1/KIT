@@ -35,7 +35,7 @@ try { Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBas
 $ErrorActionPreference = 'Stop'
 $script:Raiz = Split-Path -Parent $PSScriptRoot
 try {
-    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe', 'Herramientas', 'Sincronizacion', 'Flujo', 'Soporte') { . (Join-Path $script:Raiz "lib\$lib.ps1") }
+    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe', 'Herramientas', 'Sincronizacion', 'Flujo', 'Soporte', 'Drivers') { . (Join-Path $script:Raiz "lib\$lib.ps1") }
     foreach ($m in 'calor', 'lento', 'archivos', 'revision') { . (Join-Path $script:Raiz "motivos\$m.ps1") }
     Initialize-Contexto -RaizScripts $script:Raiz
     if ($Clientes) { $script:Ctx.CarpetaClientes = $Clientes }
@@ -573,6 +573,19 @@ function Show-Trabajo {
     $momento = if (Test-Medicion -Expediente $script:G.Exp -Atencion $script:G.At -Momento 'despues') { 'despues' } else { 'antes' }
     $sem = Get-SemaforoRevision -Expediente $script:G.Exp -Atencion $script:G.At -Momento $momento
     $ui.icSemaforo.ItemsSource = @($sem.Areas | ForEach-Object { [pscustomobject]@{ Area = $_.Area; Frase = $_.Frase; Pincel = (Get-Pincel $script:Colores[$_.Color]) } })
+    Show-Drivers
+}
+
+function Show-Drivers {
+    # Links a páginas oficiales de drivers. En consulta (otro equipo) no va Windows Update: abriría el de este PC.
+    $ui = $script:Ui
+    $links = @()
+    try { $links = @(Get-LinksDrivers -Expediente $script:G.Exp -Atencion $script:G.At -SinWindowsUpdate:([bool]$script:G.Ajeno)) } catch { Write-Verbose "Sin links de drivers: $($_.Exception.Message)" }
+    $ui.icDrivers.ItemsSource = @($links | ForEach-Object { [pscustomobject]@{ Titulo = $_.Titulo; Nota = $_.Nota; Habilitado = [bool]$_.Url; Link = $_ } })
+    $sinDiag = -not (Get-DiagnosticoReciente -Expediente $script:G.Exp -Atencion $script:G.At)
+    $ui.txtDrivers.Text = if (-not $links.Count) { 'Falta config\drivers.json en el kit.' }
+    elseif ($sinDiag) { 'Haz primero el diagnóstico ANTES: de ahí salen la tarjeta de video y los dispositivos sin driver.' }
+    else { 'Cada botón abre la página oficial en el navegador y copia lo que hay que buscar (serie, modelo o ID), para pegarlo en su buscador.' }
 }
 
 function Show-ReporteArchivos {
@@ -898,6 +911,17 @@ $ui.btnImportarCsv.Add_Click({
             $eq = Test-EquipoCsvSensores -Expediente $script:G.Exp -Ruta $dlg.FileName
             if ($eq.Coincide -eq $false -and -not (Show-Aviso "Este CSV dice que es de otro equipo: $($eq.Texto).`n`n¿Lo importo igual en esta atención?" -Pregunta)) { return }
             Invoke-TareaKit -Accion 'importar_sensores' -Parametros @{ momento = $script:G.Momento; ruta = $dlg.FileName } -Texto 'Leyendo el CSV de sensores...' -AlResultado { param($r) Show-Medicion; Show-Estado; if ($script:G.Momento -eq 'antes') { Invoke-PreInformeGui -Auto } }
+        } catch { [void](Show-Aviso (Get-MensajeSimple $_.Exception.Message) -EsError) }
+    })
+$ui.icDrivers.AddHandler([Windows.Controls.Primitives.ButtonBase]::ClickEvent, [Windows.RoutedEventHandler] {
+        param($s, $e)
+        $item = $e.OriginalSource.Tag
+        if (-not $item -or -not $item.Link) { return }
+        try {
+            if ($Captura) {
+                $script:G.Registro.Add("driver: $($item.Link.Titulo) | $($item.Link.Url) | copia: $($item.Link.Copiar)")
+                $script:Ui.txtEstado.Text = "(captura) abriría $($item.Link.Url)"
+            } else { $script:Ui.txtEstado.Text = Open-LinkDriver -Link $item.Link }
         } catch { [void](Show-Aviso (Get-MensajeSimple $_.Exception.Message) -EsError) }
     })
 $ui.btnPreInforme.Add_Click({ Invoke-PreInformeGui -Abrir })

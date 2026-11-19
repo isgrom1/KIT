@@ -16,7 +16,7 @@ param()
 $ErrorActionPreference = 'Stop'
 $raizScripts = $PSScriptRoot
 try {
-    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe', 'Flujo', 'Soporte') { . (Join-Path $raizScripts "lib\$lib.ps1") }
+    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe', 'Flujo', 'Soporte', 'Drivers') { . (Join-Path $raizScripts "lib\$lib.ps1") }
     foreach ($m in 'calor', 'lento', 'archivos', 'revision') { . (Join-Path $raizScripts "motivos\$m.ps1") }
     Initialize-Contexto -RaizScripts $raizScripts
     Initialize-Privacidad
@@ -203,6 +203,24 @@ function Invoke-ArchivosConsola {
     } catch { Show-Error $_.Exception.Message }
 }
 
+function Show-DriversConsola {
+    # Links a páginas oficiales: el número elegido copia lo que hay que buscar y abre la página. No instala nada.
+    param($Exp, [string]$At)
+    try {
+        $links = @(Get-LinksDrivers -Expediente $Exp -Atencion $At)
+        if (-not $links.Count) { Write-Host '    Falta config\drivers.json en el kit.' -ForegroundColor Yellow; return }
+        if (-not (Get-DiagnosticoReciente -Expediente $Exp -Atencion $At)) { Write-Host '    Sin diagnóstico todavía: la tarjeta de video y los dispositivos sin driver salen de ahí.' -ForegroundColor Yellow }
+        $i = 0
+        foreach ($l in $links) {
+            $i++
+            Write-Host ('    {0}) {1}' -f $i, $l.Titulo)
+            if ($l.Nota) { Write-Host "       $($l.Nota)" -ForegroundColor DarkGray }
+        }
+        $n = "$(Read-Linea -Pregunta '    Número para abrir (Enter = volver)' -Actual $null)".Trim()
+        if ($n -match '^\d+$' -and [int]$n -ge 1 -and [int]$n -le $links.Count) { Write-Host "    $(Open-LinkDriver -Link $links[[int]$n - 1])" -ForegroundColor Green }
+    } catch { Show-Error $_.Exception.Message }
+}
+
 # ------------------------------------------------------------------------------ inicio
 
 $identidad = Get-IdentidadEquipo
@@ -222,6 +240,7 @@ while ($true) {
     if ($motivos -contains 'LENTO') { $op['7'] = 'LENTO: acciones sugeridas'; $op['8'] = 'LENTO: deshacer acciones'; $op['9'] = 'LENTO: ver métricas' }
     if ($motivos -contains 'ARCHIVOS') { $op['A'] = 'ARCHIVOS: analizar'; $op['M'] = 'ARCHIVOS: mover lo marcado a _PARA_BORRAR'; $op['D'] = 'ARCHIVOS: deshacer movimiento'; $op['V'] = 'ARCHIVOS: ver resultado' }
     $op['S'] = 'Semáforo de revisión'
+    $op['C'] = 'Controladores (drivers): páginas oficiales'
     $op['P'] = 'Generar pre-informe (cómo está antes del trabajo)'
     $op['I'] = 'Generar informes (cliente y técnico)'
     $op['W'] = 'PDF y mensaje para WhatsApp (del informe, o del pre-informe si aún no hay informe)'
@@ -292,6 +311,7 @@ while ($true) {
                 }
             } catch { Show-Error $_.Exception.Message }
         }
+        'C' { Show-DriversConsola -Exp (Read-Expediente $exp.Ruta) -At $at }
         'Z' {
             try { Write-Host "    Listo: $(Export-PaqueteSoporte -Expediente (Read-Expediente $exp.Ruta) -Atencion $at)" -ForegroundColor Green } catch { Show-Error $_.Exception.Message }
         }

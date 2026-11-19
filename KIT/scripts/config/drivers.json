@@ -1,0 +1,30 @@
+{
+  "_leeme": "Páginas oficiales para bajar drivers. El kit no instala nada ni entra a internet: al hacer clic abre la página en el navegador y copia la serie o el modelo para pegarlo en el buscador de esa página. Los fabricantes cambian sus direcciones: si una deja de funcionar, cámbiala aquí. 'copiar' es serie o modelo. La clave de cada fabricante es el nombre corto que usa el kit (Dell, HP, Lenovo, Acer, ASUS, MSI, Gigabyte, ASRock, Samsung, Huawei, Toshiba, Microsoft).",
+  "windows_update": {
+    "url": "ms-settings:windowsupdate-optionalupdates",
+    "nota": "Primero esto: Windows Update, Opciones avanzadas, Actualizaciones opcionales, Controladores. Son drivers del fabricante que publica Microsoft."
+  },
+  "fabricantes": {
+    "Dell": { "url": "https://www.dell.com/support/home/es-cl", "copiar": "serie", "nota": "Pega la Service Tag en el buscador y entra a Drivers y descargas." },
+    "HP": { "url": "https://support.hp.com/cl-es/drivers", "copiar": "serie", "nota": "Pega el número de serie en el buscador." },
+    "Lenovo": { "url": "https://pcsupport.lenovo.com/cl/es", "copiar": "serie", "nota": "Pega el número de serie en el buscador y entra a Drivers y software." },
+    "Acer": { "url": "https://www.acer.com/cl-es/support", "copiar": "serie", "nota": "Entra a Drivers y manuales y pega el número de serie (o el SNID de la etiqueta)." },
+    "ASUS": { "url": "https://www.asus.com/cl/support/download-center/", "copiar": "modelo", "nota": "Pega el modelo en el buscador y entra a Drivers y herramientas." },
+    "MSI": { "url": "https://www.msi.com/support/download", "copiar": "modelo", "nota": "Pega el modelo en el buscador." },
+    "Gigabyte": { "url": "https://www.gigabyte.com/Support", "copiar": "modelo", "nota": "Pega el modelo en el buscador. En una placa madre, elige la misma revisión (rev) que trae impresa." },
+    "ASRock": { "url": "https://www.asrock.com/support/index.asp", "copiar": "modelo", "nota": "Pega el modelo de la placa en el buscador." },
+    "Samsung": { "url": "https://www.samsung.com/cl/support/", "copiar": "modelo", "nota": "Pega el modelo en el buscador." },
+    "Huawei": { "url": "https://consumer.huawei.com/cl/support/", "copiar": "modelo", "nota": "Busca el modelo y entra a Controladores." },
+    "Toshiba": { "url": "https://support.dynabook.com/", "copiar": "modelo", "nota": "Toshiba ahora es Dynabook: pega el modelo en el buscador." },
+    "Microsoft": { "url": "https://support.microsoft.com/es-es/surface/drivers-firmware/download-drivers-and-firmware-for-surface", "copiar": "modelo", "nota": "Busca el modelo de Surface en la tabla." }
+  },
+  "gpu": {
+    "NVIDIA": { "url": "https://www.nvidia.com/es-la/drivers/", "nota": "Elige el modelo en la lista. La app de NVIDIA instala un programa: solo con permiso del cliente." },
+    "AMD": { "url": "https://www.amd.com/es/support/download/drivers.html", "nota": "Busca el modelo en la lista. AMD Auto-Detect instala un programa: solo con permiso del cliente." },
+    "Intel": { "url": "https://www.intel.la/content/www/xl/es/support/detect.html", "nota": "El asistente de Intel instala un programa: solo con permiso del cliente. Si no, busca el driver de gráficos por modelo en el sitio de Intel." }
+  },
+  "catalogo": {
+    "url": "https://www.catalog.update.microsoft.com/Search.aspx?q={q}",
+    "nota": "Catálogo oficial de Microsoft Update: baja el más nuevo para esta versión de Windows y se instala desde el Administrador de dispositivos (Actualizar controlador, Examinar)."
+  }
+}

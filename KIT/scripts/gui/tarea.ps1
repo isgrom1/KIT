@@ -27,7 +27,7 @@ function Write-Gui {
 
 try {
     $raiz = Split-Path -Parent $PSScriptRoot
-    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe') { . (Join-Path $raiz "lib\$lib.ps1") }
+    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe', 'Drivers') { . (Join-Path $raiz "lib\$lib.ps1") }
     foreach ($m in 'calor', 'lento', 'archivos', 'revision') { . (Join-Path $raiz "motivos\$m.ps1") }
     Initialize-Contexto -RaizScripts $raiz
     Initialize-Privacidad

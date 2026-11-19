@@ -113,7 +113,7 @@ Abre una herramienta solo cuando el diagnóstico o el motivo de la atención lo 
 **Paso 6. Drivers, al final.** Si vas a medir el DESPUÉS, actualízalos cuando termines de medir: así sabes que la mejora vino del trabajo.
 1. Actualiza solo lo que el diagnóstico marque: driver de video genérico, driver de video de más de 12 meses o un dispositivo con error.
 2. Pídele el OK al cliente.
-3. Baja el driver del sitio del fabricante del notebook o del componente. **No uses actualizadores de drivers:** el kit los marca como aviso.
+3. Bájalo de la página oficial: en **③ Trabajo → Drivers** (o la opción **C** de la consola de Trabajo) cada botón abre la página y copia lo que hay que buscar, para pegarlo en su buscador. Primero prueba **Windows Update: actualizaciones opcionales**. Luego viene la página del fabricante para ese modelo, que copia la serie o el modelo; en un PC armado, la de la placa madre. Después, la página de cada tarjeta de video. Por último, la búsqueda en el catálogo de Microsoft de cada dispositivo sin driver. El kit no instala nada. **No uses actualizadores de drivers:** el kit los marca como aviso.
 4. Crea un punto de restauración si el equipo lo permite, instala el driver y reinicia.
 5. Comprueba que todo siga funcionando y anótalo en **Notas**, en la ficha.
 

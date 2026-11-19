@@ -32,7 +32,7 @@ function Merge-ConfigLocal {
 }
 
 # Versión del kit. La copia que hace actualizar_pendrive.ps1 agrega el commit y la fecha (KIT\version.json).
-$script:VersionBase = '0.4.1'
+$script:VersionBase = '0.4.2'
 
 function Get-VersionKit {
     # "0.2.0 · 2f98fd2 · 2026-11-08" si el kit vino de actualizar_pendrive.ps1; si no, la versión base.
@@ -400,7 +400,8 @@ function Format-Duracion {
 
 function Test-ValorGenerico {
     param([AllowEmptyString()][string]$Valor)
-    $Valor -match '^(?i)\s*(to be filled.*|default string|system (serial|product) number|chassis serial number|none|n/?a|not applicable|oem|0+|1234567890?|x+)?\s*$'
+    # Rellenos de fábrica: también los de las placas de PC armado ("System Product Name", "System manufacturer").
+    $Valor -match '^(?i)\s*(to be filled.*|default string|system (serial number|product (number|name)|manufacturer|version)|chassis serial number|none|n/?a|not applicable|o\.?e\.?m\.?|0+|1234567890?|x+)?\s*$'
 }
 
 function ConvertTo-FabricanteCorto {
@@ -418,6 +419,8 @@ function ConvertTo-FabricanteCorto {
         '^(?i)microsoft' { return 'Microsoft' }
         '^(?i)huawei' { return 'Huawei' }
         '^(?i)(toshiba|dynabook)' { return 'Toshiba' }
+        '^(?i)asrock' { return 'ASRock' }
+        '^(?i)biostar' { return 'Biostar' }
     }
     if (Test-ValorGenerico $m) { return 'Generico' }
     ($m -replace '(?i)[,.]?\s*\b(inc|corp(oration)?|co|ltd|limited|gmbh|s\.?a)\b\.?', '').Trim()
@@ -435,6 +438,23 @@ function Get-IdentidadEquipo {
         if ($version -and $version -notmatch '^(?i)(lenovo|none)$') { $modelo = $version }
     }
     if (Test-ValorGenerico $modelo) { $modelo = 'Generico' }
+    $modeloEsPlaca = $false
+    if ($modelo -eq 'Generico') {
+        # PC armado: Windows no trae modelo ("System Product Name"); el que identifica el equipo es el de la placa
+        # madre. Un expediente que ya existía como Generico se sigue encontrando por la serie, el UUID o la placa.
+        try {
+            $bb = Get-Cim -Clase Win32_BaseBoard -Propiedades Manufacturer, Product
+            $producto = "$($bb.Product)".Trim()
+            if ($producto -and -not (Test-ValorGenerico $producto)) {
+                $modelo = $producto
+                $modeloEsPlaca = $true
+                $fabPlaca = ConvertTo-FabricanteCorto $bb.Manufacturer
+                if ($fabricante -eq 'Generico' -and $fabPlaca -and $fabPlaca -ne 'Generico') { $fabricante = $fabPlaca }
+            }
+        } catch {
+            Write-LogKit -Nivel AVISO -Mensaje "No se pudo leer el modelo de la placa madre: $($_.Exception.Message)"
+        }
+    }
     $serieOriginal = "$($bios.SerialNumber)".Trim()
     $serie = if (Test-ValorGenerico $serieOriginal) { '' } else { $serieOriginal }
     # UUID y serie de la placa: para reconocer después un equipo con serie genérica. Hay UUID de
@@ -449,7 +469,7 @@ function Get-IdentidadEquipo {
     } catch {
         Write-LogKit -Nivel AVISO -Mensaje "No se pudo leer UUID o serie de placa: $($_.Exception.Message)"
     }
-    [pscustomobject][ordered]@{ Fabricante = $fabricante; Modelo = $modelo; Serie = $serie; SerieOriginal = $serieOriginal; Uuid = $uuid; PlacaSerie = $placaSerie }
+    [pscustomobject][ordered]@{ Fabricante = $fabricante; Modelo = $modelo; ModeloEsPlaca = $modeloEsPlaca; Serie = $serie; SerieOriginal = $serieOriginal; Uuid = $uuid; PlacaSerie = $placaSerie }
 }
 
 function Get-NombreArchivo {
