@@ -14,7 +14,9 @@
 param(
     [Parameter(Mandatory)][string]$Archivo,
     [string]$Destino,
-    [switch]$NoAbrir
+    [string]$Cliente,
+    [switch]$NoAbrir,
+    [switch]$SinInforme
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Security
@@ -46,4 +48,31 @@ try {
 Write-Host "Listo: $Destino" -ForegroundColor Green
 $res = Join-Path $Destino 'RESUMEN.txt'
 if ([IO.File]::Exists($res)) { Get-Content -LiteralPath $res -Encoding UTF8 }
-if (-not $NoAbrir) { Start-Process explorer.exe -ArgumentList "`"$Destino`"" }
+
+# Informe para el cliente (PDF con diseño): lo arma la misma librería que usa el kit del pendrive.
+$pdf = $null
+$tec = $null
+if (-not $SinInforme) {
+    try {
+        $scripts = Join-Path (Split-Path -Parent $PSScriptRoot) 'KIT\scripts'
+        foreach ($lib in 'Comun', 'Log', 'Sensores', 'Mejoras', 'Informe', 'InformeVisual') { . (Join-Path $scripts "lib\$lib.ps1") }
+        Initialize-Contexto -RaizScripts $scripts
+        $json = Get-ChildItem -LiteralPath $Destino -Recurse -Filter diagnostico.json | Select-Object -First 1
+        $csv = Join-Path $Destino 'calor\sensores_calor.csv'
+        if (-not $json) { throw 'no viene diagnostico.json' }
+        $doc = Read-JsonKit $json.FullName
+        $nombre = ('Informe_{0}_{1}' -f ("$($doc.datos.equipo.Fabricante) $($doc.datos.equipo.Modelo)" -replace '[^\w-]+', '_').Trim('_'), ("$($doc.kit.generado)").Substring(0, 10))
+        $r = Export-InformeVisual -Diagnostico $json.FullName -CsvSensores $csv -Salida (Join-Path $Destino "$nombre.pdf") -Origen 'remoto' -Cliente $Cliente
+        $tec = $r.Tecnico
+        Write-Host "Hoja técnica (solo para ti): $tec" -ForegroundColor Cyan
+        if ($r.Pdf) { $pdf = $r.Pdf; Write-Host "Informe para el cliente: $pdf" -ForegroundColor Green }
+        else { Write-Host "Informe en HTML (sin PDF: $($r.Error)): $($r.Html)" -ForegroundColor Yellow }
+    } catch {
+        Write-Host "No se pudo armar el informe: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
+if (-not $NoAbrir) {
+    Start-Process explorer.exe -ArgumentList "`"$Destino`""
+    if ($pdf) { Start-Process -FilePath $pdf }
+    if ($tec) { Start-Process -FilePath $tec }
+}

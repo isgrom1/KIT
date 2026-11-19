@@ -30,12 +30,19 @@ powershell -ExecutionPolicy Bypass -File .\remoto\abrir_diagnostico.ps1 -Archivo
 ```
 
 Lo extrae al lado del archivo, en una carpeta con el mismo nombre: `RESUMEN.txt`, el expediente del
-diagnóstico (como el del kit), `calor\sensores_calor.csv` y los logs.
+diagnóstico (como el del kit), `calor\sensores_calor.csv` y los logs. Además arma el **informe para el
+cliente** (`Informe_<marca>_<modelo>_<fecha>.pdf` + `.html`, con `KIT\scripts\lib\InformeVisual.ps1`) y lo abre:
+puntaje de salud, áreas con semáforo, curva de temperatura con el ventilador, espacio, RAM, arranques,
+batería, seguridad, estabilidad y recomendaciones en un mapa impacto/esfuerzo. `-Cliente "<nombre>"` pone
+el nombre en la portada; `-SinInforme` no lo arma. El PDF lleva tu contacto de `config_local.json`.
+El kit del pendrive puede usar la misma librería (`Export-InformeVisual -Origen kit`) con el
+`diagnostico.json` de una atención; falta ponerle un botón en la ventana.
 
 ## Qué hace en el equipo del familiar (`motor\remoto.ps1`)
 
 1. Diagnóstico del kit (solo lectura, sin red) en una carpeta temporal.
-2. CALOR (`motor\calor.ps1`): HWiNFO graba, 5 min de reposo, 10 min de OCCT en STABILITY TEST.
+2. CALOR (`motor\calor.ps1`): HWiNFO graba, 5 min de reposo, 10 min de OCCT en STABILITY TEST. Si
+   HWiNFO avisa por el sensor del Embedded Controller (Acer Nitro AMD), aprieta "No controle este sensor".
    Aprieta START, espera el diálogo "Enjoying OCCT?" de la versión gratis y aprieta Start.
 3. `RESUMEN.txt`, ZIP en memoria, cifrado (AES-256 + HMAC-SHA256, llaves con RSA-3072 OAEP).
 4. Borra la carpeta temporal: en el equipo solo queda el `.kitdiag`.

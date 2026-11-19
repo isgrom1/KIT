@@ -52,6 +52,7 @@
     "libre_critico_gb": 15,
     "arranque_max": 10,
     "ram_uso_pct": 85,
+    "mejora_temp_preventiva_c": 85,
     "mejora_temp_media_c": 90,
     "mejora_temp_alta_c": 95,
     "mejora_disco_chico_gb": 300,

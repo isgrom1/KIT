@@ -247,7 +247,7 @@ function Read-SensoresCsv {
         $ini = [int][math]::Floor($b * $datos.Count / $puntos)
         $fin = [int][math]::Floor(($b + 1) * $datos.Count / $puntos) - 1
         $punto = [ordered]@{ minuto = [math]::Round(($tiempos[$ini] - $tiempos[0]).TotalMinutes, 2) }
-        foreach ($k in @('cpu_temp_paquete', 'cpu_temp_nucleo_max', 'gpu_temp', 'cpu_frec_efectiva')) {
+        foreach ($k in @('cpu_temp_paquete', 'cpu_temp_nucleo_max', 'gpu_temp', 'cpu_frec_efectiva', 'cpu_uso', 'ventilador_cpu')) {
             $vals = if ($series[$k]) { @($series[$k][$ini..$fin] | Where-Object { $null -ne $_ }) } else { @() }
             $punto[$k] = $(if ($vals.Count -gt 0) { [math]::Round(($vals | Measure-Object -Average).Average, 1) } else { $null })
         }

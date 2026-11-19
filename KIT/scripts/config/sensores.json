@@ -70,6 +70,12 @@
       "lhm_patrones": ["^Memory Used$"],
       "lhm_tipo": "data",
       "lhm_factor": 1024
+    },
+    "ventilador_cpu": {
+      "unidad": "RPM",
+      "patrones": ["^CPU( Fan)? \\[RPM\\]$", "^(CPU Fan|Ventilador( de la)? CPU)( \\[RPM\\])?$"],
+      "lhm_patrones": ["^(CPU Fan|Fan #1|Fan 1)$"],
+      "lhm_tipo": "fan"
     }
   }
 }
