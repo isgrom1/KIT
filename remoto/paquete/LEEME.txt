@@ -1,0 +1,20 @@
+﻿DIAGNÓSTICO PARA ISAAC
+======================
+
+Esto revisa tu computador y prueba la temperatura con carga, para que Isaac sepa qué tiene
+antes de verlo. No instala nada, no cambia nada y no usa internet.
+
+CÓMO SE USA
+1. Descomprime el ZIP (clic derecho > Extraer todo).
+2. Cierra los juegos y programas pesados. Si es notebook, déjalo enchufado.
+3. Abre la carpeta y haz doble clic en DIAGNOSTICO.cmd.
+   - Si Windows dice "Windows protegió su PC": Más información > Ejecutar de todas formas.
+   - Acepta el permiso de administrador.
+4. Espera unos 20 minutos sin usar el computador. Se abren solos HWiNFO y OCCT: no los toques.
+   El computador se va a calentar y el ventilador va a sonar fuerte: es normal, es la prueba.
+5. Al final queda en tu Escritorio un archivo "Diagnostico_para_Isaac_....kitdiag".
+   Mándaselo a Isaac por WhatsApp o correo. Va cifrado: solo él lo puede abrir.
+
+Después puedes borrar la carpeta del diagnóstico.
+
+OCCT y HWiNFO son programas de terceros incluidos solo para esta prueba.

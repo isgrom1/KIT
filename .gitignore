@@ -29,3 +29,7 @@ KIT/soporte/
 *.bak
 *.sync_tmp
 _gui_parametros.json
+
+# Diagnóstico remoto: el paquete armado (trae herramientas de terceros) y la llave pública de Isaac.
+remoto/_salida/
+remoto/llave_publica.xml
