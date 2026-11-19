@@ -307,7 +307,7 @@ Show-Mensaje (" Tiempo total: {0}" -f (Format-Duracion $script:Ctx.Reloj.Elapsed
 Show-Mensaje " Resultados en: $($script:Ctx.CarpetaCliente)" -Color Green
 if ($exp.Reemplazada) { Show-Mensaje " La medición anterior quedó como $($exp.Reemplazada)" -Color DarkGray }
 $faltan = @(Test-FichaCompleta -Expediente $exp.Objeto -Atencion $exp.Atencion)
-if ($faltan.Count -gt 0) {
+if ($faltan.Count -gt 0 -and $env:KIT_REMOTO -ne '1') {   # en el diagnóstico remoto no hay ficha que completar
     $cuantos = if ($faltan.Count -eq 1) { 'falta 1 dato' } else { "faltan $($faltan.Count) datos" }
     Show-Mensaje (" Ficha: {0} para los informes ({1}). Complétala con la opción 3 de INICIAR." -f $cuantos, (($faltan | ForEach-Object { $_.Texto }) -join '; ')) -Color DarkGray
 }

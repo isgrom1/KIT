@@ -79,7 +79,27 @@ try {
     if (-not (Find-Ventana -Patron '(?i)HWiNFO' -Proceso '(?i)hwinfo' -Seg 40)) { throw 'HWiNFO no abrió' }
     Start-Sleep -Milliseconds 800
     [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')   # "Iniciar" es el botón por defecto del diálogo inicial
-    $sens = Find-Ventana -Patron '(?i)sensor' -Proceso '(?i)hwinfo' -Seg 40
+    # En algunos notebooks (ej. Acer Nitro AMD) HWiNFO avisa por el sensor del Embedded Controller antes de
+    # mostrar los sensores y espera un clic. Se elige la opción que HWiNFO llama segura (no leer ese sensor):
+    # la temperatura de la CPU sale del propio procesador; se pierden solo datos del EC (ej. RPM del ventilador).
+    $sens = $null
+    $fin = (Get-Date).AddSeconds(60)
+    while (-not $sens -and (Get-Date) -lt $fin) {
+        $aviso = Find-Ventana -Patron '(?i)^(warning|advertencia)$' -Proceso '(?i)hwinfo' -Seg 1
+        if ($aviso) {
+            $btns = @($aviso.FindAll($T::Descendants, $cBtn))
+            $b = $btns | Where-Object { try { $_.Current.Name -match '(?i)no controle|deshabilit|desactiv|disable' } catch { $false } } | Select-Object -First 1
+            if (-not $b) { $b = $btns | Where-Object { try { $_.Current.Name -match '(?i)continu' } catch { $false } } | Select-Object -First 1 }
+            if ($b) {
+                $nombre = $b.Current.Name
+                if (-not (Invoke-Elemento -Elemento $b)) { Send-ClicBoton -Boton $b }
+                Write-Paso "Aviso de sensor de HWiNFO: apreté '$nombre'"
+                Start-Sleep -Seconds 1
+                continue
+            }
+        }
+        $sens = Find-Ventana -Patron '(?i)sensor' -Proceso '(?i)hwinfo' -Seg 1
+    }
     if (-not $sens) { throw 'No apareció la ventana de sensores de HWiNFO' }
     $upd = Find-Ventana -Patron '(?i)update' -Proceso '(?i)hwinfo' -Seg 3
     if ($upd) { try { $upd.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close(); Write-Paso 'Cerré el aviso de actualización de HWiNFO' } catch { Write-Verbose $_ } }

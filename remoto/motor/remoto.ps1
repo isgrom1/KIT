@@ -59,6 +59,7 @@ $ErrorActionPreference = 'Continue'
 
 # 1. Diagnóstico del kit
 Write-Titulo '1/3 Revisando el computador'
+$env:KIT_REMOTO = '1'   # diagnostico.ps1 no le pide al familiar completar la ficha
 & $ps -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scripts 'diagnostico.ps1') -Clientes (Join-Path $trabajo 'diagnostico') 2>&1 |
     Tee-Object -FilePath (Join-Path $trabajo 'diagnostico.log') | Out-Host
 $codDiag = $LASTEXITCODE

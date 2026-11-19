@@ -41,7 +41,7 @@ function Get-VolumenesKit {
             LibrePct          = [math]::Round(100 * $_.FreeSpace / $_.Size, 1)
             UsadoBytes        = [double]($_.Size - $_.FreeSpace)
             EsSistema         = ($_.DeviceID -ieq $env:SystemDrive)
-            EsKit             = ($_.DeviceID -ieq $letraKit)
+            EsKit             = ($_.DeviceID -ieq $letraKit -and $_.DeviceID -ine $env:SystemDrive)   # el disco de Windows se recorre igual (diagnóstico remoto copiado a C:)
             Recorrido         = 'no'
             ContabilizadoGB   = $null
             NoContabilizadoGB = $null
