@@ -883,9 +883,17 @@ $ui.btnFotos.Add_Click({
             if (-not $dlg.ShowDialog($script:Win)) { return }
             $destino = Join-Path $script:G.Exp.Ruta 'fotos_recepcion'
             $null = [IO.Directory]::CreateDirectory($destino)
-            foreach ($f in $dlg.FileNames) { [IO.File]::Copy($f, (Join-Path $destino ('{0}_{1}' -f (Get-Date).ToString('yyyyMMdd_HHmmss'), [IO.Path]::GetFileName($f))), $false) }
-            Write-TrabajoLog -Expediente $script:G.Exp -Atencion $script:G.At -Texto "FICHA | $($dlg.FileNames.Count) fotos de recepción copiadas"
-            [void](Show-Aviso "Se copiaron $($dlg.FileNames.Count) fotos a fotos_recepcion.")
+            # Una foto por archivo: si una choca de nombre (dos en el mismo segundo), las demás igual se copian.
+            $copiadas = 0
+            $fallidas = New-Object System.Collections.Generic.List[string]
+            foreach ($f in $dlg.FileNames) {
+                try { [IO.File]::Copy($f, (Join-Path $destino ('{0}_{1}' -f (Get-Date).ToString('yyyyMMdd_HHmmss'), [IO.Path]::GetFileName($f))), $false); $copiadas++ }
+                catch { $fallidas.Add([IO.Path]::GetFileName($f)) }
+            }
+            if ($copiadas -gt 0) { Write-TrabajoLog -Expediente $script:G.Exp -Atencion $script:G.At -Texto "FICHA | $copiadas fotos de recepción copiadas" }
+            $msg = "Se copiaron $copiadas fotos a fotos_recepcion."
+            if ($fallidas.Count) { $msg += " No se pudo con: $($fallidas -join ', ')." }
+            if ($fallidas.Count -and -not $copiadas) { [void](Show-Aviso $msg -EsError) } else { [void](Show-Aviso $msg) }
         } catch { [void](Show-Aviso "No se pudieron copiar las fotos: $($_.Exception.Message)" -EsError) }
     })
 $ui.btnEntregado.Add_Click({
@@ -1115,11 +1123,12 @@ $ui.btnRelanzar.Add_Click({
         if ($script:G.Tarea) { [void](Show-Aviso 'Espera a que termine el trabajo en curso.'); return }
         try {
             # Se conserva la atención (y la carpeta de expedientes) al volver a abrir como admin.
-            $partes = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-STA', '-File', ('"' + $PSCommandPath + '"'))
+            # TrimEnd('\'): una ruta terminada en \ justo antes de la comilla rompe el parseo de Windows.
+            $partes = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-STA', '-File', ('"' + $PSCommandPath.TrimEnd('\') + '"'))
             if ($script:G.At) { $partes += @('-Atencion', ('"' + $script:G.At + '"')) }
-            if ($Clientes) { $partes += @('-Clientes', ('"' + $Clientes + '"')) }
-            if ($script:G.Ajeno) { $partes += @('-RutaExpediente', ('"' + $script:G.Exp.Ruta + '"')) }
-            if ($RutaMaestro) { $partes += @('-RutaMaestro', ('"' + $RutaMaestro + '"')) }
+            if ($Clientes) { $partes += @('-Clientes', ('"' + $Clientes.TrimEnd('\') + '"')) }
+            if ($script:G.Ajeno) { $partes += @('-RutaExpediente', ('"' + $script:G.Exp.Ruta.TrimEnd('\') + '"')) }
+            if ($RutaMaestro) { $partes += @('-RutaMaestro', ('"' + $RutaMaestro.TrimEnd('\') + '"')) }
             if ($Captura) {
                 # Prueba: la ventana elevada sigue el mismo escenario y guarda sus capturas en <Captura>\admin.
                 $partes += @('-Captura', ('"' + (Join-Path $Captura 'admin') + '"'))

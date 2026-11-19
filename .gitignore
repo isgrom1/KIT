@@ -9,7 +9,6 @@ KIT/scripts/config/config_local.json
 # Herramientas de terceros: tienen licencias propias y pesan; las baja actualizar_herramientas.ps1.
 KIT/herramientas/*
 !KIT/herramientas/versiones.json
-KIT/DDU/
 
 # Vistas previas, capturas y salidas de pruebas (traen datos del equipo).
 vista_previa_informe_*.pdf

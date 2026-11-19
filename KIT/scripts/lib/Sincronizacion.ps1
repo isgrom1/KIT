@@ -38,11 +38,6 @@ function Get-RutaMaestro {
 
 function Get-TextoArchivos { param([int]$N) if ($N -eq 1) { '1 archivo' } else { "$N archivos" } }
 
-function Get-HashArchivo {
-    param([Parameter(Mandatory)][string]$Ruta)
-    (Get-FileHash -LiteralPath $Ruta -Algorithm SHA256).Hash
-}
-
 function Get-IdKit {
     # Identifica este USB ante el maestro: el estado de la sincronización anterior se guarda por kit.
     [OutputType([string])]

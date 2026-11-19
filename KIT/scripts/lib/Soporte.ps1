@@ -36,7 +36,7 @@ function Export-PaqueteSoporte {
     $equipo = (@($f['equipo']['fabricante'], $f['equipo']['modelo']) | Where-Object { $_ }) -join '-'
     $equipo = [regex]::Replace($(if ($equipo) { $equipo } else { 'equipo' }), '[^\w\-]+', '-')
     $zip = Join-Path $Destino ('soporte_{0}_{1}.zip' -f $equipo, (Get-Date).ToString('yyyyMMdd_HHmmss'))
-    $utf8 = New-Object Text.UTF8Encoding($true)
+    $utf8 = $script:Utf8Bom
     $fs = [IO.File]::Open($zip, [IO.FileMode]::CreateNew)
     $z = New-Object IO.Compression.ZipArchive($fs, [IO.Compression.ZipArchiveMode]::Create)
     $agregar = {

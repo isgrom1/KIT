@@ -50,12 +50,14 @@ try {
     # Destino: el indicado o el único volumen llamado Ventoy.
     if (-not $Destino) {
         $vols = @(Get-CimInstance -ClassName Win32_LogicalDisk | Where-Object { $_.VolumeName -eq 'Ventoy' })
-        if ($vols.Count -ne 1) { throw "Encontré $($vols.Count) pendrives llamados Ventoy. Indica cuál con -Destino E:" }
+        if ($vols.Count -ne 1) { throw "Encontré $($vols.Count) pendrives llamados Ventoy. Indica cuál con -Destino F:" }
         $Destino = $vols[0].DeviceID
     }
     if ($Destino -match '^[A-Za-z]:?\\?$') { $Destino = $Destino.Substring(0, 1) + ':\' }
     $raiz = [IO.Path]::GetFullPath($Destino)
     if (-not [IO.Directory]::Exists($raiz)) { throw "No existe $raiz. ¿Está conectado el pendrive?" }
+    # E: nunca se usa para el kit: es un disco aparte de Isaac, ajeno a esto.
+    if ($raiz.Substring(0, 1) -ieq 'E') { throw 'E: no se usa nunca para el kit (es un disco aparte de Isaac): indica otra letra con -Destino.' }
     if ($raiz.TrimEnd('\') -ieq ([IO.Path]::GetFullPath($repo)).TrimEnd('\')) { throw 'El destino es este mismo repositorio: elige el pendrive.' }
     $kitDestino = Join-Path $raiz 'KIT'
     Write-Paso "Origen : $repo"

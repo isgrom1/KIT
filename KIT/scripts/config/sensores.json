@@ -1,4 +1,4 @@
-﻿{
+{
   "_leeme": "Cómo reconocer las columnas del CSV de sensores. Patrones = expresiones regulares (sin distinguir mayúsculas) sobre el nombre de la columna: HWiNFO en inglés y español, y LibreHardwareMonitor (lhm_tipo = tipo del sensor en su primera fila: temperature, clock, power, load, data, smalldata). Gana la primera columna que calce; 'agregado_max' y 'agregado_prom' combinan varias columnas por fila; 'cualquiera' marca la fila si alguna columna dice Yes/Sí. Lo que no calce queda null: nunca se inventa. Tramo bajo carga: si el uso total de CPU se mantiene sobre carga_uso_min_pct por al menos carga_min_minutos y el resto del archivo promedia carga_uso_reposo_pct o menos (reposo), las estadísticas salen solo de ese tramo. Si no (un juego, por ejemplo), o sin columna de uso, se usa todo el archivo.",
   "carga_uso_min_pct": 80,
   "carga_min_minutos": 3,

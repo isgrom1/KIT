@@ -78,7 +78,7 @@ function Get-ArchivosMaestro {
     param([Parameter(Mandatory)][string]$Maestro)
     $raiz = [IO.Path]::GetFullPath($Maestro).TrimEnd('\')
     foreach ($f in @([IO.Directory]::GetFiles($raiz, '*', [IO.SearchOption]::AllDirectories) | Sort-Object)) {
-        [pscustomobject]@{ Relativa = $f.Substring($raiz.Length + 1); Ruta = $f; Hash = (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash; Bytes = (New-Object IO.FileInfo($f)).Length }
+        [pscustomobject]@{ Relativa = $f.Substring($raiz.Length + 1); Ruta = $f; Hash = (Get-HashArchivo -Ruta $f); Bytes = (New-Object IO.FileInfo($f)).Length }
     }
 }
 
@@ -117,7 +117,7 @@ function Read-ArchivosRespaldo {
             $largo = $br.ReadInt32()
             if ($largo -lt 0) { break }
             $rel = [Text.Encoding]::UTF8.GetString($br.ReadBytes($largo))
-            if ($rel -match '(^|\\)\.\.(\\|$)' -or [IO.Path]::IsPathRooted($rel)) { throw "Ruta no válida en el respaldo: $rel" }
+            if ($rel -match '([\\/]|^)\.\.([\\/]|$)' -or [IO.Path]::IsPathRooted($rel)) { throw "Ruta no válida en el respaldo: $rel" }
             $tam = $br.ReadInt64()
             $hashGuardado = -join ($br.ReadBytes(32) | ForEach-Object { $_.ToString('X2') })
             $sha = [Security.Cryptography.SHA256]::Create()
