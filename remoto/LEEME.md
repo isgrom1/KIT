@@ -24,7 +24,15 @@ powershell -ExecutionPolicy Bypass -File .\remoto\armar_paquete.ps1
 Deja `remoto\_salida\Diagnostico_remoto_<fecha>.zip` (~190 MB, con OCCT y HWiNFO). Usa las herramientas
 de `KIT\herramientas` (o `-Herramientas D:\KIT\herramientas`). `remoto\_salida` no va a GitHub.
 
-## Lo más fácil: arrastrar y soltar
+## Lo más rápido: CENTRO.cmd
+
+Acceso directo "Centro remoto KIT" en el Escritorio (o `remoto\CENTRO.cmd`). Menú con números:
+1 abrir lo que llegó (busca los `.kitdiag` nuevos en el pendrive, Descargas y Escritorio), 2 armar un trabajo
+remoto de un diagnóstico ya abierto (y copia el ZIP a `PARA_ENVIAR` del pendrive), 3 carpeta Para enviar,
+4 carpeta de remotos, 5 rearmar el ZIP del diagnóstico y copiarlo al pendrive. El pendrive se reconoce solo
+(la unidad con `KIT\INICIAR.cmd`).
+
+## También: arrastrar y soltar
 
 - **`remoto\ABRIR_KITDIAG.cmd`**: arrastra encima el `.kitdiag` que te mandaron (diagnóstico o trabajo).
   Lo abre en `X:\kitservicio_datos\remotos\<nombre>` (con una copia del `.kitdiag`), nunca en el pendrive ni en Descargas,`r`n  y abre el PDF para el cliente y tu hoja técnica. Si ya lo abriste, crea `<nombre>_2`.
