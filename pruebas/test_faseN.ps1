@@ -122,6 +122,32 @@ try {
     Assert 'bienvenida con paquete bueno: ventana con el código (código 0)' ($LASTEXITCODE -eq 0 -and [IO.File]::Exists($png) -and (Get-Item $png).Length -gt 20000)
     $rc = Invoke-Trabajo -Paquete $cm -Argumentos @('-Si', '-Estado', (Join-Path $tmp 'estado_cm'))
     Assert 'trabajo.ps1 con un script cambiado: no aplica nada' ($rc.Codigo -eq 3 -and $rc.Salida -match 'no es de Isaac' -and -not (Test-Path (Join-Path $tmp 'estado_cm'))) $rc.Salida
+    '== Código por cliente (diagnóstico a distancia)'
+    $kc = [byte[]](1..32); $hoy = [datetime]'2026-11-20'
+    $cc = New-CodigoCliente -Nombre 'Beli Pérez' -Clave $kc -Hoy $hoy
+    Assert 'formato NOMBRE-XXXX-XXXX, sin tildes' ($cc -cmatch '^BELIPEREZ-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$') $cc
+    $tc = Test-CodigoCliente -Codigo $cc -Clave $kc -Hoy $hoy
+    Assert 'válido, con nombre y vencimiento a 7 días' ($tc.Ok -and $tc.Nombre -eq 'BELIPEREZ' -and $tc.Vence -eq $hoy.AddDays(7)) "$($tc.Motivo)"
+    Assert 'perdona minúsculas y espacios' ((Test-CodigoCliente -Codigo ($cc.ToLower() -replace '-', ' ') -Clave $kc -Hoy $hoy).Ok)
+    Assert 'el día del vencimiento todavía sirve; al otro no' ((Test-CodigoCliente -Codigo $cc -Clave $kc -Hoy $hoy.AddDays(7)).Ok -and (Test-CodigoCliente -Codigo $cc -Clave $kc -Hoy $hoy.AddDays(8)).Motivo -match 'venció')
+    Assert 'con otro nombre no sirve' (-not (Test-CodigoCliente -Codigo ($cc -replace '^BELIPEREZ', 'JUAN') -Clave $kc -Hoy $hoy).Ok)
+    $ult = $cc.Substring($cc.Length - 1); $otra = if ($ult -eq 'Z') { 'Y' } else { 'Z' }
+    Assert 'una letra cambiada no sirve' (-not (Test-CodigoCliente -Codigo ($cc.Substring(0, $cc.Length - 1) + $otra) -Clave $kc -Hoy $hoy).Ok)
+    Assert 'con otra clave no sirve' (-not (Test-CodigoCliente -Codigo $cc -Clave ([byte[]](2..33)) -Hoy $hoy).Ok)
+    Assert 'vacío o incompleto: pide el código' ((Test-CodigoCliente -Codigo '' -Clave $kc).Motivo -match 'Escribe' -and (Test-CodigoCliente -Codigo 'BELI-12' -Clave $kc).Motivo -match 'completo')
+    # Paquete de diagnóstico mínimo, firmado con la llave de prueba, para la ventana.
+    $pd = Join-Path $tmp 'diag_codigo'; $null = [IO.Directory]::CreateDirectory((Join-Path $pd 'motor'))
+    foreach ($f in 'bienvenida.ps1', 'Cifrado.ps1') { Copy-Item (Join-Path $repo "remoto\motor\$f") (Join-Path $pd 'motor') }
+    Copy-Item (Join-Path $repo 'remoto\paquete\DIAGNOSTICO.cmd') $pd
+    [IO.File]::WriteAllText((Join-Path $pd 'motor\llave_publica.xml'), $llaves.Publica)
+    [IO.File]::WriteAllText((Join-Path $pd 'motor\codigos.dat'), [Convert]::ToBase64String($kc), [Text.Encoding]::ASCII)
+    $null = Write-ManifiestoPaquete -Raiz $pd -LlavePrivadaXml $llaves.Privada
+    Assert 'la clave de códigos viaja firmada en el paquete' (@((Get-Content (Join-Path $pd 'motor\manifiesto.json') -Raw | ConvertFrom-Json).archivos.ruta) -contains 'motor\codigos.dat' -and [Convert]::ToBase64String((Get-ClaveCodigosPaquete -Motor (Join-Path $pd 'motor'))) -eq [Convert]::ToBase64String($kc))
+    $hoyCod = New-CodigoCliente -Nombre 'Prueba' -Clave $kc
+    $png2 = Join-Path $tmp 'bienvenida_codigo.png'
+    & $ps -NoProfile -STA -ExecutionPolicy Bypass -File (Join-Path $pd 'motor\bienvenida.ps1') -Modo Diagnostico -Captura $png2 -CodigoPrueba $hoyCod 2>&1 | Out-Null
+    Assert 'ventana del diagnóstico con el campo del código (código 0)' ($LASTEXITCODE -eq 0 -and [IO.File]::Exists($png2) -and (Get-Item $png2).Length -gt 20000)
+    Assert 'DIAGNOSTICO.cmd en ASCII y pasa el código a remoto.ps1' (@([IO.File]::ReadAllBytes((Join-Path $pd 'DIAGNOSTICO.cmd')) | Where-Object { $_ -gt 127 }).Count -eq 0 -and [IO.File]::ReadAllText((Join-Path $pd 'DIAGNOSTICO.cmd')) -match '-Codigo "%~2"')
     '== trabajo.ps1 rechaza sin tocar nada'
     $mod = Join-Path $tmp 'modificado'
     Copy-Item $p.Carpeta $mod -Recurse

@@ -78,10 +78,7 @@ a { color:#0891b2; } @media (prefers-color-scheme: dark) { a { color:#5eead4; } 
     </p>
   </section>
 
-  <section class="tarjeta codigo">
-    <div>
-      <h2>✓ Cómo saber que es de Isaac</h2>
-      <div class="chico" style="font-size:15px;max-width:520px">Al abrir <b>DIAGNOSTICO.cmd</b> se abre una ventana que comprueba la firma de Isaac en cada archivo. Tiene que decir <b>“Paquete verificado”</b> y mostrar este mismo código. Si muestra otro, o dice que el paquete fue modificado, no sigas.</div>
+Paquete“Paquete verificado”</b> y mostrar este mismo código. Si muestra otro, o dice que el paquete fue modificado, no sigas.</div>
     </div>
     <b class="cod">ISAAC · 5668-C92C</b>
   </section>
@@ -91,11 +88,11 @@ a { color:#0891b2; } @media (prefers-color-scheme: dark) { a { color:#5eead4; } 
     <ol class="pasos">
       <li>Descarga el ZIP y descomprímelo (clic derecho &gt; <b>Extraer todo</b>).</li>
       <li>Cierra juegos y programas pesados. Si es notebook, déjalo enchufado.</li>
-      <li>Abre la carpeta y haz doble clic en <b>DIAGNOSTICO.cmd</b>. Revisa que la ventana diga <b>Paquete verificado</b> con el código de arriba.</li>
-      <li>Aprieta <b>Empezar</b> y acepta el permiso de administrador. Espera unos 20 minutos sin usar el computador: se abren solos dos programas de prueba, no los toques.</li>
+      <li>Abre la carpeta y haz doble clic en <b>DIAGNOSTICO.cmd</b>. Se abre una ventana que te explica lo que va a hacer.</li>
+      <li>Aprieta <b>Empezar</b> (si te pide un código, escribe el que te mandó Isaac) y acepta el permiso de administrador. Espera unos 20 minutos sin usar el computador: se abren solos dos programas de prueba, no los toques.</li>
       <li>Al final se abre tu informe en el navegador y queda un archivo <b>Diagnostico_para_Isaac_….kitdiag</b>. Mándaselo a Isaac por WhatsApp o correo.</li>
     </ol>
-    <div class="aviso"><b>Si Windows dice “Windows protegió su PC”:</b> aprieta <i>Más información</i> y después <i>Ejecutar de todas formas</i>. Sale con cualquier programa que no es de una gran empresa. La seguridad la da la ventana de verificación con el código de Isaac.</div>
+    <div class="aviso"><b>Si Windows dice “Windows protegió su PC”:</b> aprieta <i>Más información</i> y después <i>Ejecutar de todas formas</i>. Sale con cualquier programa que no es de una gran empresa.</div>
   </section>
 
   <section class="grid">
@@ -114,15 +111,16 @@ a { color:#0891b2; } @media (prefers-color-scheme: dark) { a { color:#5eead4; } 
         <li>No instala programas ni cambia la configuración de Windows.</li>
         <li>No mira tus documentos, fotos, contraseñas ni historial.</li>
         <li>No usa internet: el archivo lo mandas tú, cuando quieras.</li>
-        <li>No cobra nada por sí solo: el diagnóstico de Isaac se conversa con él.</li>
+        <li>No cobra nada por sí solo: lo que sigue se conversa con Isaac.</li>
       </ul>
     </div>
   </section>
 
   <section class="tarjeta">
     <h2>Para los que quieren revisar más</h2>
+    <p class="chico">Cada paquete viene firmado por Isaac: la ventana lo comprueba sola y muestra arriba, en chico, <b>✓ Paquete de Isaac · 5668-C92C</b>. Si en cambio dice que el paquete fue modificado, no sigas y avísale.</p>
     <p class="chico">El código de los scripts es público y se puede leer en <a href="https://github.com/isgrom1/KIT">github.com/isgrom1/KIT</a> (carpeta <code>remoto</code>). Cada paquete trae <code>motor\manifiesto.json</code> con la huella SHA-256 de cada archivo, firmada con la llave RSA-3072 de Isaac; el código de Isaac son los primeros 8 caracteres del SHA-256 del módulo de esa llave.</p>
-    <p class="chico">Huella SHA-256 del ZIP publicado:<br><code id="huella">f3fabdfe3117c16506ba2f5431baaec0ce291bfd1f9eed0dd8a20ab26d0c6cb6</code></p>
+    <p class="chico">Huella SHA-256 del ZIP publicado:<br><code id="huella">0b3b6d3527093f3c710deb617e065a72b558eae05be4517888790c4c811a0fc3</code></p>
   </section>
 
   <footer>¿Dudas? Escríbele a Isaac por el mismo WhatsApp desde donde te llegó este link.</footer>

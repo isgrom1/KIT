@@ -6,8 +6,7 @@ Solo sirve para tu computador, y todo se puede deshacer.
 
 CÓMO SE USA
 1. Descomprime el ZIP (clic derecho > Extraer todo).
-2. Abre la carpeta y haz doble clic en TRABAJO.cmd. Se abre una ventana que comprueba que el paquete es de Isaac:
-   tiene que mostrar el mismo código que él te mandó (ISAAC · ....-....). Aprieta Empezar y acepta el permiso.
+2. Abre la carpeta y haz doble clic en TRABAJO.cmd. Se abre una ventana de Isaac: aprieta Empezar y acepta el permiso.
    - Si Windows dice "Windows protegió su PC": Más información > Ejecutar de todas formas.
 3. Te muestra los cambios. Escribe SI y presiona Enter para aplicarlos.
 4. REINICIA el computador.

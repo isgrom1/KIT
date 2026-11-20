@@ -72,6 +72,12 @@ Write-Host "Listo: $Destino" -ForegroundColor Green
 $res = Join-Path $Destino 'RESUMEN.txt'
 if ([IO.File]::Exists($res)) { Get-Content -LiteralPath $res -Encoding UTF8 }
 
+# El código con que se corrió dice de qué cliente es (diagnósticos desde la fase Q).
+$rutaCod = Join-Path $Destino 'codigo.json'
+if (-not $Cliente -and [IO.File]::Exists($rutaCod)) {
+    try { $Cliente = "$((Get-Content -LiteralPath $rutaCod -Raw -Encoding UTF8 | ConvertFrom-Json).cliente)"; Write-Host "Cliente (por su código): $Cliente" -ForegroundColor Cyan } catch { Write-Verbose $_ }
+}
+
 # Informe para el cliente (PDF con diseño): lo arma la misma librería que usa el kit del pendrive.
 $pdf = $null
 $tec = $null

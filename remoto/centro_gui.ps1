@@ -121,7 +121,8 @@ $xaml = @'
           </DockPanel>
         </Border>
       </Grid>
-      <UniformGrid Grid.Row="2" Columns="3" Margin="0,12,0,0">
+      <UniformGrid Grid.Row="2" Columns="4" Margin="0,12,0,0">
+        <Button x:Name="btnCodigo" Content="CÓDIGO CLIENTE"/>
         <Button x:Name="btnEnviar" Content="PARA ENVIAR"/>
         <Button x:Name="btnRemotos" Content="REMOTOS"/>
         <Button x:Name="btnRearmar" Content="REARMAR DIAGNÓSTICO"/>
@@ -150,7 +151,7 @@ function Initialize-IconoVentana {
 $w = [Windows.Markup.XamlReader]::Parse($xaml)
 $w.Add_ContentRendered({ Initialize-IconoVentana -Ventana $w })
 $ui = @{}
-foreach ($n in 'vu', 'txtEstado', 'ledPen', 'txtPen', 'chkVer', 'btnAbrir', 'lstLlego', 'cmbDiag', 'btnArmar', 'pnlAcciones', 'btnEnviar', 'btnRemotos', 'btnRearmar') { $ui[$n] = $w.FindName($n) }
+foreach ($n in 'vu', 'txtEstado', 'ledPen', 'txtPen', 'chkVer', 'btnAbrir', 'lstLlego', 'cmbDiag', 'btnArmar', 'pnlAcciones', 'btnEnviar', 'btnRemotos', 'btnRearmar', 'btnCodigo') { $ui[$n] = $w.FindName($n) }
 $script:Proc = $null
 $script:AlTerminar = $null
 $script:Acciones = @()
@@ -301,6 +302,17 @@ $ui.btnArmar.Add_Click({
                 Show-Estado "Listo: $($zip.Name) copiado a $dest"
             } else { Show-Estado "Listo: $($zip.FullName) (conecta el pendrive para llevarlo)" }
         }
+    })
+$ui.btnCodigo.Add_Click({
+        # Código para un cliente: lo pide la ventana del diagnóstico a distancia. El mensaje queda copiado.
+        Add-Type -AssemblyName Microsoft.VisualBasic
+        $nombre = [Microsoft.VisualBasic.Interaction]::InputBox('Nombre del cliente (para reconocerlo: Beli, JuanPerez):', 'Código para un cliente', '')
+        if (-not "$nombre".Trim()) { return }
+        try {
+            $r = & (Join-Path $aqui 'codigo_cliente.ps1') -Nombre $nombre -PassThru
+            Show-Estado "Código $($r.Codigo) (vence el $($r.Vence.ToString('dd-MM'))): mensaje copiado, pégalo en WhatsApp."
+            [void][Windows.MessageBox]::Show($w, "$($r.Mensaje)`r`n`r`n(Ya está copiado: pégalo en WhatsApp.)", "Código $($r.Codigo)")
+        } catch { Show-Estado "No se pudo crear el código: $($_.Exception.Message)" }
     })
 $ui.btnEnviar.Add_Click({
         $pe = Join-Path $aqui '_salida\Para_enviar'

@@ -9,10 +9,9 @@ CÓMO SE USA
 2. Cierra los juegos y programas pesados. Si es notebook, déjalo enchufado.
 3. Abre la carpeta y haz doble clic en DIAGNOSTICO.cmd.
    - Si Windows dice "Windows protegió su PC": Más información > Ejecutar de todas formas.
-   - Se abre una ventana de Isaac que comprueba que el paquete es suyo y que nadie lo cambió.
-     Tiene que mostrar el mismo código que te mandó Isaac por WhatsApp (ISAAC · ....-....).
-     Si dice que el paquete NO es de Isaac, no sigas y avísale.
+   - Se abre una ventana de Isaac que explica lo que hace. Si te pide un código, escribe el que te dio.
    - Aprieta Empezar y acepta el permiso de administrador.
+   - (La ventana también comprueba que el paquete es de Isaac; si dice que fue modificado, no sigas y avísale.)
 4. Espera unos 20 minutos sin usar el computador. Se abren solos HWiNFO y OCCT: no los toques.
    El computador se va a calentar y el ventilador va a sonar fuerte: es normal, es la prueba.
 5. Al final queda en tu Escritorio un archivo "Diagnostico_para_Isaac_....kitdiag" y se abre

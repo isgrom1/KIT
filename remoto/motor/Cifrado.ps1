@@ -208,3 +208,108 @@ function Read-LlavePrivadaIsaac {
     Add-Type -AssemblyName System.Security
     [Text.Encoding]::UTF8.GetString([Security.Cryptography.ProtectedData]::Unprotect([IO.File]::ReadAllBytes($ruta), $null, 'CurrentUser'))
 }
+
+# ---------------------------------------------------------------- código por cliente
+# El diagnóstico a distancia pide un código que Isaac le da a cada cliente: NOMBRE-XXXX-XXXX.
+# XXXX-XXXX (base32 de Crockford, sin I L O U) lleva el día de vencimiento (2 bytes, días desde 2026-01-01) y
+# 3 bytes de HMAC-SHA256 de "NOMBRE|día" con una clave que está en el PC de Isaac y dentro del paquete
+# (motor\codigos.dat), nunca en el repositorio. Es una barrera para que un link reenviado no sirva a
+# cualquiera, no seguridad dura: el paquete funciona sin internet y alguien técnico podría sacar la clave.
+
+$script:Base32Kit = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
+$script:DiaCeroCodigos = [datetime]'2026-01-01'
+
+function Get-NombreCodigo {
+    # "Beli Pérez" -> "BELIPEREZ" (A-Z y 0-9, sin tildes, máximo 12).
+    param([string]$Nombre)
+    $s = -join ("$Nombre".Normalize([Text.NormalizationForm]::FormD).ToCharArray() | Where-Object { [Globalization.CharUnicodeInfo]::GetUnicodeCategory($_) -ne 'NonSpacingMark' })
+    $s = ($s.ToUpperInvariant() -replace '[^A-Z0-9]', '')
+    if ($s.Length -gt 12) { $s = $s.Substring(0, 12) }
+    $s
+}
+
+function Get-FirmaCodigo {
+    # 5 bytes: día de vencimiento (2) + HMAC (3).
+    param([string]$Nombre, [int]$Dia, [byte[]]$Clave)
+    $mac = New-Object Security.Cryptography.HMACSHA256 -ArgumentList (, $Clave)
+    try { $h = $mac.ComputeHash([Text.Encoding]::UTF8.GetBytes("$Nombre|$Dia")) } finally { $mac.Dispose() }
+    [byte[]]@([byte](($Dia -shr 8) -band 255), [byte]($Dia -band 255), $h[0], $h[1], $h[2])
+}
+
+function ConvertTo-Base32Kit {
+    param([byte[]]$Bytes)
+    $n = [uint64]0
+    foreach ($b in $Bytes) { $n = ($n -shl 8) -bor $b }
+    $s = ''
+    for ($i = 7; $i -ge 0; $i--) { $s += $script:Base32Kit[[int](($n -shr (5 * $i)) -band 31)] }
+    $s
+}
+
+function New-CodigoCliente {
+    # Código para un cliente: NOMBRE-XXXX-XXXX, vence en -Dias días (a las 23:59 de ese día).
+    [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([string])]
+    param([Parameter(Mandatory)][string]$Nombre, [int]$Dias = 7, [Parameter(Mandatory)][byte[]]$Clave, [datetime]$Hoy = (Get-Date))
+    $nom = Get-NombreCodigo $Nombre
+    if (-not $nom) { throw 'El nombre del cliente tiene que tener letras o números.' }
+    $dia = [int]($Hoy.Date.AddDays($Dias) - $script:DiaCeroCodigos).TotalDays
+    if (-not $PSCmdlet.ShouldProcess($nom, 'Crear código')) { return }
+    $c = ConvertTo-Base32Kit (Get-FirmaCodigo -Nombre $nom -Dia $dia -Clave $Clave)
+    '{0}-{1}-{2}' -f $nom, $c.Substring(0, 4), $c.Substring(4, 4)
+}
+
+function Test-CodigoCliente {
+    # ¿Código válido y vigente? Devuelve Ok, Nombre, Vence (fecha), Codigo (normalizado) y Motivo (para el cliente).
+    param([string]$Codigo, [Parameter(Mandatory)][byte[]]$Clave, [datetime]$Hoy = (Get-Date))
+    $r = [pscustomobject]@{ Ok = $false; Nombre = $null; Vence = $null; Codigo = $null; Motivo = 'Escribe el código que te dio Isaac.' }
+    # Se perdona lo que se confunde al escribir: espacios, minúsculas, O por 0, I y L por 1.
+    $s = ("$Codigo".ToUpperInvariant() -replace '[\s_]', '' -replace '[^A-Z0-9-]', '')
+    if (-not $s) { return $r }
+    $m = [regex]::Match($s, '^([A-Z0-9]{1,12})-?([A-Z0-9]{4})-?([A-Z0-9]{4})$')
+    if (-not $m.Success) { $r.Motivo = 'El código no está completo: es NOMBRE-XXXX-XXXX.'; return $r }
+    $nom = $m.Groups[1].Value
+    $cuerpo = ($m.Groups[2].Value + $m.Groups[3].Value) -replace 'O', '0' -replace '[IL]', '1'
+    $n = [uint64]0
+    foreach ($ch in $cuerpo.ToCharArray()) {
+        $v = $script:Base32Kit.IndexOf($ch)
+        if ($v -lt 0) { $r.Motivo = 'El código tiene una letra que no corresponde: revísalo.'; return $r }
+        $n = ($n -shl 5) -bor [uint64]$v
+    }
+    $bytes = [byte[]]@(4, 3, 2, 1, 0 | ForEach-Object { [byte](($n -shr (8 * $_)) -band 255) })
+    $dia = ([int]$bytes[0] -shl 8) -bor [int]$bytes[1]
+    $esperado = Get-FirmaCodigo -Nombre $nom -Dia $dia -Clave $Clave
+    $dif = 0
+    for ($i = 0; $i -lt 5; $i++) { $dif = $dif -bor ($esperado[$i] -bxor $bytes[$i]) }
+    if ($dif -ne 0) { $r.Motivo = 'Ese código no es válido: revísalo o pídele uno a Isaac.'; return $r }
+    $vence = $script:DiaCeroCodigos.AddDays($dia)
+    $r.Nombre = $nom; $r.Vence = $vence; $r.Codigo = '{0}-{1}-{2}' -f $nom, $cuerpo.Substring(0, 4), $cuerpo.Substring(4, 4)
+    if ($Hoy.Date -gt $vence) { $r.Motivo = "El código venció el $($vence.ToString('dd-MM-yyyy')): pídele uno nuevo a Isaac."; return $r }
+    $r.Ok = $true; $r.Motivo = $null
+    $r
+}
+
+function Get-ClaveCodigosPaquete {
+    # La clave de códigos que viene en el paquete (motor\codigos.dat, base64). $null si no está.
+    param([Parameter(Mandatory)][string]$Motor)
+    $f = Join-Path $Motor 'codigos.dat'
+    if (-not [IO.File]::Exists($f)) { return $null }
+    , [Convert]::FromBase64String([IO.File]::ReadAllText($f).Trim())
+}
+
+function Get-RutaClaveCodigo {
+    # En el PC de Isaac: <carpeta del maestro>\..\privado\clave_codigos.dat (fuera del repo y del pendrive).
+    # -Crear la genera (32 bytes al azar) si no existe. $null si no hay maestro configurado.
+    param([Parameter(Mandatory)][string]$Repo, [switch]$Crear)
+    $cfg = Get-Content -LiteralPath (Join-Path $Repo 'KIT\scripts\config\config.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    $m = "$($cfg.sincronizacion.ruta_maestro)"
+    if (-not $m -or -not [IO.Directory]::Exists((Split-Path -Parent $m))) { return $null }
+    $ruta = Join-Path (Split-Path -Parent $m) 'privado\clave_codigos.dat'
+    if ($Crear -and -not [IO.File]::Exists($ruta)) {
+        $null = [IO.Directory]::CreateDirectory((Split-Path -Parent $ruta))
+        $b = New-Object byte[] 32
+        $rng = New-Object Security.Cryptography.RNGCryptoServiceProvider
+        $rng.GetBytes($b); $rng.Dispose()
+        [IO.File]::WriteAllText($ruta, [Convert]::ToBase64String($b), [Text.Encoding]::ASCII)
+    }
+    $ruta
+}

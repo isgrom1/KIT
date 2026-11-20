@@ -63,8 +63,15 @@ Get-ChildItem -LiteralPath (Join-Path $dHerr 'OCCT') -Recurse -File -Filter '*.b
 Write-Host "Prueba fija de OCCT: $($r.Estado) ($($r.Cambios) cambios)"
 if ($r.NoEncontrados) { Write-Host "  No encontrados en OCCT.config.json: $($r.NoEncontrados -join ', ')" -ForegroundColor Yellow }
 
-# Firma de Isaac: lista de archivos con su huella, firmada. En el equipo se comprueba antes de pedir admin.
+# Clave de los códigos por cliente (privado\clave_codigos.dat, fuera del repo): la ventana valida con ella.
 . (Join-Path $PSScriptRoot 'motor\Cifrado.ps1')
+$rutaClave = Get-RutaClaveCodigo -Repo (Split-Path -Parent $PSScriptRoot) -Crear
+if (-not $rutaClave) { throw 'No está la carpeta del maestro (config.json, sincronizacion.ruta_maestro): ahí va la clave de los códigos.' }
+$cfgRem = (Get-Content -LiteralPath (Join-Path $kitScripts 'config\config.json') -Raw -Encoding UTF8 | ConvertFrom-Json).remoto
+if ($cfgRem.pedir_codigo) { Copy-Item -LiteralPath $rutaClave -Destination (Join-Path $motor 'codigos.dat'); Write-Host 'Código por cliente: SÍ (la ventana lo pide)' -ForegroundColor Cyan }
+else { Write-Host 'Código por cliente: no (config.json, remoto.pedir_codigo)' -ForegroundColor Gray }
+
+# Firma de Isaac: lista de archivos con su huella, firmada. En el equipo se comprueba antes de pedir admin.
 if (-not $LlavePrivadaXml) { $LlavePrivadaXml = Read-LlavePrivadaIsaac }
 $nFirmados = Write-ManifiestoPaquete -Raiz $dir -LlavePrivadaXml $LlavePrivadaXml
 $LlavePrivadaXml = $null

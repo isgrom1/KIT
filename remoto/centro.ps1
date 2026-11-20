@@ -8,6 +8,7 @@
     3  Para enviar: abre la carpeta con un pack por carpeta (la arma si no está).
     4  Abrir la carpeta de remotos (lo ya abierto: informes, hojas técnicas).
     5  Rearmar el diagnóstico para mandar (ZIP nuevo + Para enviar + copia al pendrive).
+    6  Código para un cliente: lo pide la ventana del diagnóstico; deja copiado el mensaje para WhatsApp.
     El pendrive se reconoce solo: la unidad que tiene KIT\INICIAR.cmd.
 #>
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Menú de consola para Isaac')]
@@ -71,6 +72,7 @@ while ($true) {
     Write-Host '  3) Para enviar (un pack por carpeta)'
     Write-Host '  4) Abrir la carpeta de remotos'
     Write-Host '  5) Rearmar el diagnóstico para mandar'
+    Write-Host '  6) Código para un cliente (y el mensaje para WhatsApp)'
     Write-Host '  0) Salir'
     $op = Read-Host ' Opción'
     switch ($op) {
@@ -117,6 +119,7 @@ while ($true) {
                 Write-Host " Copiado al pendrive: $(Join-Path $dest $zip.Name)" -ForegroundColor Green
             }
         }
+        '6' { & $ps -NoProfile -ExecutionPolicy Bypass -File (Join-Path $aqui 'codigo_cliente.ps1') }
         '0' { return }
         default { continue }
     }

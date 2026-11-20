@@ -30,9 +30,8 @@ if (-not $cat.Count) { throw 'No hay catálogo de packs en config.json' }
 $tec = $script:Ctx.Config.tecnico
 $firma = "$($tec.nombre)$(if ($tec.contacto) { " · $($tec.contacto)" })"
 $utf8 = New-Object Text.UTF8Encoding $true
-# Código de Isaac (sale de su llave pública): el cliente lo compara con el que muestra la ventana del paquete.
-. (Join-Path $PSScriptRoot 'motor\Cifrado.ps1')
-$codigo = "ISAAC · $(Get-CodigoIsaac -LlavePublicaXml ([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'llave_publica.xml'))))"
+# ¿El diagnóstico pide código por cliente? (config.json, remoto.pedir_codigo)
+$pideCodigo = [bool]$script:Ctx.Config.remoto.pedir_codigo
 
 if ([IO.Directory]::Exists($Salida)) { Remove-Item -LiteralPath $Salida -Recurse -Force }
 $null = [IO.Directory]::CreateDirectory($Salida)
@@ -72,7 +71,7 @@ foreach ($p in $cat) {
         $l.Add('')
         $l.Add('CÓMO SE USA')
         $l.Add('1. Descomprime el ZIP (clic derecho > Extraer todo).')
-        $l.Add("2. Abre la carpeta y haz doble clic en DIAGNOSTICO.cmd. Se abre una ventana que comprueba que el paquete es mío: debe decir $codigo. Si es así, aprieta Empezar y acepta el permiso de administrador.")
+        $l.Add("2. Abre la carpeta y haz doble clic en DIAGNOSTICO.cmd. Se abre una ventana mía que explica lo que hace: aprieta Empezar$(if ($pideCodigo) { ' (antes escribe el código que te di)' }) y acepta el permiso de administrador.")
         $l.Add('3. Espera sin usar el computador hasta que diga LISTO (se abren solos dos programas: no los toques).')
         $l.Add('4. Al final se abre sola la carpeta con el archivo "Diagnostico_para_Isaac_....kitdiag": mándamelo.')
         $l.Add('5. También se abre tu informe en el navegador: cómo está tu equipo, explicado. Es para ti y queda guardado.')
@@ -83,8 +82,8 @@ foreach ($p in $cat) {
 
     # MENSAJE_WHATSAPP.txt
     $m = switch ($p.Mandar) {
-        'diagnostico' { "¡Hola! Te mando el $($p.Nombre.ToLower()) ($precio). $($p.Resumen) Descomprime el ZIP, abre DIAGNOSTICO.cmd, acepta el permiso y espera unos 20 minutos sin usar el computador. Al final me mandas el archivo .kitdiag que queda en tu Escritorio (va cifrado, solo yo lo puedo abrir). Al terminar también se te abre un informe de cómo está tu equipo. Para que sepas que es mío: al abrirlo, la ventana tiene que mostrar el código $codigo. Si no es ese, no sigas y avísame. Te adjunto también QUE_HACE.txt con el detalle." }
-        'trabajo' { "¡Hola! Te cuento de la $($p.Nombre.ToLower()) ($precio). $($p.Resumen) Primero te mando el diagnóstico a distancia; con eso te preparo un paquete solo para tu computador, que te muestra los cambios antes de aplicarlos y se puede deshacer. Mis paquetes siempre muestran el código $codigo al abrirlos. Te adjunto QUE_HACE.txt con el detalle." }
+        'diagnostico' { "¡Hola! Te mando el $($p.Nombre.ToLower()) ($precio). $($p.Resumen) Descomprime el ZIP, abre DIAGNOSTICO.cmd, acepta el permiso y espera unos 20 minutos sin usar el computador. Al final me mandas el archivo .kitdiag que queda en tu Escritorio (va cifrado, solo yo lo puedo abrir). Al terminar también se te abre un informe de cómo está tu equipo.$(if ($pideCodigo) { ' Al abrirlo te pide tu código: [TU CÓDIGO: créalo con CÓDIGO CLIENTE en el Centro, que arma este mismo mensaje].' }) Te adjunto también QUE_HACE.txt con el detalle." }
+        'trabajo' { "¡Hola! Te cuento de la $($p.Nombre.ToLower()) ($precio). $($p.Resumen) Primero te mando el diagnóstico a distancia; con eso te preparo un paquete solo para tu computador, que te muestra los cambios antes de aplicarlos y se puede deshacer. Te adjunto QUE_HACE.txt con el detalle." }
         default { "¡Hola! Te cuento del servicio $($p.Nombre.ToLower()) ($precio). $($p.Resumen) Te adjunto QUE_HACE.txt con el detalle. ¿Te acomoda que coordinemos?" }
     }
     [IO.File]::WriteAllText((Join-Path $dir 'MENSAJE_WHATSAPP.txt'), "$m`r`n`r`n$firma`r`n", $utf8)

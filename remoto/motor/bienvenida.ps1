@@ -13,7 +13,8 @@
 [CmdletBinding()]
 param(
     [ValidateSet('Diagnostico', 'Trabajo')][string]$Modo = 'Diagnostico',
-    [string]$Captura
+    [string]$Captura,
+    [string]$CodigoPrueba   # solo pruebas y capturas: código ya escrito
 )
 $ErrorActionPreference = 'Stop'
 $motor = $PSScriptRoot
@@ -21,6 +22,11 @@ $raiz = Split-Path -Parent $motor
 . (Join-Path $motor 'Cifrado.ps1')
 $cmd = Join-Path $raiz $(if ($Modo -eq 'Trabajo') { 'TRABAJO.cmd' } else { 'DIAGNOSTICO.cmd' })
 $v = Test-ManifiestoPaquete -Raiz $raiz
+# Diagnóstico: además del paquete firmado, pide el código que Isaac le dio a este cliente.
+# Solo si el paquete trae la clave de códigos (Isaac lo decide al armarlo); si no, es libre.
+$claveCod = if ($Modo -eq 'Diagnostico') { Get-ClaveCodigosPaquete -Motor $motor } else { $null }
+$pideCodigo = [bool]$claveCod
+$script:CodigoOk = $null
 
 $titulo = if ($Modo -eq 'Trabajo') { 'Trabajo de Isaac en tu computador' } else { 'Diagnóstico para Isaac' }
 $intro = if ($Modo -eq 'Trabajo') { 'Isaac preparó cambios para que tu computador ande más rápido. En la ventana siguiente ves cada cambio y decides si aplicarlos. Después se reinicia y se mide cómo quedó.' }
@@ -36,7 +42,9 @@ function Start-PaqueteAdmin {
     [OutputType([bool])]
     param()
     if (-not $PSCmdlet.ShouldProcess($cmd, 'Abrir con administrador')) { return $false }
-    try { Start-Process -FilePath $cmd -ArgumentList '/admin' -Verb RunAs -WorkingDirectory $raiz; $true } catch { $false }
+    # El código va normalizado (solo A-Z, 0-9 y guiones): no puede meter nada raro en la línea del .cmd.
+    $argumentos = if ($script:CodigoOk) { "/admin $($script:CodigoOk.Codigo)" } else { '/admin' }
+    try { Start-Process -FilePath $cmd -ArgumentList $argumentos -Verb RunAs -WorkingDirectory $raiz; $true } catch { $false }
 }
 
 function Show-Consola {
@@ -52,6 +60,12 @@ function Show-Consola {
     }
     Write-Host " $intro"
     Write-Host " $duracion" -ForegroundColor Yellow
+    if ($pideCodigo) {
+        $c = Test-CodigoCliente -Codigo (Read-Host ' Código que te dio Isaac') -Clave $claveCod
+        if (-not $c.Ok) { Write-Host " $($c.Motivo)" -ForegroundColor Red; return }
+        $script:CodigoOk = $c
+        Write-Host " Código de $($c.Nombre): válido hasta el $($c.Vence.ToString('dd-MM-yyyy'))." -ForegroundColor Green
+    }
     $r = Read-Host ' Escribe SI y Enter para empezar (Windows te pedirá permiso de administrador)'
     if ("$r".Trim() -match '^(?i)s[ií]$') { if (-not (Start-PaqueteAdmin)) { Write-Host ' No se dio el permiso. Puedes volver a abrirlo cuando quieras.' -ForegroundColor Yellow } }
 }
@@ -76,6 +90,9 @@ $xaml = @"
     <Border.Effect><DropShadowEffect BlurRadius="30" ShadowDepth="6" Opacity="0.10"/></Border.Effect>
     <StackPanel>
       <DockPanel>
+        <Border DockPanel.Dock="Right" VerticalAlignment="Top" Padding="9,3" CornerRadius="9" Background="#ECFDF5" Visibility="$(if ($v.Ok) { 'Visible' } else { 'Collapsed' })" ToolTip="Los archivos tienen la firma de Isaac y nadie los cambió. Compáralo con el código que te mandó.">
+          <TextBlock FontSize="10.5" Foreground="#059669" FontFamily="Cascadia Mono, Consolas" Text="✓ Paquete de Isaac · $($v.Codigo)"/>
+        </Border>
         <Viewbox x:Name="vbLogo" Width="76" Height="55" Margin="0,0,16,0" VerticalAlignment="Center">
           <Canvas Width="64" Height="46">
             <Canvas.RenderTransform><TranslateTransform Y="-8"/></Canvas.RenderTransform>
@@ -99,7 +116,7 @@ $xaml = @"
         </StackPanel>
       </DockPanel>
       <TextBlock Text="$(ConvertTo-TextoXaml $intro)" TextWrapping="Wrap" Foreground="#475569" Margin="0,14,0,0"/>
-      <Border Margin="0,16,0,0" Padding="16,12" CornerRadius="14" Background="$okFondo" BorderBrush="$okColor" BorderThickness="1.5">
+      <Border Margin="0,16,0,0" Padding="16,12" CornerRadius="14" Background="$okFondo" BorderBrush="$okColor" BorderThickness="1.5" Visibility="$(if ($v.Ok) { 'Collapsed' } else { 'Visible' })">
         <DockPanel>
           <Border x:Name="bdCodigo" DockPanel.Dock="Right" Padding="14,8" CornerRadius="10" Background="#0F172A" VerticalAlignment="Center" Margin="12,0,0,0">
             <TextBlock x:Name="txtCodigo" Text="$(ConvertTo-TextoXaml $codigoTxt)" FontFamily="Cascadia Mono, Consolas" FontSize="17" FontWeight="Bold" Foreground="#5EEAD4"/>
@@ -116,6 +133,15 @@ $xaml = @"
         <StackPanel Grid.Column="2"><TextBlock Text="QUÉ NO HACE" FontSize="11" FontWeight="Bold" Foreground="#64748B"/>$(& $lista $noHace '#E5484D')</StackPanel>
       </Grid>
       <TextBlock Text="⏱  $(ConvertTo-TextoXaml $duracion)" Foreground="#B45309" FontWeight="SemiBold" Margin="0,16,0,0"/>
+      <Border x:Name="bdCodCliente" Margin="0,16,0,0" Padding="16,12" CornerRadius="14" Background="#F1F5F9" Visibility="$(if ($pideCodigo -and $v.Ok) { 'Visible' } else { 'Collapsed' })">
+        <StackPanel>
+          <TextBlock Text="TU CÓDIGO (TE LO DIO ISAAC)" FontSize="11" FontWeight="Bold" Foreground="#64748B"/>
+          <DockPanel Margin="0,6,0,0">
+            <TextBox x:Name="txtCodCliente" Width="300" FontFamily="Cascadia Mono, Consolas" FontSize="18" Padding="8,5" CharacterCasing="Upper" MaxLength="24" BorderBrush="#CBD5E1"/>
+            <TextBlock x:Name="txtCodEstado" Margin="12,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" FontSize="12.5" Foreground="#64748B" Text="Ejemplo: JUAN-K7Q2-M9XA"/>
+          </DockPanel>
+        </StackPanel>
+      </Border>
       <DockPanel Margin="0,18,0,0" LastChildFill="False">
         <Button x:Name="btnCerrar" DockPanel.Dock="Right" Content="Cerrar" Padding="22,9" Margin="10,0,0,0" Background="White" BorderBrush="#CBD5E1"/>
         <Button x:Name="btnEmpezar" DockPanel.Dock="Right" Content="Empezar  ▶" Padding="26,9" FontWeight="Bold" Foreground="White" BorderThickness="0">
@@ -133,6 +159,20 @@ $w = [Windows.Markup.XamlReader]::Parse($xaml)
 $btnEmpezar = $w.FindName('btnEmpezar')
 $txtNota = $w.FindName('txtNota')
 if (-not $v.Ok) { $btnEmpezar.Visibility = 'Collapsed'; $w.FindName('bdCodigo').Visibility = 'Collapsed'; $txtNota.Text = 'Por seguridad no se puede empezar.' }
+$txtCod = $w.FindName('txtCodCliente')
+$txtCodEstado = $w.FindName('txtCodEstado')
+$revisarCodigo = {
+    if (-not $pideCodigo -or -not $v.Ok) { return }
+    $c = Test-CodigoCliente -Codigo $txtCod.Text -Clave $claveCod
+    $script:CodigoOk = if ($c.Ok) { $c } else { $null }
+    $btnEmpezar.IsEnabled = [bool]$c.Ok
+    if ($c.Ok) { $txtCodEstado.Text = "✓ Código de $($c.Nombre), válido hasta el $($c.Vence.ToString('dd-MM-yyyy'))."; $txtCodEstado.Foreground = '#10B981' }
+    elseif ("$($txtCod.Text)".Trim()) { $txtCodEstado.Text = $c.Motivo; $txtCodEstado.Foreground = '#E5484D' }
+    else { $txtCodEstado.Text = 'Ejemplo: JUAN-K7Q2-M9XA'; $txtCodEstado.Foreground = '#64748B' }
+}
+$txtCod.Add_TextChanged({ & $revisarCodigo })
+if ($CodigoPrueba) { $txtCod.Text = $CodigoPrueba }
+& $revisarCodigo
 $btnEmpezar.Add_Click({
         if (Start-PaqueteAdmin) { $w.Close() }
         else { $txtNota.Text = 'No se dio el permiso de administrador. Puedes volver a apretar Empezar.'; $txtNota.Foreground = '#B45309' }

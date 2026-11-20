@@ -18,7 +18,8 @@ param(
     [double]$Minutos = 10,
     [double]$ReposoMin = 5,
     [switch]$SinCalor,
-    [string]$Destino
+    [string]$Destino,
+    [string]$Codigo     # el código que Isaac le dio al cliente (lo pasa la ventana de bienvenida)
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression
@@ -65,6 +66,15 @@ if (-not [IO.File]::Exists($llave)) { Write-Host ' Falta llave_publica.xml en el
 $verif = Test-ManifiestoPaquete -Raiz $raiz
 if (-not $verif.Ok) { Write-Host ' Este paquete no es de Isaac o fue modificado: no se ejecuta nada. Avísale a Isaac.' -ForegroundColor Red; Write-Host " $($verif.Motivo)" -ForegroundColor Red; exit 3 }
 Write-Host " Paquete verificado. Código de Isaac: ISAAC · $($verif.Codigo)" -ForegroundColor Green
+# Código del cliente: sin uno válido y vigente no se hace nada (un link reenviado no sirve solo).
+# Solo si el paquete trae la clave (config.json, remoto.pedir_codigo al armarlo); si no, es libre.
+$claveCod = Get-ClaveCodigosPaquete -Motor $motor
+$cli = $null
+if ($claveCod) {
+    $cli = Test-CodigoCliente -Codigo $Codigo -Clave $claveCod
+    if (-not $cli.Ok) { Write-Host " $($cli.Motivo)" -ForegroundColor Red; exit 4 }
+    Write-Host " Código de $($cli.Nombre): válido hasta el $($cli.Vence.ToString('dd-MM-yyyy'))." -ForegroundColor Green
+}
 
 # Un ZIP bajado de internet o WhatsApp marca cada archivo; sin quitar esa marca, OCCT o HWiNFO pueden quedar
 # detenidos en un aviso de seguridad que nadie aprieta.
@@ -127,6 +137,8 @@ else {
 $res = Get-ChildItem -LiteralPath (Join-Path $trabajo 'diagnostico') -Recurse -Filter 'resumen.txt' -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($res) { $lineas.Add(''); $lineas.Add('--- resumen del diagnóstico ---'); foreach ($l in [IO.File]::ReadAllLines($res.FullName)) { $lineas.Add($l) } }
 [IO.File]::WriteAllLines((Join-Path $trabajo 'RESUMEN.txt'), $lineas, (New-Object Text.UTF8Encoding $true))
+# De quién es: Isaac lo usa como nombre del cliente al abrirlo.
+if ($cli) { [IO.File]::WriteAllText((Join-Path $trabajo 'codigo.json'), ([ordered]@{ cliente = $cli.Nombre; codigo = $cli.Codigo; vence = $cli.Vence.ToString('yyyy-MM-dd') } | ConvertTo-Json), (New-Object Text.UTF8Encoding $false)) }
 
 # 4. ZIP + cifrado
 $archivo = $null
@@ -152,7 +164,7 @@ try {
     $cifrado = Protect-DatosRemoto -Datos $ms.ToArray() -LlavePublicaXml ([IO.File]::ReadAllText($llave))
     $ms.Dispose()
     $null = [IO.Directory]::CreateDirectory($Destino)
-    $archivo = Join-Path $Destino ("Diagnostico_para_Isaac_{0}_{1}.kitdiag" -f $env:COMPUTERNAME, $sello)
+    $archivo = Join-Path $Destino ("Diagnostico_para_Isaac_{0}{1}_{2}.kitdiag" -f $(if ($cli) { "$($cli.Nombre)_" } else { '' }), $env:COMPUTERNAME, $sello)
     [IO.File]::WriteAllBytes($archivo, $cifrado)
 } catch {
     Write-Host ''
