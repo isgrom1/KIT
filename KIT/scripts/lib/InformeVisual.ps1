@@ -605,10 +605,43 @@ td.k { color:var(--suave); width:34%; }
   @keyframes brillo { 50% { filter:drop-shadow(0 0 22px rgba(37,99,235,.45)); } }
   .anim .portada::after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(115deg, transparent 40%, rgba(255,255,255,.65) 50%, transparent 60%); background-size:250% 100%; animation:barrido 2.4s ease .4s 1 both; }
   @keyframes barrido { from { background-position:120% 0; } to { background-position:-40% 0; } }
+  .hoja { overflow:visible; }
+  .explicable { position:relative; cursor:help; }
+  .explicable:hover, .explicable.abierto { z-index:15; }
+  .lupa { position:absolute; top:-9px; right:-9px; width:22px; height:22px; border-radius:50%; background:linear-gradient(135deg,#2563eb,#7c3aed); color:#fff; font:700 12px/22px "Segoe UI",Arial; text-align:center; z-index:6; animation:latido 2.4s ease-in-out infinite; }
+  @keyframes latido { 0%,100% { box-shadow:0 0 0 0 rgba(124,58,237,.45); } 50% { box-shadow:0 0 0 8px rgba(124,58,237,0); } }
+  .globo { position:absolute; left:50%; top:calc(100% + 8px); width:280px; z-index:20; transform:translateX(-50%) scale(.5); transform-origin:top center; opacity:0; pointer-events:none; filter:blur(5px);
+    transition:opacity .3s ease, transform .45s cubic-bezier(.2,.9,.3,1.35), filter .3s ease; background:rgba(255,255,255,.97); border:1px solid #dfe5f2; border-radius:16px; padding:12px 14px;
+    box-shadow:0 26px 60px rgba(37,99,235,.22); font-size:9.6pt; line-height:1.45; color:#0f172a; text-align:left; font-weight:400; letter-spacing:0; text-transform:none; white-space:normal; }
+  .globo b { display:block; margin-bottom:4px; font-size:10.5pt; background:linear-gradient(90deg,#2563eb,#7c3aed); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .explicable:hover > .globo, .explicable.abierto > .globo { opacity:1; transform:translateX(-50%) scale(1); filter:none; }
+  #aviso-lupa { position:fixed; left:50%; bottom:24px; transform:translate(-50%,40px); opacity:0; transition:all .6s cubic-bezier(.2,.9,.3,1.2); background:rgba(15,23,42,.9); color:#fff; padding:11px 18px; border-radius:30px; font-size:10.5pt; z-index:30; box-shadow:0 16px 40px rgba(15,23,42,.3); }
+  #aviso-lupa.ver { opacity:1; transform:translate(-50%,0); }
+  #aviso-lupa span { display:inline-block; width:22px; height:22px; border-radius:50%; background:linear-gradient(135deg,#2563eb,#7c3aed); text-align:center; line-height:22px; font-weight:700; margin-right:8px; }
 }
-@media print { #progreso { display:none; } }
-@media (prefers-reduced-motion: reduce) { .anim .hoja { opacity:1; transform:none; } }
+@media print { #progreso, .lupa, .globo, #aviso-lupa { display:none !important; } }
 '@
+}
+
+function Get-AtribExplica {
+    # Atributos para la lupa '?' del HTML en pantalla: título y explicación en palabras simples. El PDF no los muestra.
+    param([string]$Titulo, [string]$Texto)
+    " data-ex-t='$(Get-HtmlVisual $Titulo)' data-ex='$(Get-HtmlVisual $Texto)'"
+}
+
+function Get-ExplicaArea {
+    # Qué significa el puntaje de un área, con su valor real y la escala.
+    param($Area)
+    $p = if ($null -ne $Area.Puntaje) { " Puntaje: $($Area.Puntaje) de 100." } else { '' }
+    switch ($Area.Clave) {
+        'temperatura' { "$($Area.Valor) con el procesador al 100 %. Bajo 80 °C es cómodo; entre 80 y 90, caliente; desde 95 °C se frena para protegerse.$p" }
+        'almacenamiento' { "$($Area.Valor). Windows necesita al menos 20 % libre en su disco para actualizarse y andar fluido.$p" }
+        'estabilidad' { "$($Area.Frase) Cada apagado inesperado o pantallazo azul del último mes baja este puntaje.$p" }
+        'seguridad' { "$($Area.Frase) Revisa antivirus, actualizaciones, activación de Windows y arranque seguro.$p" }
+        'bateria' { "Guarda el $($Area.Valor -replace ' de salud', '') de lo que guardaba nueva. Bajo 80 % se nota que dura menos; bajo 50 % conviene cambiarla.$p" }
+        'arranque' { "$($Area.Frase) Lo normal es entre 30 y 60 segundos; cada programa que arranca solo suma tiempo.$p" }
+        default { "$($Area.Frase)$p" }
+    }
 }
 
 function Get-ScriptAnimacionVisual {
@@ -619,8 +652,8 @@ function Get-ScriptAnimacionVisual {
 <div id="progreso"></div>
 <script>
 (function () {
-  var sinAnim = /Headless/i.test(navigator.userAgent) || location.hash === '#pdf' ||
-    (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) || !('IntersectionObserver' in window);
+  // Anima siempre en pantalla (también si Windows tiene las animaciones apagadas): solo se salta al imprimir el PDF.
+  var sinAnim = /Headless/i.test(navigator.userAgent) || location.hash === '#pdf' || !('IntersectionObserver' in window);
   var barra = document.getElementById('progreso');
   if (sinAnim) { if (barra) barra.style.display = 'none'; return; }
   document.documentElement.classList.add('anim');
@@ -635,6 +668,26 @@ function Get-ScriptAnimacionVisual {
     requestAnimationFrame(f);
   };
   var q = function (r, s) { return Array.prototype.slice.call(r.querySelectorAll(s)); };
+  q(document, '[data-ex]').forEach(function (el) {
+    el.classList.add('explicable');
+    var l = document.createElement('span'); l.className = 'lupa'; l.textContent = '?';
+    var g = document.createElement('div'); g.className = 'globo';
+    var b = document.createElement('b'); b.textContent = el.getAttribute('data-ex-t');
+    var s = document.createElement('span'); s.textContent = el.getAttribute('data-ex');
+    g.appendChild(b); g.appendChild(s); el.appendChild(l); el.appendChild(g);
+    el.addEventListener('click', function (ev) {
+      var abierto = el.classList.contains('abierto');
+      q(document, '.explicable.abierto').forEach(function (x) { x.classList.remove('abierto'); });
+      if (!abierto) el.classList.add('abierto');
+      ev.stopPropagation();
+    });
+  });
+  document.addEventListener('click', function () { q(document, '.explicable.abierto').forEach(function (x) { x.classList.remove('abierto'); }); });
+  var aviso = document.createElement('div'); aviso.id = 'aviso-lupa';
+  aviso.innerHTML = '<span>?</span>Pasa el mouse o toca los <b>?</b> para ver qué significa cada número';
+  document.body.appendChild(aviso);
+  setTimeout(function () { aviso.classList.add('ver'); }, 2600);
+  setTimeout(function () { aviso.classList.remove('ver'); }, 10000);
   q(document, '.anim-arco').forEach(function (c) {
     var p = (c.getAttribute('stroke-dasharray') || '0 0').split(/[ ,]+/);
     c._final = parseFloat(p[0]) || 0; c._total = p[1] || '0';
@@ -702,10 +755,12 @@ function ConvertTo-InformeVisual {
     [void]$sb.Append("<div class='hoja portada'><div class='arriba'><div class='marca'>$(if ($Resultado) { 'Informe de trabajo' } else { 'Informe de diagnóstico' })$(if ($Origen -eq 'remoto') { ' · a distancia' })</div>")
     [void]$sb.Append("<h1>$(& $H $modelo)</h1><div class='sub'>$(if ($Resultado) { 'Lo que se hizo en tu equipo y cómo quedó.' } else { "Revisión completa del equipo$(if ($Sensores) { ' y prueba de temperatura' }): cómo está, qué significa y qué conviene hacer." })</div>")
     [void]$sb.Append("<div class='datos'><div>Fecha<b>$(& $H $fechaTxt)</b></div><div>Equipo<b>$(& $H $eq.NombreEquipo)</b></div><div>Windows<b>$(& $H ("$($d.windows.Nombre)" -replace '^Windows (\d+) (Home|Pro).*$', 'Windows $1 $2')) $(& $H $d.windows.Version)</b></div><div>$(if ($Cliente) { 'Cliente' } else { 'Técnico' })<b>$(& $H $(if ($Cliente) { $Cliente } else { $tecnico.nombre }))</b></div></div></div>")
-    [void]$sb.Append("<div class='puntaje'><div>$(Get-SvgAnillo -Puntaje $puntaje -Tam 150 -Fondo '#e8edf7' -Texto '#0f172a' -Degradado)</div><div><div class='eti'>Salud general</div><div class='nivel'>$(& $H $nivel)</div><p>$(& $H $frase)</p></div></div>")
+    $peores = @($areas | Where-Object { $null -ne $_.Puntaje } | Sort-Object Puntaje | Select-Object -First 2)
+    $txtPuntaje = "$puntaje de 100 es '$nivel'. Es el promedio de las $(@($areas | Where-Object { $null -ne $_.Puntaje }).Count) áreas de abajo (temperatura y almacenamiento pesan más). Lo que más lo baja: $(($peores | ForEach-Object { "$($_.Nombre.ToLower()) ($($_.Puntaje))" }) -join ' y ')."
+    [void]$sb.Append("<div class='puntaje'><div$(Get-AtribExplica 'Salud general' $txtPuntaje)>$(Get-SvgAnillo -Puntaje $puntaje -Tam 150 -Fondo '#e8edf7' -Texto '#0f172a' -Degradado)</div><div><div class='eti'>Salud general</div><div class='nivel'>$(& $H $nivel)</div><p>$(& $H $frase)</p></div></div>")
     [void]$sb.Append("<div class='areas-mini'>")
     foreach ($a in $areas) {
-        [void]$sb.Append("<div class='am'><div class='bola' style='background:$(Get-ColorPuntaje $a.Puntaje)'$(if ($null -ne $a.Puntaje) { " data-n='$($a.Puntaje)'" })>$(if ($null -ne $a.Puntaje) { $a.Puntaje } else { '–' })</div><div><div class='n'>$(& $H $a.Nombre)</div><div class='v'>$(& $H $a.Valor)</div></div></div>")
+        [void]$sb.Append("<div class='am'$(Get-AtribExplica $a.Nombre (Get-ExplicaArea -Area $a))><div class='bola' style='background:$(Get-ColorPuntaje $a.Puntaje)'$(if ($null -ne $a.Puntaje) { " data-n='$($a.Puntaje)'" })>$(if ($null -ne $a.Puntaje) { $a.Puntaje } else { '–' })</div><div><div class='n'>$(& $H $a.Nombre)</div><div class='v'>$(& $H $a.Valor)</div></div></div>")
     }
     [void]$sb.Append("</div><div class='pie-portada'><div>$(& $H "$($tecnico.nombre)") · Servicio técnico de notebooks y PC</div><div>$(& $H $contacto)</div></div></div>")
 
@@ -773,13 +828,13 @@ function ConvertTo-InformeVisual {
         $m = $Sensores.metricas
         $min = if ($Sensores.carga) { $Sensores.carga.minutos } else { $Sensores.duracion_min }
         [void]$sb.Append("<div class='hoja'><div class='sec'><h2><span class='num-sec'>3</span>Prueba de temperatura<small>Primero el equipo en reposo y después el procesador al 100 % por $(Format-Numero ([double]$min) 0) minutos, como cuando juegas o abres algo pesado. Se registró cada $(Format-Numero ([double]$Sensores.intervalo_seg) 0) segundos.</small></h2>")
-        [void]$sb.Append("<div class='resumen'><div class='kpi' style='border-color:var(--rojo)'><div class='v'>$(Format-Numero ([double]$t.max) 1) °C</div><div class='t'>Temperatura máxima</div></div>")
-        [void]$sb.Append("<div class='kpi' style='border-color:var(--ambar)'><div class='v'>$(Format-Numero ([double]$t.media) 1) °C</div><div class='t'>Promedio con carga</div></div>")
-        [void]$sb.Append("<div class='kpi'><div class='v'>$(if ($m.cpu_frec_efectiva) { "$(Format-Numero ([double]$m.cpu_frec_efectiva.media / 1000) 1) GHz" } else { '–' })</div><div class='t'>Velocidad con carga</div></div>")
-        [void]$sb.Append("<div class='kpi' style='border-color:var(--verde)'><div class='v'>$(if ($null -eq $Sensores.pierde_velocidad.valor) { '–' } elseif ($Sensores.pierde_velocidad.valor) { 'Sí' } else { 'No' })</div><div class='t'>¿Se frenó por calor?</div></div></div>")
+        [void]$sb.Append("<div class='resumen'><div class='kpi' style='border-color:var(--rojo)'$(Get-AtribExplica 'Temperatura máxima' "Lo más caliente que llegó el procesador en los 10 minutos al 100 %. Bajo 80 °C es cómodo; entre 80 y 90, caliente; desde 95 °C se frena solo para protegerse.")><div class='v'>$(Format-Numero ([double]$t.max) 1) °C</div><div class='t'>Temperatura máxima</div></div>")
+        [void]$sb.Append("<div class='kpi' style='border-color:var(--ambar)'$(Get-AtribExplica 'Promedio con carga' "La temperatura promedio mientras trabajaba al máximo. Dice cómo aguanta un uso exigente largo, como jugar o renderizar.")><div class='v'>$(Format-Numero ([double]$t.media) 1) °C</div><div class='t'>Promedio con carga</div></div>")
+        [void]$sb.Append("<div class='kpi'$(Get-AtribExplica 'Velocidad con carga' "A qué velocidad trabajó el procesador durante la prueba (GHz = miles de millones de pasos por segundo). Si se calentara demasiado, este número bajaría.")><div class='v'>$(if ($m.cpu_frec_efectiva) { "$(Format-Numero ([double]$m.cpu_frec_efectiva.media / 1000) 1) GHz" } else { '–' })</div><div class='t'>Velocidad con carga</div></div>")
+        [void]$sb.Append("<div class='kpi' style='border-color:var(--verde)'$(Get-AtribExplica '¿Se frenó por calor?' "Cuando el procesador se calienta demasiado, baja su velocidad para no dañarse: el equipo se pone lento justo cuando más lo usas. 'No' es lo que queremos.")><div class='v'>$(if ($null -eq $Sensores.pierde_velocidad.valor) { '–' } elseif ($Sensores.pierde_velocidad.valor) { 'Sí' } else { 'No' })</div><div class='t'>¿Se frenó por calor?</div></div></div>")
         [void]$sb.Append("<div class='caja'>$(Get-SvgTemperatura -Sensores $Sensores)<div class='leyenda'><span><i style='background:#c0392b'></i>Temperatura del procesador</span>$(if ($m.ventilador_cpu) { "<span><i style='background:#1f5fa8;opacity:.6'></i>Ventilador (RPM, eje derecho)</span>" })<span><i style='background:#fff4e0;height:9px;border:1px solid #f0dbb1'></i>Procesador al 100 %</span></div></div>")
         $zoom = Get-SvgZoomCarga -Sensores $Sensores
-        if ($zoom) { [void]$sb.Append("<div class='caja' style='margin-top:10px;padding-top:9px'><div class='eti' style='margin-bottom:2px'>Zoom a la prueba: los $(Format-Numero ([double]$Sensores.carga.minutos) 0) minutos al 100 %</div>$zoom</div>") }
+        if ($zoom) { [void]$sb.Append("<div class='caja' style='margin-top:10px;padding-top:9px'$(Get-AtribExplica 'Zoom a la prueba' "Los minutos al 100 %, en grande. Al principio sube rápido y después debería estabilizarse; si sigue subiendo hasta el final, la refrigeración está trabajando al límite. Las franjas marcan las zonas cómoda, caliente y al límite.")><div class='eti' style='margin-bottom:2px'>Zoom a la prueba: los $(Format-Numero ([double]$Sensores.carga.minutos) 0) minutos al 100 %</div>$zoom</div>") }
         [void]$sb.Append("<div class='dos' style='margin-top:10px;grid-template-columns:1fr 1fr;align-items:start'><div>")
         [void]$sb.Append("<table><tr><th></th><th>En reposo</th><th>Al 100 %</th></tr>")
         [void]$sb.Append("<tr><td class='k'>Temperatura</td><td>$(if ($rep -and $null -ne $rep.temp) { "$(Format-Numero ([double]$rep.temp) 0) °C" } else { '–' })</td><td><b>$(Format-Numero ([double]$t.media) 0) °C</b> (máx. $(Format-Numero ([double]$t.max) 1))</td></tr>")
@@ -807,7 +862,7 @@ function ConvertTo-InformeVisual {
     foreach ($v in $vols) {
         $uso = 100 - [double]$v.LibrePct
         $col = if ([double]$v.LibrePct -lt 10) { '#c0392b' } elseif ([double]$v.LibrePct -lt 20) { '#d4900a' } else { '#1e8a52' }
-        [void]$sb.Append("<div style='text-align:center'>$(Get-SvgDona -Pct $uso -Color $col -Centro "$(Format-Numero $uso 0) %" -Abajo "$($v.Unidad) usado" -Tam 112)<div style='font-size:8.6pt;color:var(--suave)'>$(Format-Numero ([double]$v.LibreGB) 0) GB libres de $(Format-Numero ([double]$v.TotalGB) 0)<br>$(if ($v.Medio -eq 'SSD') { 'SSD' } elseif ($v.Medio -eq 'HDD') { 'Disco duro' } else { '' })$(if ($v.EsSistema) { ' · Windows' })</div></div>")
+        [void]$sb.Append("<div style='text-align:center'$(Get-AtribExplica "Disco $($v.Unidad)" $(if ($v.EsSistema) { "Usado al $(Format-Numero $uso 0) %: quedan $(Format-Numero ([double]$v.LibreGB) 0) GB de $(Format-Numero ([double]$v.TotalGB) 0). Es el disco de Windows y los programas: con menos de 20 % libre Windows se pone lento y no puede actualizarse bien." } else { "Usado al $(Format-Numero $uso 0) %: quedan $(Format-Numero ([double]$v.LibreGB) 0) GB de $(Format-Numero ([double]$v.TotalGB) 0). Guarda archivos y juegos: que se llene no pone lento el equipo, solo deja menos espacio para guardar." }))>$(Get-SvgDona -Pct $uso -Color $col -Centro "$(Format-Numero $uso 0) %" -Abajo "$($v.Unidad) usado" -Tam 112)<div style='font-size:8.6pt;color:var(--suave)'>$(Format-Numero ([double]$v.LibreGB) 0) GB libres de $(Format-Numero ([double]$v.TotalGB) 0)<br>$(if ($v.Medio -eq 'SSD') { 'SSD' } elseif ($v.Medio -eq 'HDD') { 'Disco duro' } else { '' })$(if ($v.EsSistema) { ' · Windows' })</div></div>")
     }
     # Sin nombres de carpetas (pueden ser incómodos para el cliente: van en la hoja técnica). Solo qué rol tiene
     # cada disco y cuál importa para la velocidad.
@@ -822,13 +877,13 @@ function ConvertTo-InformeVisual {
     $mem = $d.uso.Memoria
     $ta = $d.arranque.TiempoArranque
     [void]$sb.Append("<div class='dos'><div class='sec'><h2><span class='num-sec'>$($np + 1)</span>Memoria RAM</h2><div class='caja'><div style='display:grid;grid-template-columns:112px 1fr;gap:12px;align-items:center'>")
-    if ($mem) { [void]$sb.Append("<div>$(Get-SvgDona -Pct ([double]$mem.UsoPct) -Color $(if ([double]$mem.UsoPct -ge 85) { '#c0392b' } elseif ([double]$mem.UsoPct -ge 70) { '#d4900a' } else { '#1f5fa8' }) -Centro "$(Format-Numero ([double]$mem.UsoPct) 0) %" -Abajo 'en uso al revisar' -Tam 104)</div>") } else { [void]$sb.Append('<div></div>') }
+    if ($mem) { [void]$sb.Append("<div$(Get-AtribExplica 'Memoria en uso' "Al revisar estaban en uso $(Format-Numero ([double]$mem.UsadaGB) 1) de $(Format-Numero ([double]$mem.TotalGB) 1) GB. Sobre 85 % Windows empieza a usar el disco como memoria y todo se pone lento.")>$(Get-SvgDona -Pct ([double]$mem.UsoPct) -Color $(if ([double]$mem.UsoPct -ge 85) { '#c0392b' } elseif ([double]$mem.UsoPct -ge 70) { '#d4900a' } else { '#1f5fa8' }) -Centro "$(Format-Numero ([double]$mem.UsoPct) 0) %" -Abajo 'en uso al revisar' -Tam 104)</div>") } else { [void]$sb.Append('<div></div>') }
     $slots = [math]::Max($mods.Count, [math]::Min(4, [int]$ram.Slots))
     [void]$sb.Append("<div><div style='display:grid;grid-template-columns:repeat($([math]::Max(1, $slots)),1fr);gap:6px'>")
     for ($i = 0; $i -lt $slots; $i++) { if ($i -lt $mods.Count) { [void]$sb.Append("<div class='slot'><b>$($mods[$i].CapacidadGB) GB</b><br>$(& $H $mods[$i].Tipo)</div>") } else { [void]$sb.Append("<div class='slot vacio'>libre</div>") } }
     [void]$sb.Append("</div><p style='font-size:8.8pt;color:var(--suave);margin-top:7px'>$(if ($dual) { 'Dos módulos iguales trabajan en <b>doble canal</b>: la memoria rinde casi el doble que con uno solo.' } elseif ($mods.Count -eq 1) { 'Un solo módulo: agregar otro igual activa el doble canal y mejora el rendimiento.' } else { '' })$(if ($mem) { " Al revisar estaban en uso $(Format-Numero ([double]$mem.UsadaGB) 1) de $(Format-Numero ([double]$mem.TotalGB) 1) GB." })</p></div></div></div></div>")
     [void]$sb.Append("<div class='sec'><h2><span class='num-sec'>$($np + 2)</span>Encendido</h2><div class='caja'>")
-    if ($ta -and $ta.Ultimos) { [void]$sb.Append("$(Get-SvgBarrasArranque -Arranques $ta.Ultimos)<div class='leyenda'><span><i style='background:#1f5fa8'></i>último encendido</span><span>segundos hasta quedar listo</span></div>") }
+    if ($ta -and $ta.Ultimos) { [void]$sb.Append("<div$(Get-AtribExplica 'Encendidos' "Cada barra es un encendido: los segundos desde que apretaste el botón hasta que Windows quedó listo para usar. La azul es el último. Lo normal es entre 30 y 60 segundos.")>$(Get-SvgBarrasArranque -Arranques $ta.Ultimos)</div><div class='leyenda'><span><i style='background:#1f5fa8'></i>último encendido</span><span>segundos hasta quedar listo</span></div>") }
     [void]$sb.Append('</div></div></div>')
     $ini = @(Get-InicioCliente -Doc $Doc)
     if ($ini.Count) {
@@ -846,7 +901,7 @@ function ConvertTo-InformeVisual {
         $sp = [double]$b.SaludPct
         $colB = if ($sp -ge 80) { '#1e8a52' } elseif ($sp -ge 50) { '#d4900a' } else { '#c0392b' }
         $cod = ConvertTo-CodigoBateria -Texto "$($b.Id)"
-        [void]$sb.Append("<div class='sec'><h2><span class='num-sec'>$np2</span>Batería</h2><div class='caja'><div style='display:flex;align-items:center;gap:6px;margin:4px 0 8px'><div style='flex:1;height:34px;border:3px solid #1b2430;border-radius:7px;padding:3px'><div class='anim-ancho' style='height:100%;width:$(Get-NumSvg $sp 0)%;background:$colB;border-radius:3px'></div></div><div style='width:6px;height:14px;background:#1b2430;border-radius:0 3px 3px 0'></div></div>")
+        [void]$sb.Append("<div class='sec'><h2><span class='num-sec'>$np2</span>Batería</h2><div class='caja'$(Get-AtribExplica 'Salud de la batería' "Hoy guarda $(Format-Numero ([double]$b.CargaCompletaMWh / 1000) 1) de los $(Format-Numero ([double]$b.DisenoMWh / 1000) 1) Wh que guardaba nueva ($(Format-Numero $sp 0) %). Bajo 80 % se nota que dura menos desenchufada; bajo 50 % conviene cambiarla.")><div style='display:flex;align-items:center;gap:6px;margin:4px 0 8px'><div style='flex:1;height:34px;border:3px solid #1b2430;border-radius:7px;padding:3px'><div class='anim-ancho' style='height:100%;width:$(Get-NumSvg $sp 0)%;background:$colB;border-radius:3px'></div></div><div style='width:6px;height:14px;background:#1b2430;border-radius:0 3px 3px 0'></div></div>")
         [void]$sb.Append("<div style='display:flex;justify-content:space-between;font-size:9pt'><span><b style='font-size:14pt;color:$colB'>$(Format-Numero $sp 1) %</b> de su capacidad original</span><span style='color:var(--suave)'>$(Format-Numero ([double]$b.CargaCompletaMWh / 1000) 1) de $(Format-Numero ([double]$b.DisenoMWh / 1000) 1) Wh</span></div>")
         [void]$sb.Append("<p style='font-size:8.8pt;color:var(--suave);margin-top:8px'>$(if ($sp -ge 80) { 'Está en buen estado.' } elseif ($sp -ge 50) { 'Es el desgaste normal de unos años de uso. No hace falta cambiarla todavía; cuando dure muy poco desenchufada, se reemplaza.' } else { 'Está gastada: dura mucho menos que nueva. Conviene cambiarla.' })$(if ($cod) { " Código para el repuesto: <b>$(& $H $cod)</b>$(if ($b.Fabricante) { " ($(& $H $b.Fabricante))" })." })</p></div></div>")
     }

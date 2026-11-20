@@ -146,7 +146,7 @@ try {
     $cultura = [Threading.Thread]::CurrentThread.CurrentCulture
     [Threading.Thread]::CurrentThread.CurrentCulture = [Globalization.CultureInfo]'es-CL'
     try { $html = ConvertTo-InformeVisual -Doc (New-DocPrueba -LibrePct 14.9 -Apagados 2 -Papelera 42.6) -Sensores $sens } finally { [Threading.Thread]::CurrentThread.CurrentCulture = $cultura }
-    Assert 'números del SVG con punto' (-not [regex]::IsMatch($html, "(?:x|y|x1|x2|y1|y2|cx|cy|r|width|height)='-?\d+,\d")) ([regex]::Match($html, "(?:x|y|x1|x2|y1|y2|cx|cy|r|width|height)='-?\d+,\d").Value)
+    Assert 'números del SVG con punto' (-not [regex]::IsMatch($html, "\s(?:x|y|x1|x2|y1|y2|cx|cy|r|width|height)='-?\d+,\d")) ([regex]::Match($html, "\s(?:x|y|x1|x2|y1|y2|cx|cy|r|width|height)='-?\d+,\d").Value)
     Assert 'trazos del SVG con punto' (-not [regex]::IsMatch($html, "d='M[^']*\d,\d"))
     Assert 'portada con el modelo' ($html -match 'Acer Nitro 5 AN515-43')
     Assert 'sin la serie del equipo' ($html -notmatch 'SERIE-SECRETA')
