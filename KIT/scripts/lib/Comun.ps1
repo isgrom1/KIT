@@ -484,3 +484,6 @@ function Get-NombreArchivo {
     if (-not $t) { $t = 'X' }
     $t
 }
+
+# Catálogo de packs (lo usan la ficha, los informes y los envíos): se carga con lo común.
+. (Join-Path $PSScriptRoot 'Paquetes.ps1')

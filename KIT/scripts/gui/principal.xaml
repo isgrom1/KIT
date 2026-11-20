@@ -172,7 +172,7 @@
               <TextBlock Text="Estado físico (golpes, piezas sueltas...)" Style="{StaticResource Etiqueta}"/><TextBox Name="txtEstadoFisico"/>
             </StackPanel>
             <StackPanel Grid.Column="2">
-              <TextBlock Text="Paquete *" Style="{StaticResource Etiqueta}"/><TextBox Name="txtPaquete"/>
+              <TextBlock Text="Paquete * (n° del pack o texto; pasa el mouse para ver la lista)" Style="{StaticResource Etiqueta}"/><TextBox Name="txtPaquete"/>
               <TextBlock Text="Precio * (pesos)" Style="{StaticResource Etiqueta}"/><TextBox Name="txtPrecio"/>
               <TextBlock Text="¿Tiene respaldo de sus archivos?" Style="{StaticResource Etiqueta}"/>
               <ComboBox Name="cmbRespaldo"><ComboBoxItem Content=""/><ComboBoxItem Content="sí"/><ComboBoxItem Content="no"/><ComboBoxItem Content="no sabe"/></ComboBox>

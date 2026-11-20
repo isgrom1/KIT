@@ -250,11 +250,12 @@ function Get-RecomendacionesVisual {
 function Get-ServiciosCliente {
     # Lo que ve el cliente: las recomendaciones agrupadas en servicios, con lo encontrado y lo que gana, sin
     # el cómo (eso va en la hoja técnica). Optimización de Windows junta espacio, inicio, drivers y apagados.
-    param([Parameter(Mandatory)]$Doc, $Sensores)
+    # Cada servicio trae su pack del catálogo (Pack, con Precio si está en config_local.json).
+    param([Parameter(Mandatory)]$Doc, $Sensores, [string]$Origen = 'remoto')
     $d = $Doc.datos
     $recos = @(Get-RecomendacionesVisual -Doc $Doc -Sensores $Sensores)
     $s = New-Object System.Collections.Generic.List[object]
-    $nuevo = { param($titulo, $tipo, $desc, $hall, $gana, $imp) $s.Add([pscustomobject][ordered]@{ Titulo = $titulo; Tipo = $tipo; Descripcion = $desc; Hallazgos = @($hall); Gana = @($gana); Impacto = $imp }) }
+    $nuevo = { param($titulo, $tipo, $desc, $hall, $gana, $imp, $pack) $s.Add([pscustomobject][ordered]@{ Titulo = $titulo; Tipo = $tipo; Descripcion = $desc; Hallazgos = @($hall); Gana = @($gana); Impacto = $imp; Pack = $(if ($pack) { Get-PaqueteCatalogo -Id $pack } else { $null }) }) }
 
     $hall = New-Object System.Collections.Generic.List[string]
     $gana = New-Object System.Collections.Generic.List[string]
@@ -291,7 +292,7 @@ function Get-ServiciosCliente {
     $e = $d.estabilidad
     if ($e -and ([int]$e.Apagados + [int]$e.Pantallazos) -ge 2) { $hall.Add("$([int]$e.Apagados + [int]$e.Pantallazos) apagados o pantallazos inesperados en $($e.Dias) días: reviso la causa."); $gana.Add('Más estabilidad'); $imp = [math]::Max($imp, 2) }
     if ($hall.Count) {
-        & $nuevo 'Optimización de Windows' 'Servicio' 'Dejo Windows liviano y ordenado para que el equipo vuelva a andar rápido. Cada cambio queda respaldado y se puede deshacer.' $hall @($gana | Select-Object -Unique) $imp
+        & $nuevo 'Optimización de Windows' 'Servicio' 'Dejo Windows liviano y ordenado para que el equipo vuelva a andar rápido. Cada cambio queda respaldado y se puede deshacer.' $hall @($gana | Select-Object -Unique) $imp $(if ($Origen -eq 'remoto') { 'optimizacion_remota' } else { 'optimizacion_presencial' })
     }
 
     $rT = @($recos | Where-Object { $_.Titulo -match '^Mantención térmica' }) | Select-Object -First 1
@@ -301,13 +302,13 @@ function Get-ServiciosCliente {
         $hT.Add("Con el procesador al 100 % llegó a $(Format-Numero ([double]$t.max) 1) °C.")
         $vent = if ($Sensores.metricas.ventilador_cpu) { $Sensores.metricas.ventilador_cpu } else { $null }
         if ($vent -and $vent.p95 -ge 0.97 * $vent.max) { $hT.Add('El ventilador trabaja a su velocidad máxima.') }
-        & $nuevo 'Mantención térmica' 'Servicio' 'Limpieza interna de ventiladores y disipador, y cambio de pasta térmica.' $hT @('Menos temperatura', 'Menos ruido', 'Más vida útil') $rT.Impacto
+        & $nuevo 'Mantención térmica' 'Servicio' 'Limpieza interna de ventiladores y disipador, y cambio de pasta térmica.' $hT @('Menos temperatura', 'Menos ruido', 'Más vida útil') $rT.Impacto 'mantencion_termica'
     }
 
     foreach ($m in @($Doc.mejoras | Where-Object { $_ -and $_.Codigo -ne 'MEJ-TERMICA' })) {
         $impM = switch ("$($m.Prioridad)") { 'Alta' { 3 } 'Media' { 2 } default { 1 } }
         $ganaM = switch -Regex ("$($m.Codigo)") { 'SSD|DISCO' { @('Más espacio', 'Más velocidad') } 'RAM' { @('Más velocidad', 'Más programas a la vez') } 'BATERIA' { @('Más autonomía') } default { @('Mejor rendimiento') } }
-        & $nuevo "$($m.Titulo)" 'Compra + instalación' "$($m.Comprar) $($m.Beneficio)" @("$($m.Motivo)") $ganaM $impM
+        & $nuevo "$($m.Titulo)" 'Compra + instalación' "$($m.Comprar) $($m.Beneficio)" @("$($m.Motivo)") $ganaM $impM $(if ("$($m.Codigo)" -match 'SSD|DISCO') { 'instalacion_ssd' } else { 'instalacion_simple' })
     }
     # A igual impacto: optimización, después mantención, después compras.
     @($s | Sort-Object @{ Expression = 'Impacto'; Descending = $true }, @{ Expression = { if ($_.Titulo -eq 'Optimización de Windows') { 0 } elseif ($_.Tipo -eq 'Servicio') { 1 } else { 2 } } })
@@ -792,12 +793,14 @@ function ConvertTo-InformeVisual {
 
     # ---- Recomendaciones
     $nr++
-    $servicios = @(Get-ServiciosCliente -Doc $Doc -Sensores $Sensores)
+    $servicios = @(Get-ServiciosCliente -Doc $Doc -Sensores $Sensores -Origen $Origen)
     [void]$sb.Append("<div class='hoja'><div class='sec'><h2><span class='num-sec'>$nr</span>Lo que te propongo<small>Lo que encontré en el diagnóstico, agrupado en lo que puedo hacer por tu equipo, de lo más importante a lo menos.</small></h2>")
     for ($i = 0; $i -lt $servicios.Count; $i++) {
         $x = $servicios[$i]
         $col = if ($x.Tipo -eq 'Servicio') { '#1f5fa8' } else { '#d4900a' }
         [void]$sb.Append("<div class='caja' style='margin-bottom:9px;page-break-inside:avoid;border-left:5px solid $col'><div style='display:grid;grid-template-columns:30px 1fr;gap:10px'><div class='reco' style='padding:0;border:0;display:block'><div class='bn' style='background:$col'>$($i + 1)</div></div><div>")
+        $precioTxt = if ($x.Pack -and $null -ne $x.Pack.Precio) { Format-PrecioPaquete $x.Pack } else { '' }
+        if ($precioTxt) { [void]$sb.Append("<div style='float:right;font-size:13pt;font-weight:700;color:$col;margin-left:10px'>$(& $H $precioTxt)</div>") }
         [void]$sb.Append("<h3 style='font-size:11.5pt'>$(& $H $x.Titulo)<span class='tag' style='background:$(if ($x.Tipo -eq 'Servicio') { 'var(--azul2);color:var(--azul)' } else { 'var(--ambar2);color:var(--ambar)' })'>$(& $H $x.Tipo)</span></h3>")
         [void]$sb.Append("<div style='font-size:9.3pt;margin:2px 0 6px'>$(& $H $x.Descripcion)</div>")
         [void]$sb.Append("<div style='display:grid;grid-template-columns:1fr 1fr;gap:12px'><div><div class='eti'>Lo que encontré</div><ul style='margin:3px 0 0 16px;padding:0;font-size:9pt'>")
@@ -811,6 +814,19 @@ function ConvertTo-InformeVisual {
     "<p style='color:var(--suave);font-size:8pt;margin-bottom:0'><b>Sobre el puntaje:</b> cada área se califica con reglas fijas (espacio según el % libre del disco de Windows, batería según su capacidad, temperatura según el máximo con carga...). La salud general es su promedio: temperatura y almacenamiento 25 % cada una, estabilidad y seguridad 15 %, batería y encendido 10 %. Es una guía para priorizar, no una medición de laboratorio.</p></div>"
     if (-not $servicios.Count) {
         [void]$sb.Append("<div class='explica'>No hay nada urgente: el equipo está bien. Lo ideal es una mantención preventiva una vez al año para que siga así.</div>")
+    }
+    # Total (solo con precios configurados en config_local.json).
+    $conPrecio = @($servicios | Where-Object { $_.Pack -and $null -ne $_.Pack.Precio })
+    if ($conPrecio.Count) {
+        $total = ($conPrecio | ForEach-Object { [double]$_.Pack.Precio } | Measure-Object -Sum).Sum
+        $piezas = @($conPrecio | Where-Object { $_.Pack.PiezaAparte }).Count -gt 0
+        $diag = Get-PaqueteCatalogo -Id 'diagnostico_remoto'
+        [void]$sb.Append("<div class='caja' style='margin:2px 0 10px;page-break-inside:avoid'><div style='display:flex;justify-content:space-between;align-items:baseline'><div><b>Todo lo propuesto</b>$(if ($piezas) { " <span style='color:var(--suave);font-size:9pt'>(mano de obra; las piezas van aparte)</span>" })</div><div style='font-size:16pt;font-weight:700;color:var(--azul)'>`$$(Format-Numero $total 0)</div></div>")
+        $notas = New-Object System.Collections.Generic.List[string]
+        if ($Origen -eq 'remoto' -and $diag -and [double]$diag.Precio -gt 0) { $notas.Add("Si ya pagaste el diagnóstico a distancia (`$$(Format-Numero ([double]$diag.Precio) 0)), se descuenta del total.") }
+        if ($piezas) { $notas.Add('Las piezas: las puedes comprar tú (te digo cuál) o las compro yo a precio cerrado, pagándolas antes de comprarlas.') }
+        $notas.Add('Puedes elegir solo una parte: cada servicio se cobra por separado.')
+        [void]$sb.Append("<ul style='margin:6px 0 0 16px;padding:0;font-size:8.8pt;color:var(--suave)'>$((@($notas) | ForEach-Object { "<li>$(& $H $_)</li>" }) -join '')</ul></div>")
     }
     [void]$sb.Append('</div>')
     [void]$sb.Append("<div style='background:linear-gradient(135deg,#17406f,#1f5fa8);color:#fff;border-radius:12px;padding:13px 16px;margin:4px 0 12px;display:flex;justify-content:space-between;align-items:center;gap:14px;page-break-inside:avoid'><div><div style='font-size:12.5pt;font-weight:700'>¿Lo dejamos listo?</div><div style='font-size:9.4pt;opacity:.9'>Me encargo de todo, con respaldo de lo que se cambia y un informe del antes y el después para que veas la diferencia.</div></div><div style='text-align:right;font-size:9.4pt;white-space:nowrap'><b>$(& $H "$($tecnico.nombre)")</b><br>$(& $H $contacto)</div></div>")

@@ -31,6 +31,18 @@ de `KIT\herramientas` (o `-Herramientas D:\KIT\herramientas`). `remoto\_salida` 
 - **`remoto\ARMAR_TRABAJO.cmd`**: arrastra encima esa carpeta. Elige las acciones con números y deja el
   paquete en `remoto\_salida\Trabajo_<equipo>_<fecha>.zip` para mandárselo al cliente.
 
+## Para enviar: una carpeta por pack
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\remoto\armar_envios.ps1
+```
+
+Arma `remoto\_salida\Para_enviar\` con una carpeta por pack del catálogo (`KIT\scripts\config\config.json`,
+`paquetes`): `QUE_HACE.txt` para el cliente (qué hace, qué NO hace, cuánto demora y cuesta), `MENSAJE_WHATSAPP.txt`
+listo para pegar, el ZIP del diagnóstico donde corresponde (enlazado, sin copiar 200 MB) y `PASOS_ISAAC.txt` en los
+packs con un paso tuyo. `LEEME_ISAAC.txt` dice qué mandar según lo que pida el cliente. Los precios salen de
+`config_local.json` (`precios`): cámbialos ahí y vuelve a correrlo.
+
 ## Abrir lo que te mandan
 
 ```powershell

@@ -353,6 +353,8 @@ function Show-Ficha {
     $ui.txtNombre.Text = "$($c['nombre'])"; $ui.txtContacto.Text = "$($c['contacto'])"; $ui.txtComuna.Text = "$($c['comuna'])"
     $ui.txtSintoma.Text = "$($a['sintoma'])"; $ui.txtEstadoFisico.Text = "$($a['estado_fisico'])"; $ui.txtPaquete.Text = "$($a['paquete'])"
     $ui.txtPrecio.Text = if ($a -and $null -ne $a['precio']) { "$($a['precio'])" } else { '' }
+    $cat = @(Format-CatalogoTexto)
+    if ($cat.Count) { $ui.txtPaquete.ToolTip = "Escribe el número del pack y al guardar se llenan el nombre y el precio:`n" + ($cat -join "`n") }
     $ui.txtNotas.Text = "$($a['notas'])"
     $ui.cmbRespaldo.SelectedIndex = switch ("$($a['respaldo'])") { 'si' { 1 } 'no' { 2 } 'no_sabe' { 3 } default { 0 } }
     $ui.chkClaveBitlocker.IsChecked = [bool]$a['bitlocker']['clave_confirmada']
@@ -368,6 +370,12 @@ function Show-Ficha {
 function Save-FichaGui {
     $ui = $script:Ui
     Initialize-AtencionGui
+    # Número (o nombre) de un pack del catálogo: se guarda su nombre y, si el precio está vacío, su precio.
+    $pk = Resolve-PaqueteTexto $ui.txtPaquete.Text
+    if ($pk) {
+        $ui.txtPaquete.Text = $pk.Nombre
+        if (-not "$($ui.txtPrecio.Text)".Trim() -and $null -ne $pk.Precio) { $ui.txtPrecio.Text = [string][int]$pk.Precio }
+    }
     $v = [ordered]@{
         'cliente.nombre' = $ui.txtNombre.Text; 'cliente.contacto' = $ui.txtContacto.Text; 'cliente.comuna' = $ui.txtComuna.Text
         sintoma = $ui.txtSintoma.Text; estado_fisico = $ui.txtEstadoFisico.Text; paquete = $ui.txtPaquete.Text; precio = $ui.txtPrecio.Text; notas = $ui.txtNotas.Text

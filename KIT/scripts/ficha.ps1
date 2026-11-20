@@ -23,6 +23,7 @@ try {
 }
 $script:Cambiados = New-Object System.Collections.Generic.List[string]
 $script:Letras = @{ C = 'CALOR'; L = 'LENTO'; A = 'ARCHIVOS'; R = 'REVISION' }
+$script:PackElegido = $null
 
 function Read-Linea {
     # Con la entrada redirigida (pruebas, o pegando respuestas) lee línea a línea.
@@ -143,7 +144,21 @@ if (@($a['motivos']) -contains 'ARCHIVOS') {
 }
 Write-Host ''
 Write-Host ' TRABAJO' -ForegroundColor White
-Request-Campo -Exp $exp -Atencion $atencion -Campo 'paquete' -Pregunta 'Paquete'
+$catalogo = @(Format-CatalogoTexto)
+if ($catalogo.Count) {
+    Write-Host '    Packs (escribe el número; el precio se llena solo):' -ForegroundColor DarkGray
+    foreach ($l in $catalogo) { Write-Host "  $l" -ForegroundColor DarkGray }
+}
+Request-Campo -Exp $exp -Atencion $atencion -Campo 'paquete' -Pregunta 'Paquete' -Ayuda 'número del pack o texto libre' -Convertir {
+    param($r)
+    $p = Resolve-PaqueteTexto $r
+    if ($p) { $script:PackElegido = $p; $p.Nombre } else { $r }
+}
+if ($script:PackElegido -and $null -ne $script:PackElegido.Precio -and $null -eq (Get-EntradaAtencion -Expediente $exp -Carpeta $atencion)['precio']) {
+    Set-Ficha -Expediente $exp -Atencion $atencion -Valores @{ precio = [string][int]$script:PackElegido.Precio }
+    $script:Cambiados.Add('precio')
+    Write-Host "    Precio: $(Format-PrecioPaquete $script:PackElegido) (del catálogo; cámbialo abajo si corresponde)" -ForegroundColor Green
+}
 Request-Campo -Exp $exp -Atencion $atencion -Campo 'precio' -Pregunta 'Precio (pesos)'
 Request-Campo -Exp $exp -Atencion $atencion -Campo 'notas' -Pregunta 'Notas'
 if (-not $a['entregado'] -and (Test-Si (Read-Linea -Pregunta '¿Se entrega hoy el equipo? Cierra la atención (s/N)' -Actual $null))) {
