@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diagnóstico a distancia · Isaac</title>
+<meta name="description" content="Diagnóstico a distancia de tu computador: revisa cómo está, sin instalar nada, y le manda a Isaac un archivo cifrado.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 8 64 46'%3E%3Cpath d='M3 38 A29 7.5 0 0 1 61 38' fill='none' stroke='%2306b6d4' stroke-width='2' opacity='.4'/%3E%3Cpath d='M10 38 A22 22 0 0 1 54 38 Z' fill='%23e2e8f0' stroke='%2364748b'/%3E%3Cpath d='M3 38 A29 7.5 0 0 0 61 38' fill='none' stroke='%237c3aed' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+:root {
+  --fondo:#f8fafc; --tinta:#0f172a; --suave:#475569; --linea:#e2e8f0; --tarjeta:rgba(255,255,255,.82);
+  --cian:#06b6d4; --violeta:#7c3aed; --verde:#10b981; --rojo:#e5484d; --ambar:#b45309;
+  --f-tit:'Segoe UI Variable Display','Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+  --f-mono:'Cascadia Mono',Consolas,'SFMono-Regular',Menlo,monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --fondo:#0b1120; --tinta:#e2e8f0; --suave:#94a3b8; --linea:#1e293b; --tarjeta:rgba(15,23,42,.78); }
+}
+* { box-sizing:border-box; }
+html, body { margin:0; overflow-x:hidden; }
+body { font-family:var(--f-tit); color:var(--tinta); background:var(--fondo); line-height:1.55;
+  background-image:linear-gradient(var(--linea) 1px,transparent 1px),linear-gradient(90deg,var(--linea) 1px,transparent 1px); background-size:40px 40px; }
+main { max-width:920px; margin:0 auto; padding:28px 16px 60px; }
+.tarjeta { background:var(--tarjeta); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); border:1px solid var(--linea); border-radius:24px; padding:26px; box-shadow:0 24px 60px rgba(15,23,42,.08); margin-top:18px; }
+.cabeza { display:flex; align-items:center; gap:16px; }
+.marca { font-size:12px; letter-spacing:3px; text-transform:uppercase; font-weight:700; background:linear-gradient(90deg,#2563eb,var(--violeta),var(--cian)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+h1 { font-size:clamp(30px,6vw,46px); font-weight:300; margin:6px 0 0; letter-spacing:-.5px; }
+h2 { font-size:20px; margin:0 0 12px; }
+.lead { color:var(--suave); font-size:17px; max-width:640px; }
+.boton { display:inline-flex; align-items:center; gap:10px; padding:15px 26px; border-radius:999px; color:#fff; text-decoration:none; font-weight:700; font-size:17px;
+  background:linear-gradient(90deg,var(--cian),var(--violeta)); box-shadow:0 14px 34px rgba(124,58,237,.30); transition:transform .2s ease, box-shadow .2s ease; }
+.boton:hover { transform:translateY(-2px); box-shadow:0 18px 40px rgba(124,58,237,.38); }
+.boton[aria-disabled="true"] { opacity:.5; pointer-events:none; }
+.peso { color:var(--suave); font-size:14px; margin-left:12px; }
+.codigo { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; border:1.5px solid var(--verde); background:rgba(16,185,129,.07); }
+.codigo b.cod { font-family:var(--f-mono); font-size:clamp(22px,5vw,30px); background:#0f172a; color:#5eead4; padding:10px 18px; border-radius:14px; white-space:nowrap; }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.pasos { counter-reset:p; list-style:none; padding:0; margin:0; }
+.pasos li { counter-increment:p; position:relative; padding:0 0 14px 46px; }
+.pasos li::before { content:"0" counter(p); position:absolute; left:0; top:-2px; font-family:var(--f-mono); font-weight:700; font-size:20px; background:linear-gradient(135deg,var(--cian),var(--violeta)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+ul.si, ul.no { list-style:none; padding:0; margin:0; }
+ul.si li, ul.no li { padding-left:26px; position:relative; margin-bottom:8px; }
+ul.si li::before { content:"✓"; color:var(--verde); position:absolute; left:0; font-weight:700; }
+ul.no li::before { content:"✕"; color:var(--rojo); position:absolute; left:0; font-weight:700; }
+.aviso { border-left:4px solid var(--ambar); background:rgba(180,83,9,.07); padding:12px 16px; border-radius:12px; color:var(--tinta); }
+.chico { font-size:13px; color:var(--suave); }
+code { font-family:var(--f-mono); font-size:12.5px; word-break:break-all; }
+footer { text-align:center; color:var(--suave); font-size:13px; margin-top:30px; }
+footer a { color:inherit; }
+a { color:#0891b2; } @media (prefers-color-scheme: dark) { a { color:#5eead4; } }
+@media (max-width:720px) { .grid { grid-template-columns:1fr; } .tarjeta { padding:20px; } .peso { display:block; margin:10px 0 0; } }
+</style>
+</head>
+<body>
+<main>
+  <section class="tarjeta">
+    <div class="cabeza">
+      <svg width="86" height="62" viewBox="0 8 64 46" aria-hidden="true">
+        <defs><linearGradient id="d" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#b8c4d4"/></linearGradient>
+        <linearGradient id="a" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#06b6d4"/><stop offset="1" stop-color="#7c3aed"/></linearGradient>
+        <clipPath id="c"><path d="M10 38 A22 22 0 0 1 54 38 Z"/></clipPath></defs>
+        <ellipse cx="32" cy="50" rx="20" ry="2.6" fill="#0f172a" opacity=".1"/>
+        <path d="M3 38 A29 7.5 0 0 1 61 38" fill="none" stroke="url(#a)" stroke-width="2" opacity=".38"/>
+        <path d="M10 38 A22 22 0 0 1 54 38 Z" fill="url(#d)" stroke="#64748b"/>
+        <g clip-path="url(#c)" fill="none" stroke="#94a3b8" stroke-width=".8"><path d="M10 38 L21 27 L32 38 L43 27 L54 38 M13 27 L51 27 M32 27 L32 38 M21 27 L27 18 L32 27 L37 18 L43 27 M27 18 L37 18 M27 18 L16 23 M37 18 L48 23 M27 18 L32 15 L37 18"/></g>
+        <path d="M3 38 A29 7.5 0 0 0 61 38" fill="none" stroke="url(#a)" stroke-width="2.6" stroke-linecap="round"/>
+        <circle cx="57.6" cy="41.6" r="2.3" fill="#06b6d4" stroke="#fff"/>
+      </svg>
+      <div>
+        <div class="marca">Isaac · servicio técnico de notebooks y PC</div>
+        <h1>Diagnóstico a distancia</h1>
+      </div>
+    </div>
+    <p class="lead">Un programa que revisa cómo está tu computador y prueba su temperatura, sin instalar nada. Al final te muestra un informe para ti y deja un archivo cifrado que le mandas a Isaac. Con eso te dice qué tiene tu equipo y qué conviene hacer.</p>
+    <p>
+      <a class="boton" id="descargar" href="#" aria-disabled="true">Descargar el diagnóstico ▸</a>
+      <span class="peso">ZIP · 208 MB · Windows 10 y 11</span>
+    </p>
+  </section>
+
+  <section class="tarjeta codigo">
+    <div>
+      <h2>✓ Cómo saber que es de Isaac</h2>
+      <div class="chico" style="font-size:15px;max-width:520px">Al abrir <b>DIAGNOSTICO.cmd</b> se abre una ventana que comprueba la firma de Isaac en cada archivo. Tiene que decir <b>“Paquete verificado”</b> y mostrar este mismo código. Si muestra otro, o dice que el paquete fue modificado, no sigas.</div>
+    </div>
+    <b class="cod">ISAAC · 5668-C92C</b>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Cómo se usa</h2>
+    <ol class="pasos">
+      <li>Descarga el ZIP y descomprímelo (clic derecho &gt; <b>Extraer todo</b>).</li>
+      <li>Cierra juegos y programas pesados. Si es notebook, déjalo enchufado.</li>
+      <li>Abre la carpeta y haz doble clic en <b>DIAGNOSTICO.cmd</b>. Revisa que la ventana diga <b>Paquete verificado</b> con el código de arriba.</li>
+      <li>Aprieta <b>Empezar</b> y acepta el permiso de administrador. Espera unos 20 minutos sin usar el computador: se abren solos dos programas de prueba, no los toques.</li>
+      <li>Al final se abre tu informe en el navegador y queda un archivo <b>Diagnostico_para_Isaac_….kitdiag</b>. Mándaselo a Isaac por WhatsApp o correo.</li>
+    </ol>
+    <div class="aviso"><b>Si Windows dice “Windows protegió su PC”:</b> aprieta <i>Más información</i> y después <i>Ejecutar de todas formas</i>. Sale con cualquier programa que no es de una gran empresa. La seguridad la da la ventana de verificación con el código de Isaac.</div>
+  </section>
+
+  <section class="grid">
+    <div class="tarjeta">
+      <h2>Qué hace</h2>
+      <ul class="si">
+        <li>Revisa disco, memoria, batería, temperatura, inicio de Windows, seguridad y estabilidad.</li>
+        <li>Prueba la temperatura con carga (HWiNFO y OCCT, programas conocidos de diagnóstico).</li>
+        <li>Te deja un informe con gráficos que explica cada número.</li>
+        <li>Deja un archivo cifrado que solo Isaac puede abrir.</li>
+      </ul>
+    </div>
+    <div class="tarjeta">
+      <h2>Qué no hace</h2>
+      <ul class="no">
+        <li>No instala programas ni cambia la configuración de Windows.</li>
+        <li>No mira tus documentos, fotos, contraseñas ni historial.</li>
+        <li>No usa internet: el archivo lo mandas tú, cuando quieras.</li>
+        <li>No cobra nada por sí solo: el diagnóstico de Isaac se conversa con él.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Para los que quieren revisar más</h2>
+    <p class="chico">El código de los scripts es público y se puede leer en <a href="https://github.com/isgrom1/KIT">github.com/isgrom1/KIT</a> (carpeta <code>remoto</code>). Cada paquete trae <code>motor\manifiesto.json</code> con la huella SHA-256 de cada archivo, firmada con la llave RSA-3072 de Isaac; el código de Isaac son los primeros 8 caracteres del SHA-256 del módulo de esa llave.</p>
+    <p class="chico">Huella SHA-256 del ZIP publicado:<br><code id="huella">f3fabdfe3117c16506ba2f5431baaec0ce291bfd1f9eed0dd8a20ab26d0c6cb6</code></p>
+  </section>
+
+  <footer>¿Dudas? Escríbele a Isaac por el mismo WhatsApp desde donde te llegó este link.</footer>
+</main>
+<script>
+  // Link de descarga (Drive). Vacío mientras no esté publicado el ZIP.
+  var DESCARGA = '';
+  var b = document.getElementById('descargar');
+  if (DESCARGA) { b.href = DESCARGA; b.removeAttribute('aria-disabled'); b.setAttribute('rel', 'noopener'); }
+  else { b.textContent = 'Descarga disponible pronto'; }
+</script>
+</body>
+</html>
