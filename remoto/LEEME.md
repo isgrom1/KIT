@@ -26,7 +26,7 @@ de `KIT\herramientas` (o `-Herramientas D:\KIT\herramientas`). `remoto\_salida` 
 
 ## Lo más rápido: CENTRO.cmd
 
-Acceso directo "Centro remoto KIT" en el Escritorio (o `remoto\CENTRO.cmd`). Menú con números:
+Acceso directo "Centro remoto KIT" en el Escritorio (o `remoto\CENTRO.cmd`): una ventana (`centro_gui.ps1`) con el deck "LLEGÓ" (los `.kitdiag` nuevos y ABRIR) y el deck "TRABAJO" (el diagnóstico y sus acciones con casillas; ARMAR deja el ZIP en el pendrive), más Para enviar, Remotos y Rearmar diagnóstico. El menú de consola equivalente es `remoto\CENTRO_CONSOLA.cmd`:
 1 abrir lo que llegó (busca los `.kitdiag` nuevos en el pendrive, Descargas y Escritorio), 2 armar un trabajo
 remoto de un diagnóstico ya abierto (y copia el ZIP a `PARA_ENVIAR` del pendrive), 3 carpeta Para enviar,
 4 carpeta de remotos, 5 rearmar el ZIP del diagnóstico y copiarlo al pendrive. El pendrive se reconoce solo
