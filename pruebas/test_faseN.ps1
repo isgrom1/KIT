@@ -119,7 +119,7 @@ try {
 
     '== Pasada completa en este equipo (necesita admin)'
     if (-not $script:Ctx.Admin.Elevado) {
-        foreach ($n in 'aplica la acción', 'pide reiniciar', 'mide el DESPUÉS y deja el .kitdiag', 'el .kitdiag se abre con la llave', 'informe del trabajo', 'deshacer') { Skip-Prueba "$n (sin admin)" }
+        foreach ($n in 'aplica la acción', 'pide reiniciar', 'mide el DESPUÉS y deja el .kitdiag', 'informe del trabajo para el cliente', 'el .kitdiag se abre con la llave', 'informe del trabajo', 'deshacer') { Skip-Prueba "$n (sin admin)" }
     } else {
         New-ItemProperty -Path $runKey -Name 'KitPruebaTrabajo' -Value 'C:\Windows\notepad.exe' -PropertyType String -Force | Out-Null
         $estado = Join-Path $tmp 'estado'
@@ -132,6 +132,9 @@ try {
         $r3 = Invoke-Trabajo -Paquete (Join-Path $estado '.') -Argumentos @('-Si', '-Estado', $estado, '-Destino', $dest, '-SinReinicio', '-EsperaMin', '0')
         $kd = @(Get-ChildItem $dest -Filter 'Trabajo_para_Isaac_*.kitdiag' -ErrorAction SilentlyContinue)
         Assert 'mide el DESPUÉS (desde la copia en el perfil) y deja el .kitdiag' ($r3.Codigo -eq 0 -and $kd.Count -eq 1) $r3.Salida
+        $infC = @(Get-ChildItem $dest -Filter 'Informe_del_trabajo_*.html' -ErrorAction SilentlyContinue)
+        $txtC = if ($infC.Count) { [Net.WebUtility]::HtmlDecode([IO.File]::ReadAllText($infC[0].FullName)) } else { '' }
+        Assert 'deja el informe del trabajo para el cliente (sin propuesta)' ($infC.Count -eq 1 -and $txtC -match 'Lo que hicimos y cómo cambió' -and $txtC -match 'Lo que sigue' -and $txtC -notmatch 'Lo que te propongo') $r3.Salida
         $abierto = Join-Path $tmp 'abierto'
         $zipBytes = Unprotect-DatosRemoto -Datos ([IO.File]::ReadAllBytes($kd[0].FullName)) -LlavePrivadaXml $llaves.Privada
         $null = [IO.Directory]::CreateDirectory($abierto)

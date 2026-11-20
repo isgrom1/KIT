@@ -12,7 +12,8 @@ CÓMO SE USA
 4. REINICIA el computador.
 5. Vuelve a abrir TRABAJO.cmd. Espera unos minutos sin usar el computador: mide cómo quedó.
 6. Al final queda un archivo "Trabajo_para_Isaac_....kitdiag". Mándaselo a Isaac por WhatsApp
-   o correo. Va cifrado: solo él lo puede abrir.
+   o correo. Va cifrado: solo él lo puede abrir. También se abre en el navegador tu informe:
+   qué se hizo y cómo cambió tu computador (queda guardado junto al archivo).
 
 SI QUIERES VOLVER ATRÁS
 Haz doble clic en DESHACER.cmd (en esta carpeta o en la carpeta Diagnostico_para_Isaac de tu

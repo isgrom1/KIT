@@ -182,10 +182,31 @@ $null = [IO.Directory]::CreateDirectory($Destino)
 $archivo = Join-Path $Destino ("Trabajo_para_Isaac_{0}_{1}.kitdiag" -f $env:COMPUTERNAME, (Get-Date -Format 'yyyyMMdd_HHmm'))
 [IO.File]::WriteAllBytes($archivo, $cifrado)
 Save-Estado @{ fase = 'terminado'; terminado = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss'); archivo = $archivo }
+
+# Informe del trabajo para el cliente (antes y después, sin propuesta ni precios). Si falla, el .kitdiag ya está.
+$informe = $null
+try {
+    $todos = @(Get-ChildItem -LiteralPath (Join-Path $Estado 'clientes') -Recurse -Filter 'diagnostico.json' -ErrorAction SilentlyContinue)
+    $jAntes = @($todos | Where-Object { $_.Directory.Name -eq 'antes' }) | Select-Object -First 1
+    $jDespues = @($todos | Where-Object { $_.Directory.Name -eq 'despues' }) | Select-Object -First 1
+    if ($jAntes -and $jDespues) {
+        foreach ($lib in 'Sensores', 'Mejoras', 'Informe', 'InformeVisual') { . (Join-Path $scripts "lib\$lib.ps1") }
+        $informe = Export-InformeCliente -Diagnostico $jDespues.FullName -Antes $jAntes.FullName -RutaAtencion $jAntes.Directory.Parent.FullName -Salida (Join-Path $Destino ("Informe_del_trabajo_{0}.html" -f (Get-Date -Format 'yyyyMMdd_HHmm')))
+    }
+} catch { Write-Host " (No se pudo armar tu informe: $($_.Exception.Message). El archivo para Isaac está bien.)" -ForegroundColor Gray }
+
 Write-Host ''
 Write-Host ' LISTO.' -ForegroundColor Green
 Write-Host ' Mándale a Isaac este archivo (por WhatsApp o correo):' -ForegroundColor Green
 Write-Host "   $archivo"
+if ($informe) {
+    Write-Host ''
+    Write-Host ' Y este es tu informe (se abre en el navegador): qué se hizo y cómo cambió tu equipo.' -ForegroundColor Cyan
+    Write-Host "   $informe"
+}
 Write-Host " Si algo no te gusta, DESHACER.cmd (en $Estado) vuelve todo atrás." -ForegroundColor Gray
-if (-not $Si) { Start-Process explorer.exe -ArgumentList "/select,`"$archivo`"" }
+if (-not $Si) {
+    Start-Process explorer.exe -ArgumentList "/select,`"$archivo`""
+    if ($informe) { Start-Process $informe }
+}
 exit 0

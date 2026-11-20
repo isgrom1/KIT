@@ -72,6 +72,7 @@ foreach ($p in $cat) {
         $l.Add('2. Abre la carpeta y haz doble clic en DIAGNOSTICO.cmd. Acepta el permiso de administrador.')
         $l.Add('3. Espera sin usar el computador hasta que diga LISTO (se abren solos dos programas: no los toques).')
         $l.Add('4. Al final se abre sola la carpeta con el archivo "Diagnostico_para_Isaac_....kitdiag": mándamelo.')
+        $l.Add('5. También se abre tu informe en el navegador: cómo está tu equipo, explicado. Es para ti y queda guardado.')
     }
     $l.Add('')
     $l.Add($firma)
@@ -79,7 +80,7 @@ foreach ($p in $cat) {
 
     # MENSAJE_WHATSAPP.txt
     $m = switch ($p.Mandar) {
-        'diagnostico' { "¡Hola! Te mando el $($p.Nombre.ToLower()) ($precio). $($p.Resumen) Descomprime el ZIP, abre DIAGNOSTICO.cmd, acepta el permiso y espera unos 20 minutos sin usar el computador. Al final me mandas el archivo .kitdiag que queda en tu Escritorio (va cifrado, solo yo lo puedo abrir). Te adjunto también QUE_HACE.txt con el detalle." }
+        'diagnostico' { "¡Hola! Te mando el $($p.Nombre.ToLower()) ($precio). $($p.Resumen) Descomprime el ZIP, abre DIAGNOSTICO.cmd, acepta el permiso y espera unos 20 minutos sin usar el computador. Al final me mandas el archivo .kitdiag que queda en tu Escritorio (va cifrado, solo yo lo puedo abrir). Al terminar también se te abre un informe de cómo está tu equipo. Te adjunto también QUE_HACE.txt con el detalle." }
         'trabajo' { "¡Hola! Te cuento de la $($p.Nombre.ToLower()) ($precio). $($p.Resumen) Primero te mando el diagnóstico a distancia; con eso te preparo un paquete solo para tu computador, que te muestra los cambios antes de aplicarlos y se puede deshacer. Te adjunto QUE_HACE.txt con el detalle." }
         default { "¡Hola! Te cuento del servicio $($p.Nombre.ToLower()) ($precio). $($p.Resumen) Te adjunto QUE_HACE.txt con el detalle. ¿Te acomoda que coordinemos?" }
     }

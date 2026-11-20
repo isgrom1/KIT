@@ -184,6 +184,22 @@ try {
     Assert 'nube personal llena: 7,3 GB de 5 GB' ($tO -match 'Lleno: lo nuevo no se respalda' -and $tO -match '7,3 GB de 5 GB' -and $tO -match 'Escritorio, Documentos') ([regex]::Match($tO, 'OneDrive copia[^<]{0,80}').Value)
     Assert 'la nube tampoco dice "sin costo"' ($tO -notmatch '(?i)sin costo')
     Assert 'sin OneDrive no hay vista Nube' ((ConvertTo-InformeVisual -Doc (New-DocPrueba)) -notmatch "data-vista='4'")
+    '== Fase P: informe que ve el cliente en su equipo'
+    $hC = ConvertTo-InformeVisual -Doc $docO -Sensores $sens -ParaCliente
+    $tC = [Net.WebUtility]::HtmlDecode($hC)
+    Assert 'sin propuesta ni precios' ($tC -notmatch 'Lo que te propongo|Todo lo propuesto|¿Lo dejamos listo\?' -and $tC -notmatch '\$\d{1,3}\.\d{3}') ([regex]::Match($tC, 'Lo que te propongo|\$\d{1,3}\.\d{3}').Value)
+    Assert 'termina con Lo que sigue: mandar el .kitdiag y esperar la propuesta' ($tC -match 'Lo que sigue' -and $tC -match 'Mándame el archivo cifrado' -and $tC -match 'te manda su propuesta' -and $hC -match "data-nombre='Lo que sigue'")
+    Assert 'mantiene las vistas 01 a 04 y la nube' (-not @('1', '2', '3', '4' | Where-Object { $hC -notmatch "data-vista='$_'" }).Count -and $tC -match 'Tu respaldo en la nube')
+    Assert 'la píldora toma el nombre de data-nombre' ($hC -match "getAttribute\('data-nombre'\)")
+    Assert 'portada sin "y qué hacer"' ($tC -notmatch 'qué significa cada uno y qué hacer' -and $tC -match 'te mando qué conviene hacer')
+    Assert 'sin la serie del equipo' ($hC -notmatch [regex]::Escape("$($docO.datos.equipo.Serie)") -or -not "$($docO.datos.equipo.Serie)")
+    Assert 'logo en la portada y en la pestaña (data:, nada externo)' ($hC -match "class='logo'" -and $hC -match "rel='icon' type='image/svg\+xml' href='data:image/svg\+xml;base64,")
+    $jC = Join-Path $tmp 'cli\diagnostico.json'
+    $null = [IO.Directory]::CreateDirectory((Split-Path $jC))
+    [IO.File]::WriteAllText($jC, ($docO | ConvertTo-Json -Depth 8), (New-Object Text.UTF8Encoding $false))
+    $rc = Export-InformeCliente -Diagnostico $jC -CsvSensores $csv -Salida (Join-Path $tmp 'cli\Informe_de_tu_equipo.html')
+    $quedan = @(Get-ChildItem (Join-Path $tmp 'cli') -File | ForEach-Object Name)
+    Assert 'Export-InformeCliente deja solo el HTML (sin hoja técnica ni PDF)' ([IO.File]::Exists($rc) -and $quedan.Count -eq 2 -and -not ($quedan -match 'tecnico|\.pdf$')) ($quedan -join ', ')
     '== PDF'
     $json = Join-Path $tmp 'diagnostico.json'
     [IO.File]::WriteAllText($json, ((New-DocPrueba -LibrePct 14.9) | ConvertTo-Json -Depth 8), (New-Object Text.UTF8Encoding $false))

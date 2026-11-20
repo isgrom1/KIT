@@ -83,6 +83,23 @@
           <Button Name="btnVolverEquipo" Content="Volver a este equipo" Margin="0,0,8,0" MinHeight="30" Visibility="Collapsed"/>
           <Button Name="btnRelanzar" Content="Relanzar como admin" Margin="0" MinHeight="30"/>
         </StackPanel>
+        <Viewbox Name="vbLogo" DockPanel.Dock="Left" Width="54" Height="39" Margin="0,0,12,0" VerticalAlignment="Center" ToolTip="KIT SERVICIO">
+          <Canvas Width="64" Height="46">
+            <Canvas.RenderTransform><TranslateTransform Y="-8"/></Canvas.RenderTransform>
+            <Path Data="M3,38 A29,7.5 0 0 1 61,38" StrokeThickness="2" Opacity="0.38">
+              <Path.Stroke><LinearGradientBrush StartPoint="0,0" EndPoint="1,0"><GradientStop Color="#06B6D4" Offset="0"/><GradientStop Color="#7C3AED" Offset="1"/></LinearGradientBrush></Path.Stroke>
+            </Path>
+            <Path Data="M10,38 A22,22 0 0 1 54,38 Z" Stroke="#64748B" StrokeThickness="1">
+              <Path.Fill><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#FFFFFF" Offset="0"/><GradientStop Color="#B8C4D4" Offset="1"/></LinearGradientBrush></Path.Fill>
+            </Path>
+            <Path Stroke="#94A3B8" StrokeThickness="0.8" StrokeLineJoin="Round" Clip="M10,38 A22,22 0 0 1 54,38 Z"
+                  Data="M10,38 L21,27 L32,38 L43,27 L54,38 M13,27 L51,27 M32,27 L32,38 M21,27 L27,18 L32,27 L37,18 L43,27 M27,18 L37,18 M27,18 L16,23 M37,18 L48,23 M27,18 L32,15 L37,18"/>
+            <Path Data="M3,38 A29,7.5 0 0 0 61,38" StrokeThickness="2.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round">
+              <Path.Stroke><LinearGradientBrush StartPoint="0,0" EndPoint="1,0"><GradientStop Color="#06B6D4" Offset="0"/><GradientStop Color="#7C3AED" Offset="1"/></LinearGradientBrush></Path.Stroke>
+            </Path>
+            <Ellipse Canvas.Left="55.3" Canvas.Top="39.3" Width="4.6" Height="4.6" Fill="#06B6D4" Stroke="White" StrokeThickness="1"/>
+          </Canvas>
+        </Viewbox>
         <StackPanel>
           <TextBlock Name="txtEquipo" Text="Equipo" Foreground="White" FontSize="17" FontWeight="SemiBold"/>
           <TextBlock Name="txtCliente" Text="" Foreground="#C8E1FF" TextTrimming="CharacterEllipsis"/>

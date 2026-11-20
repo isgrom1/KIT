@@ -156,7 +156,19 @@ try {
     Write-Host " Los datos quedaron en $trabajo : avísale a Isaac." -ForegroundColor Red
     exit 1
 }
-# 5. En el equipo no queda nada sin cifrar
+# 5. Informe para la persona que lo corrió: cómo está su equipo (sin propuesta ni precios; la hoja técnica
+#    solo la arma Isaac al abrir el .kitdiag). Si falla, el archivo para Isaac ya quedó igual.
+$informe = $null
+try {
+    $json = Get-ChildItem -LiteralPath (Join-Path $trabajo 'diagnostico') -Recurse -Filter 'diagnostico.json' -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($json) {
+        foreach ($lib in 'Comun', 'Log', 'Sensores', 'Mejoras', 'Expediente', 'Informe', 'InformeVisual') { . (Join-Path $scripts "lib\$lib.ps1") }
+        Initialize-Contexto -RaizScripts $scripts
+        $informe = Export-InformeCliente -Diagnostico $json.FullName -CsvSensores (Join-Path $trabajo 'calor\sensores_calor.csv') -Salida (Join-Path $Destino "Informe_de_tu_equipo_$sello.html")
+    }
+} catch { Write-Host " (No se pudo armar tu informe: $($_.Exception.Message). El archivo para Isaac está bien.)" -ForegroundColor Gray }
+
+# 6. En el equipo no queda nada sin cifrar (el informe es solo el resumen visual, sin la serie del equipo)
 Remove-Item -LiteralPath $trabajo -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host ''
@@ -164,6 +176,14 @@ Write-Host ' LISTO.' -ForegroundColor Green
 Write-Host " Mándale a Isaac este archivo (por WhatsApp o correo):" -ForegroundColor Green
 Write-Host "   $archivo"
 Write-Host ' Va cifrado: solo él lo puede abrir.' -ForegroundColor Gray
+if ($informe) {
+    Write-Host ''
+    Write-Host ' Y este es tu informe (se abre en el navegador): cómo está tu equipo, explicado.' -ForegroundColor Cyan
+    Write-Host "   $informe"
+}
 if ($enOneDrive) { Write-Host ' (No quedó en el Escritorio porque tu Escritorio se sube a OneDrive. Se abre la carpeta donde está.)' -ForegroundColor Gray }
-Start-Process explorer.exe -ArgumentList "/select,`"$archivo`""
+if (-not $env:KIT_SIN_ABRIR) {
+    Start-Process explorer.exe -ArgumentList "/select,`"$archivo`""
+    if ($informe) { Start-Process $informe }
+}
 exit 0

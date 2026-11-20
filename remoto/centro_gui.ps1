@@ -68,9 +68,24 @@ $xaml = @'
           <TextBlock x:Name="txtPen" Foreground="#C9D6FF" FontSize="13" VerticalAlignment="Center" Text="Pendrive"/>
         </StackPanel>
         <StackPanel Orientation="Horizontal">
-          <Border Width="46" Height="46" CornerRadius="23" Background="#F5C400" BorderBrush="#111" BorderThickness="3" Margin="0,0,12,0">
-            <TextBlock Text="&#x26A1;" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#111"/>
-          </Border>
+          <Viewbox x:Name="vbLogo" Width="62" Height="45" Margin="0,0,12,0" VerticalAlignment="Center" ToolTip="KIT SERVICIO">
+          <Canvas Width="64" Height="46">
+            <Canvas.RenderTransform><TranslateTransform Y="-8"/></Canvas.RenderTransform>
+            <Path Data="M3,38 A29,7.5 0 0 1 61,38" StrokeThickness="2" Opacity="0.38">
+              <Path.Stroke><LinearGradientBrush StartPoint="0,0" EndPoint="1,0"><GradientStop Color="#06B6D4" Offset="0"/><GradientStop Color="#7C3AED" Offset="1"/></LinearGradientBrush></Path.Stroke>
+            </Path>
+            <Path Data="M10,38 A22,22 0 0 1 54,38 Z" Stroke="#64748B" StrokeThickness="1">
+              <Path.Fill><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#FFFFFF" Offset="0"/><GradientStop Color="#B8C4D4" Offset="1"/></LinearGradientBrush></Path.Fill>
+            </Path>
+            <Path Stroke="#94A3B8" StrokeThickness="0.8" StrokeLineJoin="Round" Clip="M10,38 A22,22 0 0 1 54,38 Z"
+                  Data="M10,38 L21,27 L32,38 L43,27 L54,38 M13,27 L51,27 M32,27 L32,38 M21,27 L27,18 L32,27 L37,18 L43,27 M27,18 L37,18 M27,18 L16,23 M37,18 L48,23 M27,18 L32,15 L37,18"/>
+            <Path Data="M3,38 A29,7.5 0 0 0 61,38" StrokeThickness="2.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round">
+              <Path.Stroke><LinearGradientBrush StartPoint="0,0" EndPoint="1,0"><GradientStop Color="#06B6D4" Offset="0"/><GradientStop Color="#7C3AED" Offset="1"/></LinearGradientBrush></Path.Stroke>
+            </Path>
+            <Ellipse Canvas.Left="55.3" Canvas.Top="39.3" Width="4.6" Height="4.6" Fill="#06B6D4" Stroke="White" StrokeThickness="1"/>
+          </Canvas>
+        </Viewbox>
+
           <StackPanel VerticalAlignment="Center">
             <TextBlock Text="CENTRO REMOTO" Foreground="#FFFFFF" FontWeight="Black" FontSize="26"/>
             <TextBlock Text="KIT SERVICIO · lo que llega, lo que se arma y lo que se manda" Style="{StaticResource Sub}"/>
@@ -116,7 +131,24 @@ $xaml = @'
 </Window>
 '@
 
+function Initialize-IconoVentana {
+    # Ícono de la ventana y de la barra de tareas: el logo vectorial (vbLogo) pasado a imagen, sin archivos aparte.
+    param($Ventana)
+    try {
+        $logo = $Ventana.FindName('vbLogo')
+        if (-not $logo) { return }
+        $dv = New-Object Windows.Media.DrawingVisual
+        $dc = $dv.RenderOpen()
+        $dc.DrawRectangle((New-Object Windows.Media.VisualBrush $logo), $null, (New-Object Windows.Rect 0, 9, 64, 46))
+        $dc.Close()
+        $bmp = New-Object Windows.Media.Imaging.RenderTargetBitmap 64, 64, 96, 96, ([Windows.Media.PixelFormats]::Pbgra32)
+        $bmp.Render($dv)
+        $Ventana.Icon = $bmp
+    } catch { Write-Verbose $_ }
+}
+
 $w = [Windows.Markup.XamlReader]::Parse($xaml)
+$w.Add_ContentRendered({ Initialize-IconoVentana -Ventana $w })
 $ui = @{}
 foreach ($n in 'vu', 'txtEstado', 'ledPen', 'txtPen', 'chkVer', 'btnAbrir', 'lstLlego', 'cmbDiag', 'btnArmar', 'pnlAcciones', 'btnEnviar', 'btnRemotos', 'btnRearmar') { $ui[$n] = $w.FindName($n) }
 $script:Proc = $null

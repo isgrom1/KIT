@@ -34,6 +34,22 @@ try { Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBas
 
 $ErrorActionPreference = 'Stop'
 $script:Raiz = Split-Path -Parent $PSScriptRoot
+function Initialize-IconoVentana {
+    # Ícono de la ventana y de la barra de tareas: el logo vectorial (vbLogo) pasado a imagen, sin archivos aparte.
+    param($Ventana)
+    try {
+        $logo = $Ventana.FindName('vbLogo')
+        if (-not $logo) { return }
+        $dv = New-Object Windows.Media.DrawingVisual
+        $dc = $dv.RenderOpen()
+        $dc.DrawRectangle((New-Object Windows.Media.VisualBrush $logo), $null, (New-Object Windows.Rect 0, 9, 64, 46))
+        $dc.Close()
+        $bmp = New-Object Windows.Media.Imaging.RenderTargetBitmap 64, 64, 96, 96, ([Windows.Media.PixelFormats]::Pbgra32)
+        $bmp.Render($dv)
+        $Ventana.Icon = $bmp
+    } catch { Write-Verbose $_ }
+}
+
 try {
     foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe', 'Herramientas', 'Sincronizacion', 'Flujo', 'Soporte', 'Drivers') { . (Join-Path $script:Raiz "lib\$lib.ps1") }
     foreach ($m in 'calor', 'lento', 'archivos', 'revision') { . (Join-Path $script:Raiz "motivos\$m.ps1") }
@@ -46,6 +62,7 @@ try {
     $script:Integridad = Test-IntegridadKit -RaizKit $script:Ctx.RaizKit
     [xml]$xaml = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'principal.xaml'))
     $script:Win = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
+    $script:Win.Add_ContentRendered({ Initialize-IconoVentana -Ventana $script:Win })
 } catch {
     [Console]::Error.WriteLine("No se pudo abrir la interfaz: $($_.Exception.Message)")
     exit 10

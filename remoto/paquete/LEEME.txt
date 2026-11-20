@@ -16,6 +16,8 @@ CÓMO SE USA
    la carpeta donde está (si tu Escritorio se respalda en OneDrive, queda en la carpeta
    "Diagnostico_para_Isaac" de tu usuario). Mándaselo a Isaac por WhatsApp o correo.
    Va cifrado: solo él lo puede abrir.
+6. También se abre en el navegador tu informe: cómo está tu equipo, explicado con gráficos.
+   Es para ti y queda guardado junto al archivo. Isaac lo revisa y te manda su propuesta.
 
 Después puedes borrar la carpeta del diagnóstico.
 

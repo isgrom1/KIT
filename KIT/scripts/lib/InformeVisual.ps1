@@ -329,6 +329,29 @@ function Get-ServiciosCliente {
 
 # ---------------------------------------------------------------- gráficos SVG
 
+function Get-SvgLogo {
+    # Logo: media esfera geodésica de porcelana con un anillo cian-violeta que la cruza (el núcleo del informe,
+    # cortado a la mitad). Vectorial, sin archivos aparte. -Id evita choques de degradados si sale más de una vez.
+    param([int]$Tam = 40, [string]$Id = 'lg')
+    "<svg class='logo' width='$Tam' height='$([int][math]::Round($Tam * 46 / 64))' viewBox='0 8 64 46' xmlns='http://www.w3.org/2000/svg' aria-label='logo'>" +
+    "<defs><linearGradient id='${Id}d' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#ffffff'/><stop offset='1' stop-color='#b8c4d4'/></linearGradient>" +
+    "<linearGradient id='${Id}a' x1='0' y1='0' x2='1' y2='0'><stop offset='0' stop-color='#06b6d4'/><stop offset='1' stop-color='#7c3aed'/></linearGradient>" +
+    "<clipPath id='${Id}c'><path d='M10 38 A22 22 0 0 1 54 38 Z'/></clipPath></defs>" +
+    "<ellipse cx='32' cy='50' rx='20' ry='2.6' fill='#0f172a' opacity='.10'/>" +
+    "<path d='M3 38 A29 7.5 0 0 1 61 38' fill='none' stroke='url(#${Id}a)' stroke-width='2' opacity='.38'/>" +
+    "<path d='M10 38 A22 22 0 0 1 54 38 Z' fill='url(#${Id}d)' stroke='#64748b' stroke-width='1'/>" +
+    "<g clip-path='url(#${Id}c)' fill='none' stroke='#94a3b8' stroke-width='.8' stroke-linejoin='round'>" +
+    "<path d='M10 38 L21 27 L32 38 L43 27 L54 38 M13 27 L51 27 M32 27 L32 38 M21 27 L27 18 L32 27 L37 18 L43 27 M27 18 L37 18 M27 18 L16 23 M37 18 L48 23 M27 18 L32 15 L37 18'/></g>" +
+    "<path d='M3 38 A29 7.5 0 0 0 61 38' fill='none' stroke='url(#${Id}a)' stroke-width='2.6' stroke-linecap='round'/>" +
+    "<circle cx='57.6' cy='41.6' r='2.3' fill='#06b6d4' stroke='#fff' stroke-width='1'/></svg>"
+}
+
+function Get-FaviconLogo {
+    # Ícono de la pestaña del navegador: el mismo logo como data: URI (nada externo).
+    $svg = (Get-SvgLogo -Tam 64 -Id 'fv') -replace " class='logo'", '' -replace " aria-label='logo'", ''
+    "<link rel='icon' type='image/svg+xml' href='data:image/svg+xml;base64,$([Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($svg)))'>"
+}
+
 function Get-SvgAnillo {
     # Anillo de puntaje con el número al centro.
     param($Puntaje, [int]$Tam = 150, [string]$Fondo = 'rgba(255,255,255,.18)', [string]$Texto = '#fff', [switch]$Degradado)
@@ -529,6 +552,8 @@ p { margin:3px 0 7px; }
   repeating-linear-gradient(0deg, rgba(15,23,42,.035) 0 1px, transparent 1px 26px),
   repeating-linear-gradient(90deg, rgba(15,23,42,.035) 0 1px, transparent 1px 26px), #fbfcff; }
 .portada .arriba { padding:16mm 16mm 0; }
+.marca-fila { display:flex; align-items:center; gap:12px; }
+.logo { flex:none; display:block; }
 .portada .marca { font-size:9pt; letter-spacing:4px; text-transform:uppercase; font-weight:700; background:linear-gradient(90deg,#2563eb,#7c3aed,#06b6d4); -webkit-background-clip:text; background-clip:text; color:transparent; display:inline-block; }
 .portada h1 { font-size:34pt; line-height:1.05; margin:14mm 0 3mm; letter-spacing:-1.2px; font-weight:300; font-family:"Segoe UI Light","Segoe UI",Arial,sans-serif; }
 .portada .sub { font-size:12pt; color:#475569; max-width:140mm; }
@@ -781,6 +806,32 @@ function Get-HtmlOneDriveVisual {
     $sb.ToString()
 }
 
+function Get-HtmlLoQueSigue {
+    # Cierre del informe que el cliente ve en su equipo (-ParaCliente): qué pasa ahora, sin propuesta ni precios.
+    # Abre la hoja (vista 05); quien llama agrega el pie y la cierra.
+    param([switch]$Trabajo)
+    $H = { param($x) Get-HtmlVisual $x }
+    $nombre = "$($script:Ctx.Config.tecnico.nombre)"
+    if (-not $nombre) { $nombre = 'el técnico' }
+    $pasos = if ($Trabajo) {
+        @(@('1', 'Mándame el archivo cifrado', 'Es el archivo .kitdiag que quedó junto a este informe. Solo yo lo puedo abrir.'),
+            @('2', 'Reviso que todo quedó bien', 'Comparo el antes y el después con el detalle técnico de cada cambio.'),
+            @('3', 'Tú tienes el control', 'Si algo no te gusta, DESHACER.cmd vuelve todo atrás. Si tienes dudas, escríbeme.'))
+    } else {
+        @(@('1', 'Mándame el archivo cifrado', 'Es el archivo .kitdiag que quedó junto a este informe. Solo yo lo puedo abrir.'),
+            @('2', 'Lo reviso con calma', 'Miro el detalle técnico de cada área, que tiene más información de la que sale aquí.'),
+            @('3', 'Te mando mi propuesta', 'Qué conviene hacer, en qué orden y cuánto cuesta. Tú decides si seguimos.'))
+    }
+    $sb = New-Object Text.StringBuilder
+    [void]$sb.Append("<div class='hoja' data-vista='5' style='min-height:0'$(if (-not $Trabajo) { " data-nombre='Lo que sigue'" })><div class='sec'><h2><span class='num-sec'>&#10140;</span>Lo que sigue<small>$(if ($Trabajo) { 'El trabajo ya está hecho. Esto es lo último.' } else { "Este informe es para ti. Ahora $(& $H $nombre) revisa el diagnóstico y te manda su propuesta." })</small></h2>")
+    [void]$sb.Append("<div class='tres'>")
+    foreach ($p in $pasos) { [void]$sb.Append("<div class='caja camino'><div style='font-family:var(--f-mono);font-size:22pt;font-weight:700;background:linear-gradient(135deg,#06b6d4,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent'>0$($p[0])</div><h3>$(& $H $p[1])</h3><div style='font-size:9.2pt;color:var(--suave)'>$(& $H $p[2])</div></div>") }
+    [void]$sb.Append('</div>')
+    [void]$sb.Append("<div style='background:linear-gradient(135deg,#17406f,#1f5fa8);color:#fff;border-radius:14px;padding:14px 18px;margin:14px 0 6px;page-break-inside:avoid'><div style='font-size:12.5pt;font-weight:700'>$(if ($Trabajo) { 'Gracias por la confianza' } else { 'Nada se cambió en tu computador' })</div><div style='font-size:9.4pt;opacity:.92;margin-top:3px'>$(if ($Trabajo) { 'Cada cambio quedó respaldado y con punto de restauración de Windows.' } else { 'El diagnóstico solo leyó cómo está el equipo: no instaló programas ni miró tus documentos, fotos o contraseñas.' }) Este informe quedó guardado en tu computador y lo puedes abrir cuando quieras.</div><div style='font-size:10pt;font-weight:700;margin-top:8px'>$(& $H $nombre) · Servicio técnico</div></div>")
+    [void]$sb.Append('</div>')
+    $sb.ToString()
+}
+
 function Get-ScriptAnimacionVisual {
     # Animaciones del HTML en pantalla: aparece cada página al bajar, se llenan los anillos y las donas, suben los
     # números, crecen las barras y se dibujan las curvas. No corre al imprimir el PDF (Edge sin ventana o #pdf),
@@ -993,6 +1044,7 @@ function Get-ScriptVistasVisual {
   /* ---------- vistas 01-05 con la píldora ---------- */
   var hojas = q(document, '.hoja[data-vista]');
   var nombres = { 1: 'Diagnóstico', 2: 'Térmica', 3: 'Rendimiento', 4: 'Nube', 5: 'Acciones' };
+  hojas.forEach(function (h) { var n = h.getAttribute('data-nombre'); if (n) nombres[+h.getAttribute('data-vista')] = n; });
   var vistas = [];
   hojas.forEach(function (h) { var v = +h.getAttribute('data-vista'); if (vistas.indexOf(v) < 0) vistas.push(v); });
   vistas.sort(function (a, b) { return a - b; });
@@ -1050,7 +1102,9 @@ function Get-ScriptVistasVisual {
 function ConvertTo-InformeVisual {
     # Arma el HTML del informe. -Origen: 'remoto' o 'kit' (cambia la frase de cómo se hizo).
     # Con -Resultado (Get-ResultadoTrabajo) es el informe de un trabajo hecho: $Doc es el DESPUÉS, $DocAntes el ANTES.
-    param([Parameter(Mandatory)]$Doc, $Sensores, [string]$Origen = 'remoto', [string]$Cliente, $DocAntes, $Resultado)
+    # Con -ParaCliente es el que se abre solo en el equipo del cliente: sin "Lo que te propongo" ni precios;
+    # termina con "Lo que sigue" (mandar el .kitdiag, Isaac revisa y manda su propuesta).
+    param([Parameter(Mandatory)]$Doc, $Sensores, [string]$Origen = 'remoto', [string]$Cliente, $DocAntes, $Resultado, [switch]$ParaCliente)
     $d = $Doc.datos
     $H = { param($t) Get-HtmlVisual $t }
     $areas = @(Get-AreasSalud -Doc $Doc -Sensores $Sensores)
@@ -1064,18 +1118,18 @@ function ConvertTo-InformeVisual {
     $modelo = Get-NombreModeloVisual -Equipo $eq
     $pie = { param($n) "<div class='pie'><div>$(& $H $modelo) · $(& $H $fechaTxt)</div><div>$(& $H "$($tecnico.nombre)") · Servicio técnico$(if ($contacto) { ' · ' + (& $H $contacto) })</div><div>$n</div></div>" }
     $sb = New-Object Text.StringBuilder
-    [void]$sb.Append("<!doctype html><html lang='es'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Informe · $(& $H $modelo)</title><style>$(Get-CssVisual)</style></head><body>")
+    [void]$sb.Append("<!doctype html><html lang='es'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Informe · $(& $H $modelo)</title>$(Get-FaviconLogo)<style>$(Get-CssVisual)</style></head><body>")
 
     # ---- Portada
     $nivel = Get-EtiquetaPuntaje $puntaje
     $malas = @($areas | Where-Object { $null -ne $_.Puntaje -and $_.Puntaje -lt 70 } | Sort-Object Puntaje)
     $frase = if (-not $malas.Count) { 'El equipo está en buena forma. Abajo están los detalles y algunas ideas para mantenerlo así.' }
-    else { "El equipo funciona, y hay $(if ($malas.Count -eq 1) { 'un punto' } else { "$($malas.Count) puntos" }) que conviene atender: " + (($malas | ForEach-Object { $_.Nombre.ToLower() }) -join ', ') + '. En las páginas siguientes te explico qué significa cada uno y qué hacer.' }
+    else { "El equipo funciona, y hay $(if ($malas.Count -eq 1) { 'un punto' } else { "$($malas.Count) puntos" }) que conviene atender: " + (($malas | ForEach-Object { $_.Nombre.ToLower() }) -join ', ') + $(if ($ParaCliente) { '. En las páginas siguientes te explico qué significa cada uno; después de revisarlo te mando qué conviene hacer.' } else { '. En las páginas siguientes te explico qué significa cada uno y qué hacer.' }) }
     if ($Resultado) {
         $frase = 'Terminé el trabajo en tu equipo. En la página siguiente está lo que hice y cómo cambió; después, cómo quedó cada área.'
         if ($null -ne $puntajeAntes -and $null -ne $puntaje) { $frase = "Antes del trabajo la salud general era $puntajeAntes; ahora es $puntaje. " + $frase }
     }
-    [void]$sb.Append("<div class='hoja portada' data-vista='1'><div class='arriba'><div class='marca'>$(if ($Resultado) { 'Informe de trabajo' } else { 'Informe de diagnóstico' })$(if ($Origen -eq 'remoto') { ' · a distancia' })</div>")
+    [void]$sb.Append("<div class='hoja portada' data-vista='1'><div class='arriba'><div class='marca-fila'>$(Get-SvgLogo -Tam 64 -Id 'lgp')<div class='marca'>$(if ($Resultado) { 'Informe de trabajo' } else { 'Informe de diagnóstico' })$(if ($Origen -eq 'remoto') { ' · a distancia' })</div></div>")
     [void]$sb.Append("<h1>$(& $H $modelo)</h1><div class='sub'>$(if ($Resultado) { 'Lo que se hizo en tu equipo y cómo quedó.' } else { "Revisión completa del equipo$(if ($Sensores) { ' y prueba de temperatura' }): cómo está, qué significa y qué conviene hacer." })</div>")
     [void]$sb.Append("<div class='solo-pantalla'><button class='btn-inspeccionar' id='btnInspeccionar' type='button'>Inspeccionar telemetría &#9656;</button></div>")
     [void]$sb.Append("<div class='datos'><div>Fecha<b>$(& $H $fechaTxt)</b></div><div>Equipo<b>$(& $H $eq.NombreEquipo)</b></div><div>Windows<b>$(& $H ("$($d.windows.Nombre)" -replace '^Windows (\d+) (Home|Pro).*$', 'Windows $1 $2')) $(& $H $d.windows.Version)</b></div><div>$(if ($Cliente) { 'Cliente' } else { 'Técnico' })<b>$(& $H $(if ($Cliente) { $Cliente } else { $tecnico.nombre }))</b></div></div></div>")
@@ -1279,8 +1333,14 @@ function ConvertTo-InformeVisual {
 
     # ---- Recomendaciones
     $nr++
-    $servicios = @(Get-ServiciosCliente -Doc $Doc -Sensores $Sensores -Origen $Origen)
     [void]$sb.Append((Get-HtmlOneDriveVisual -Doc $Doc -Pie $pie))
+    if ($ParaCliente) {
+        # Lo ve el cliente en su equipo al terminar: sin propuesta ni precios (Isaac la manda después de revisar).
+        [void]$sb.Append((Get-HtmlLoQueSigue -Trabajo:([bool]$Resultado)))
+        [void]$sb.Append("$(& $pie ($np + 2))</div>$(Get-ScriptAnimacionVisual)$(Get-ScriptVistasVisual)</body></html>")
+        return $sb.ToString()
+    }
+    $servicios = @(Get-ServiciosCliente -Doc $Doc -Sensores $Sensores -Origen $Origen)
     [void]$sb.Append("<div class='hoja' data-vista='5'><div class='sec'><h2><span class='num-sec'>$nr</span>Lo que te propongo<small>Lo que encontré en el diagnóstico, agrupado en lo que puedo hacer por tu equipo, de lo más importante a lo menos.</small></h2>")
     for ($i = 0; $i -lt $servicios.Count; $i++) {
         $x = $servicios[$i]
@@ -1378,8 +1438,8 @@ function ConvertTo-HojaTecnica {
     $H = { param($t) Get-HtmlVisual $t }
     $recos = @(Get-RecomendacionesVisual -Doc $Doc -Sensores $Sensores)
     $sb = New-Object Text.StringBuilder
-    [void]$sb.Append("<!doctype html><html lang='es'><head><meta charset='utf-8'><title>Hoja técnica · $(& $H (Get-NombreModeloVisual -Equipo $d.equipo))</title><style>body{font-family:'Segoe UI',Arial;font-size:10pt;color:#1b2430;max-width:900px;margin:20px auto;padding:0 16px}h1{font-size:16pt;margin:0}h2{font-size:12pt;color:#1f5fa8;margin:18px 0 6px;border-bottom:2px solid #e3e8ee;padding-bottom:3px}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #e3e8ee;padding:4px 6px;text-align:left;vertical-align:top}th{color:#5a6675;font-size:8.5pt;text-transform:uppercase}.t{font-size:8pt;font-weight:700;padding:1px 6px;border-radius:8px;background:#eef1f5}.aviso{background:#fdf3e2;border-left:4px solid #b7700a;padding:6px 10px;margin:8px 0}</style></head><body>")
-    [void]$sb.Append("<h1>Hoja técnica · $(& $H (Get-NombreModeloVisual -Equipo $d.equipo))</h1><div>Equipo $(& $H $d.equipo.NombreEquipo) · serie $(& $H $d.equipo.Serie) · diagnóstico $(& $H $Doc.kit.generado)</div>")
+    [void]$sb.Append("<!doctype html><html lang='es'><head><meta charset='utf-8'>$(Get-FaviconLogo)<title>Hoja técnica · $(& $H (Get-NombreModeloVisual -Equipo $d.equipo))</title><style>body{font-family:'Segoe UI',Arial;font-size:10pt;color:#1b2430;max-width:900px;margin:20px auto;padding:0 16px}h1{font-size:16pt;margin:0}h2{font-size:12pt;color:#1f5fa8;margin:18px 0 6px;border-bottom:2px solid #e3e8ee;padding-bottom:3px}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #e3e8ee;padding:4px 6px;text-align:left;vertical-align:top}th{color:#5a6675;font-size:8.5pt;text-transform:uppercase}.t{font-size:8pt;font-weight:700;padding:1px 6px;border-radius:8px;background:#eef1f5}.aviso{background:#fdf3e2;border-left:4px solid #b7700a;padding:6px 10px;margin:8px 0}</style></head><body>")
+    [void]$sb.Append("<div style='display:flex;align-items:center;gap:10px'>$(Get-SvgLogo -Tam 40 -Id 'lgt')<h1>Hoja técnica · $(& $H (Get-NombreModeloVisual -Equipo $d.equipo))</h1></div><div>Equipo $(& $H $d.equipo.NombreEquipo) · serie $(& $H $d.equipo.Serie) · diagnóstico $(& $H $Doc.kit.generado)</div>")
     [void]$sb.Append("<div class='aviso'>Solo para ti: el informe del cliente muestra estos puntos como servicios, sin el cómo.</div>")
     $sv = @(Get-ServiciosCliente -Doc $Doc -Sensores $Sensores -Origen $Origen)
     if ($sv.Count) {
@@ -1439,4 +1499,20 @@ function Export-InformeVisual {
     $pdf = $null; $err = $null
     try { $pdf = Export-PdfInforme -Html $rutaHtml -Pdf ([IO.Path]::ChangeExtension($Salida, '.pdf')) } catch { $err = $_.Exception.Message }
     [pscustomobject]@{ Html = $rutaHtml; Pdf = $pdf; Tecnico = $rutaTec; Error = $err }
+}
+
+function Export-InformeCliente {
+    # El informe que se abre solo en el equipo del cliente al terminar el diagnóstico o el trabajo remoto:
+    # solo el HTML (-ParaCliente: sin propuesta ni precios), sin hoja técnica ni PDF. Devuelve la ruta del HTML.
+    # Con -Antes y -RutaAtencion es el del trabajo (-Diagnostico es el DESPUÉS).
+    param([Parameter(Mandatory)][string]$Diagnostico, [string]$CsvSensores, [Parameter(Mandatory)][string]$Salida, [string]$Antes, [string]$RutaAtencion)
+    $doc = Read-JsonKit $Diagnostico
+    $sens = $null
+    if ($CsvSensores -and [IO.File]::Exists($CsvSensores)) { $sens = Read-SensoresCsv -Ruta $CsvSensores }
+    $docAntes = $null; $resultado = $null
+    if ($Antes -and $RutaAtencion) { $docAntes = Read-JsonKit $Antes; $resultado = Get-ResultadoTrabajo -RutaAtencion $RutaAtencion }
+    $html = ConvertTo-InformeVisual -Doc $doc -Sensores $sens -Origen 'remoto' -DocAntes $docAntes -Resultado $resultado -ParaCliente
+    $null = [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($Salida))
+    [IO.File]::WriteAllText($Salida, $html, (New-Object Text.UTF8Encoding $true))
+    $Salida
 }
