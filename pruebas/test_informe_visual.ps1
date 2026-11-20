@@ -170,6 +170,20 @@ try {
     $html2 = ConvertTo-InformeVisual -Doc (New-DocPrueba)
     Assert 'sin CSV no hay página de temperatura' ($html2 -notmatch 'Prueba de temperatura<small>')
 
+    '== Fase O: vistas, núcleo 3D, nube y celular'
+    $docO = New-DocPrueba -LibrePct 14.9 -ArranqueSeg 93
+    $docO.datos.espacio | Add-Member -NotePropertyName OneDrive -Force -NotePropertyValue ([pscustomobject]@{ Vinculado = $true; Cuentas = @([pscustomobject]@{ Tipo = 'Personal' }); Respaldadas = @([pscustomobject]@{ Carpeta = 'Escritorio' }, [pscustomobject]@{ Carpeta = 'Documentos' }); Recorrido = [pscustomobject]@{ TotalGB = 7.3 }; CopiasLocales = @(); Duplicadas = @() })
+    $hO = ConvertTo-InformeVisual -Doc $docO -Sensores $sens
+    $faltan = @('1', '2', '3', '4', '5' | Where-Object { $hO -notmatch "data-vista='$_'" })
+    Assert 'las 5 vistas (diagnóstico, térmica, rendimiento, nube, acciones)' (-not $faltan.Count) "faltan: $($faltan -join ',')"
+    Assert 'nada externo: sin CDN, sin Google Fonts, sin URLs' ($hO -notmatch '(?i)(src|href)\s*=\s*[''"]?https?://|@import|googleapis|cdnjs|jsdelivr|unpkg') ([regex]::Match($hO, '(?i)https?://[^''" >]+').Value)
+    Assert 'núcleo, píldora y botón Inspeccionar solo en pantalla' ($hO -match "getElementById\('nucleo'\)|id='nucleo'|'nucleo'" -and $hO -match 'pildora' -and $hO -match 'Inspeccionar telemetría' -and $hO -match '#nucleo, #pildora, \.solo-pantalla \{ display:none !important; \}')
+    Assert 'el PDF y Edge headless no animan' ($hO -match '/Headless/i\.test' -and $hO -match "location\.hash === '#pdf'")
+    Assert 'se ve bien en celular (viewport)' ($hO -match "name='viewport' content='width=device-width")
+    $tO = [Net.WebUtility]::HtmlDecode($hO)
+    Assert 'nube personal llena: 7,3 GB de 5 GB' ($tO -match 'Lleno: lo nuevo no se respalda' -and $tO -match '7,3 GB de 5 GB' -and $tO -match 'Escritorio, Documentos') ([regex]::Match($tO, 'OneDrive copia[^<]{0,80}').Value)
+    Assert 'la nube tampoco dice "sin costo"' ($tO -notmatch '(?i)sin costo')
+    Assert 'sin OneDrive no hay vista Nube' ((ConvertTo-InformeVisual -Doc (New-DocPrueba)) -notmatch "data-vista='4'")
     '== PDF'
     $json = Join-Path $tmp 'diagnostico.json'
     [IO.File]::WriteAllText($json, ((New-DocPrueba -LibrePct 14.9) | ConvertTo-Json -Depth 8), (New-Object Text.UTF8Encoding $false))

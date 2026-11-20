@@ -620,6 +620,66 @@ td.k { color:var(--suave); width:34%; }
   #aviso-lupa span { display:inline-block; width:22px; height:22px; border-radius:50%; background:linear-gradient(135deg,#2563eb,#7c3aed); text-align:center; line-height:22px; font-weight:700; margin-right:8px; }
 }
 @media print { #progreso, .lupa, .globo, #aviso-lupa { display:none !important; } }
+/* ---- fase O: experiencia en pantalla (vistas, núcleo 3D, brillo) ---- */
+:root { --f-mono:"Cascadia Mono","Cascadia Code","JetBrains Mono",Consolas,monospace; --f-tit:"Segoe UI Variable Display","Segoe UI","Space Grotesk",Arial,sans-serif; --cian:#06b6d4; }
+.kpi .v, .portada .am .bola, .area .pt { font-family:var(--f-mono); letter-spacing:-.5px; }
+h1, h2 { font-family:var(--f-tit); }
+.solo-pantalla { display:none; }
+.tres .camino h3 { margin-top:2px; }
+@media screen {
+  body { background:#f8fafc; background-image:repeating-linear-gradient(0deg, #e2e8f0 0 1px, transparent 1px 40px), repeating-linear-gradient(90deg, #e2e8f0 0 1px, transparent 1px 40px); }
+  #nucleo { position:fixed; inset:0; z-index:0; }
+  .hoja { position:relative; z-index:1; }
+  .caja, .kpi { background:rgba(255,255,255,.78); -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px); }
+  .flujo { animation:fluir 1.1s linear infinite; }
+  @keyframes fluir { to { stroke-dashoffset:-28; } }
+  /* vistas */
+  .con-vistas.anim .hoja { opacity:1; transform:none; transition:none; }
+  .con-vistas .hoja.entra { animation:entrar .75s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes entrar { from { opacity:0; transform:perspective(1400px) translateZ(-160px) scale(.96); filter:blur(6px); } to { opacity:1; transform:none; filter:none; } }
+  .con-vistas body { padding-bottom:110px; }
+  .con-vistas .solo-pantalla { display:block; margin-top:9mm; }
+  #pildora { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:50; display:flex; gap:4px; padding:6px; border-radius:40px;
+    background:rgba(255,255,255,.72); -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.9);
+    box-shadow:0 18px 50px rgba(15,23,42,.16), inset 0 0 0 1px #e2e8f0; }
+  #pildora button { border:0; background:transparent; cursor:pointer; padding:10px 16px; border-radius:30px; font:600 10pt var(--f-tit); color:#475569; transition:all .3s ease; }
+  #pildora button span { font-family:var(--f-mono); font-size:8.5pt; color:#94a3b8; margin-right:6px; }
+  #pildora button:hover { color:#0f172a; background:rgba(6,182,212,.08); }
+  #pildora button.activo { color:#fff; background:linear-gradient(135deg,#06b6d4,#2563eb 55%,#7c3aed); box-shadow:0 8px 22px rgba(37,99,235,.35); }
+  #pildora button.activo span { color:rgba(255,255,255,.75); }
+  .btn-inspeccionar { border:0; cursor:pointer; padding:13px 24px; border-radius:30px; font:600 11pt var(--f-tit); color:#fff; background:linear-gradient(135deg,#06b6d4,#2563eb 55%,#7c3aed); box-shadow:0 12px 30px rgba(37,99,235,.35); transition:transform .25s ease, box-shadow .25s ease; }
+  .btn-inspeccionar:hover { transform:translateY(-2px); box-shadow:0 18px 40px rgba(37,99,235,.45); }
+  #aviso-lupa { bottom:96px; }
+  /* brillo cian que sigue al cursor */
+  .caja, .kpi, .am { position:relative; }
+  .caja::after, .kpi::after, .am::after { content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; opacity:0; transition:opacity .3s ease;
+    background:radial-gradient(260px circle at var(--mx,50%) var(--my,50%), rgba(6,182,212,.16), transparent 62%); }
+  .caja:hover::after, .kpi:hover::after, .am:hover::after { opacity:1; }
+}
+/* celular y pantallas angostas: páginas fluidas */
+@media screen and (max-width: 860px) {
+  .hoja { width:auto; min-height:0; margin:12px 10px; padding:20px 16px 26px; border-radius:22px; }
+  .portada .arriba { padding:18px 16px 0; } .portada .puntaje, .portada .areas-mini { margin-left:16px; margin-right:16px; }
+  .portada h1 { font-size:26pt; margin-top:20px; } .portada .datos { grid-template-columns:1fr 1fr; }
+  .portada .puntaje { grid-template-columns:1fr; justify-items:center; text-align:center; }
+  .portada .areas-mini, .resumen { grid-template-columns:1fr 1fr; }
+  .dos, .tres, .glosario { grid-template-columns:1fr !important; }
+  .pie, .portada .pie-portada { position:static; margin-top:18px; }
+  #pildora { bottom:12px; max-width:96vw; overflow-x:auto; }
+  #pildora button { padding:9px 11px; font-size:9pt; white-space:nowrap; }
+  .globo { width:230px; }
+  html, body { overflow-x:hidden; }
+  .hoja { max-width:calc(100vw - 20px); box-sizing:border-box; }
+  .hoja svg { max-width:100%; height:auto; }
+  .hoja * { min-width:0; } .hoja table { display:block; overflow-x:auto; }
+  .hoja [style*='grid-template-columns:1fr 1fr'], .hoja [style*='repeat(3'], .hoja [style*='repeat(4'] { grid-template-columns:1fr !important; }
+  #aviso-lupa { bottom:74px; max-width:88vw; font-size:9.5pt; padding:9px 14px; }
+  .hoja h2, .hoja p, .hoja li { overflow-wrap:anywhere; }
+}
+@media print {
+  #nucleo, #pildora, .solo-pantalla { display:none !important; }
+  .hoja { display:block !important; opacity:1 !important; transform:none !important; filter:none !important; animation:none !important; }
+}
 '@
 }
 
@@ -642,6 +702,83 @@ function Get-ExplicaArea {
         'arranque' { "$($Area.Frase) Lo normal es entre 30 y 60 segundos; cada programa que arranca solo suma tiempo.$p" }
         default { "$($Area.Frase)$p" }
     }
+}
+
+function Get-HtmlOneDriveVisual {
+    # Vista 04 "Nube": qué carpetas respalda OneDrive, cuánto ocupa, qué falla y tres caminos (sin el cómo).
+    # Sin OneDrive vinculado no hay página. También sale en el PDF.
+    param([Parameter(Mandatory)]$Doc, [Parameter(Mandatory)][scriptblock]$Pie)
+    $od = $Doc.datos.espacio.OneDrive
+    if (-not $od -or -not $od.Vinculado) { return '' }
+    $H = { param($x) Get-HtmlVisual $x }
+    $limite = [double]$script:Ctx.Config.umbrales.onedrive_gratis_gb
+    $personal = @($od.Cuentas | Where-Object { $_ -and $_.Tipo -eq 'Personal' }).Count -gt 0
+    $resp = @($od.Respaldadas | Where-Object { $_ } | ForEach-Object Carpeta)
+    # Diagnósticos antiguos medían 0 GB por un error (no entraban a las carpetas): ahí se dice "sin medir".
+    $medido = $od.Recorrido -and ([double]$od.Recorrido.TotalGB -ge 0.05 -or -not $resp.Count)
+    $gb = if ($medido) { [double]$od.Recorrido.TotalGB } else { $null }
+    $lleno = $personal -and $null -ne $gb -and $gb -gt $limite
+    $locales = @($od.CopiasLocales | Where-Object { $_ })
+    $gbLoc = [double](($locales | ForEach-Object { Get-GBCopiaLocal -Copia $_ -Doc $Doc } | Measure-Object -Sum).Sum)
+    $dup = @($od.Duplicadas | Where-Object { $_ })
+    $otroDisco = @($Doc.datos.espacio.Volumenes | Where-Object { $_ -and -not $_.EsSistema -and -not $_.EsKit -and [double]$_.LibreGB -ge 50 }) | Select-Object -First 1
+    $colNube = if ($lleno) { '#e5484d' } elseif ($null -eq $gb) { '#94a3b8' } else { '#10b981' }
+    $estadoNube = if ($lleno) { 'Lleno: lo nuevo no se respalda' } elseif ($null -eq $gb) { 'Tamaño sin medir en este diagnóstico' } else { 'Funcionando' }
+
+    # Diagrama: carpetas del equipo -> nube, con flujo animado en pantalla.
+    $sv = New-Object Text.StringBuilder
+    [void]$sv.Append("<svg viewBox='0 0 700 250' width='100%' font-family='Segoe UI, Arial'>")
+    [void]$sv.Append("<rect x='14' y='14' width='250' height='176' rx='18' fill='#f8fafc' stroke='#e2e8f0'/><text x='34' y='42' font-size='12' font-weight='700' fill='#0f172a'>TU EQUIPO</text>")
+    $carpetas = @('Escritorio', 'Documentos', 'Imágenes')
+    for ($i = 0; $i -lt 3; $i++) {
+        $y = 70 + $i * 40
+        $si = $resp -contains $carpetas[$i]
+        [void]$sv.Append("<rect x='34' y='$($y - 16)' width='26' height='22' rx='5' fill='$(if ($si) { '#e0f2fe' } else { '#f1f5f9' })' stroke='$(if ($si) { '#06b6d4' } else { '#cbd5e1' })'/>")
+        [void]$sv.Append("<text x='70' y='$($y)' font-size='13' fill='#0f172a'>$($carpetas[$i])</text><text x='250' y='$($y)' text-anchor='end' font-size='10' fill='$(if ($si) { '#0891b2' } else { '#94a3b8' })'>$(if ($si) { 'se respalda' } else { 'solo en el equipo' })</text>")
+        if ($si) {
+            [void]$sv.Append("<path class='flujo' d='M264 $($y - 5) C 360 $($y - 5), 380 110, 468 110' fill='none' stroke='$colNube' stroke-width='2' stroke-dasharray='6 8' opacity='.85'/>")
+        }
+    }
+    [void]$sv.Append("<path d='M498 150 h150 a34 34 0 0 0 0 -68 a46 46 0 0 0 -88 -14 a38 38 0 0 0 -62 30 a26 26 0 0 0 0 52 z' fill='#ffffff' stroke='$colNube' stroke-width='2.5'/>")
+    [void]$sv.Append("<text x='575' y='112' text-anchor='middle' font-size='15' font-weight='700' fill='#0f172a'>OneDrive</text>")
+    $txtGb = if ($null -ne $gb) { "$(Format-Numero $gb 1) GB$(if ($personal) { " de $(Format-Numero $limite 0) GB" })" } else { 'sin medir' }
+    [void]$sv.Append("<text x='575' y='132' text-anchor='middle' font-size='12' fill='#475569' font-family='Cascadia Mono, Consolas, monospace'>$(& $H $txtGb)</text>")
+    if ($personal -and $null -ne $gb) {
+        $anchoB = [math]::Min(1, $gb / $limite) * 150
+        [void]$sv.Append("<rect x='500' y='168' width='150' height='8' rx='4' fill='#e2e8f0'/><rect class='anim-ancho-svg' x='500' y='168' width='$(Get-NumSvg $anchoB)' height='8' rx='4' fill='$colNube'/>")
+    }
+    [void]$sv.Append("<text x='575' y='$(if ($personal -and $null -ne $gb) { 196 } else { 176 })' text-anchor='middle' font-size='11' font-weight='600' fill='$colNube'>$(& $H $estadoNube)</text>")
+    if ($gbLoc -ge 1) {
+        [void]$sv.Append("<rect x='14' y='204' width='420' height='38' rx='12' fill='#fff7ed' stroke='#f59e0b' stroke-dasharray='5 4'/><text x='32' y='228' font-size='12' fill='#9a3412'>Carpeta antigua: $(& $H ((@($locales | ForEach-Object Carpeta)) -join ', ')) · $(Format-Numero $gbLoc 0) GB que Windows ya no muestra</text>")
+    }
+    [void]$sv.Append('</svg>')
+
+    $hall = New-Object System.Collections.Generic.List[object]
+    if ($resp.Count) { $hall.Add(@('#06b6d4', "OneDrive copia en internet: $($resp -join ', ').")) } else { $hall.Add(@('#94a3b8', 'OneDrive está instalado, pero no respalda ninguna carpeta de Windows.')) }
+    if ($lleno) { $hall.Add(@('#e5484d', "Guarda $(Format-Numero $gb 1) GB y la cuenta gratis trae $(Format-Numero $limite 0) GB: está lleno, y lo nuevo que guardes ahí no se respalda (por eso aparecen X rojas).")) }
+    elseif ($null -eq $gb -and $resp.Count) { $hall.Add(@('#94a3b8', 'En este diagnóstico no se alcanzó a medir cuánto ocupa: lo reviso en la próxima.')) }
+    elseif ($null -ne $gb) { $hall.Add(@('#10b981', "Ocupa $(Format-Numero $gb 1) GB$(if ($personal) { " de los $(Format-Numero $limite 0) GB gratis" }).")) }
+    if ($gbLoc -ge 1) { $hall.Add(@('#f59e0b', "Hay $(Format-Numero $gbLoc 0) GB en una carpeta antigua que Windows ya no te muestra desde que se activó OneDrive: tus archivos siguen ahí, pero no los ves ni se respaldan.")) }
+    if ($dup.Count) { $hall.Add(@('#f59e0b', "Carpetas repetidas: $((@($dup | ForEach-Object Carpetas)) -join '; ').")) }
+
+    $sb = New-Object Text.StringBuilder
+    [void]$sb.Append("<div class='hoja' data-vista='4'><div class='sec'><h2><span class='num-sec'>☁</span>Tu respaldo en la nube<small>OneDrive: qué carpetas se suben a internet, cuánto ocupan y qué está fallando.</small></h2>")
+    [void]$sb.Append("<div class='caja'$(Get-AtribExplica 'OneDrive' "Es la copia en internet de tus carpetas, de Microsoft. La cuenta gratis trae $(Format-Numero $limite 0) GB: cuando se llena, lo nuevo se queda sin respaldo y Windows muestra X rojas en las carpetas.")>$($sv.ToString())</div>")
+    [void]$sb.Append("<div class='caja' style='margin-top:12px'><h3>Lo que encontré</h3>")
+    foreach ($x in $hall) { [void]$sb.Append("<div style='display:grid;grid-template-columns:14px 1fr;gap:10px;align-items:start;padding:6px 0;border-bottom:1px solid var(--linea)'><i style='width:10px;height:10px;border-radius:50%;margin-top:5px;background:$($x[0]);box-shadow:0 0 0 4px $($x[0])22'></i><div>$(& $H $x[1])</div></div>") }
+    [void]$sb.Append('</div>')
+    if ($lleno -or $gbLoc -ge 1 -or $dup.Count) {
+        $caminos = @(
+            @('1', 'Liberar espacio en la nube', 'Dejar en OneDrive solo lo importante. Lo demás se respalda bien, sin pagar un plan.'),
+            @('2', 'Más espacio', 'Microsoft 365 trae 1 TB de nube. Es un pago mensual a Microsoft.'),
+            @('3', 'Respaldar menos', "Dejar fuera las carpetas grandes y guardarlas$(if ($otroDisco) { " en el disco $($otroDisco.Unidad), que tiene $(Format-Numero ([double]$otroDisco.LibreGB) 0) GB libres" } else { ' en otro disco' }).")
+        )
+        [void]$sb.Append("<h3 style='margin:14px 0 8px'>Tres caminos para que tu respaldo vuelva a funcionar</h3><div class='tres'>")
+        foreach ($c in $caminos) { [void]$sb.Append("<div class='caja camino'><div style='font-family:var(--f-mono);font-size:22pt;font-weight:700;background:linear-gradient(135deg,#06b6d4,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent'>0$($c[0])</div><h3>$(& $H $c[1])</h3><div style='font-size:9.2pt;color:var(--suave)'>$(& $H $c[2])</div></div>") }
+        [void]$sb.Append("</div><p style='font-size:9.2pt;color:var(--suave);margin-top:8px'>Te ayudo con el que elijas, sin perder nada: cada cambio se hace moviendo, nunca borrando.</p>")
+    }
+    [void]$sb.Append("</div>$(& $Pie '·')</div>")
+    $sb.ToString()
 }
 
 function Get-ScriptAnimacionVisual {
@@ -724,6 +861,190 @@ function Get-ScriptAnimacionVisual {
 '@
 }
 
+function Get-ScriptVistasVisual {
+    # Fase O, solo en pantalla: vistas 01-05 con la píldora de abajo (transición de profundidad), núcleo 3D propio
+    # en canvas (esfera geodésica de porcelana con anillos cian; reacciona al mouse, se gira arrastrando y cambia de
+    # color y velocidad según la vista) y brillo cian que sigue al cursor. Sin librerías ni internet. Al imprimir o
+    # en Edge sin ventana (#pdf) no corre: el PDF queda lineal. Si el equipo es lento, el núcleo queda quieto.
+    @'
+<script>
+(function () {
+  if (/Headless/i.test(navigator.userAgent) || location.hash === '#pdf') return;
+  var q = function (r, s) { return Array.prototype.slice.call(r.querySelectorAll(s)); };
+
+  /* ---------- núcleo 3D ---------- */
+  var cv = document.createElement('canvas'); cv.id = 'nucleo';
+  document.body.insertBefore(cv, document.body.firstChild);
+  var ctx = cv.getContext && cv.getContext('2d');
+  var nucleo = { vista: function () {}, pulso: function () {} };
+  if (ctx) {
+    var norm = function (p) { var l = Math.sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]); return [p[0] / l, p[1] / l, p[2] / l]; };
+    var t = (1 + Math.sqrt(5)) / 2;
+    var V = [[-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0], [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t], [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1]].map(norm);
+    var F = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8], [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]];
+    var dividir = function (F) {
+      var cache = {}, nf = [];
+      var medio = function (a, b) {
+        var k = a < b ? a + '_' + b : b + '_' + a;
+        if (cache[k] !== undefined) return cache[k];
+        V.push(norm([(V[a][0] + V[b][0]) / 2, (V[a][1] + V[b][1]) / 2, (V[a][2] + V[b][2]) / 2]));
+        return (cache[k] = V.length - 1);
+      };
+      F.forEach(function (f) { var a = medio(f[0], f[1]), b = medio(f[1], f[2]), c = medio(f[2], f[0]); nf.push([f[0], a, c], [f[1], b, a], [f[2], c, b], [a, b, c]); });
+      return nf;
+    };
+    F = dividir(dividir(F));
+    var colores = { 1: [6, 182, 212], 2: [234, 88, 12], 3: [16, 185, 129], 4: [59, 130, 246], 5: [124, 58, 237] };
+    var vels = { 1: 0.0045, 2: 0.013, 3: 0.007, 4: 0.006, 5: 0.0035 };
+    var e = { rx: -0.35, ry: 0, vel: 0.0045, objVel: 0.0045, col: [6, 182, 212], objCol: [6, 182, 212], pulso: 0, mx: 0, my: 0, arr: false, ax: 0, ay: 0 };
+    nucleo = {
+      vista: function (v) { e.objCol = colores[v] || colores[1]; e.objVel = vels[v] || 0.0045; e.pulso = Math.max(e.pulso, 0.8); },
+      pulso: function () { e.pulso = 1.8; e.vel = 0.05; }
+    };
+    var W, H;
+    var tam = function () {
+      var dpr = Math.min(2, window.devicePixelRatio || 1); W = window.innerWidth; H = window.innerHeight;
+      cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    tam(); window.addEventListener('resize', tam);
+    window.addEventListener('mousemove', function (ev) { e.mx = ev.clientX / W - 0.5; e.my = ev.clientY / H - 0.5; });
+    cv.addEventListener('pointerdown', function (ev) { e.arr = true; e.ax = ev.clientX; e.ay = ev.clientY; });
+    window.addEventListener('pointerup', function () { e.arr = false; });
+    window.addEventListener('pointermove', function (ev) { if (!e.arr) return; e.ry += (ev.clientX - e.ax) * 0.008; e.rx += (ev.clientY - e.ay) * 0.008; e.ax = ev.clientX; e.ay = ev.clientY; });
+    var luz = norm([-0.5, -0.75, 1]);
+    var anillos = [{ inc: 1.15, rad: 1.5, fase: 0 }, { inc: -0.55, rad: 1.78, fase: 2.1 }, { inc: 0.22, rad: 2.06, fase: 4.2 }];
+    var rot = function (p, ax, ay) {
+      var cx = Math.cos(ax), sx = Math.sin(ax), cy = Math.cos(ay), sy = Math.sin(ay);
+      var x = p[0] * cy + p[2] * sy, z = -p[0] * sy + p[2] * cy, y = p[1] * cx - z * sx;
+      return [x, y, p[1] * sx + z * cx];
+    };
+    var cuadros = 0, t0 = 0, quieto = false;
+    var dibujar = function (ts) {
+      if (!t0) t0 = ts;
+      var ancho = W > 1320;
+      var R = ancho ? Math.min(W * 0.085, 160) : Math.min(W * 0.26, 110);
+      var cxp = (ancho ? W - Math.max(190, (W - 820) / 4) : W * 0.5) + e.mx * 34;
+      var cyp = (ancho ? H * 0.5 : H * 0.24) + e.my * 22;
+      e.vel += (e.objVel - e.vel) * 0.04;
+      for (var i = 0; i < 3; i++) e.col[i] += (e.objCol[i] - e.col[i]) * 0.05;
+      if (!e.arr) e.ry += e.vel;
+      e.pulso *= 0.955;
+      var esc = R * (1 + e.pulso * 0.07), ax = e.rx + e.my * 0.35, ay = e.ry + e.mx * 0.45;
+      var c = e.col.map(Math.round), cs = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',';
+      ctx.clearRect(0, 0, W, H);
+      ctx.globalAlpha = ancho ? 1 : 0.55;
+      var g = ctx.createRadialGradient(cxp, cyp + esc * 1.45, 0, cxp, cyp + esc * 1.45, esc * 1.3);
+      g.addColorStop(0, 'rgba(15,23,42,.13)'); g.addColorStop(1, 'rgba(15,23,42,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(cxp, cyp + esc * 1.45, esc * 1.3, esc * 0.26, 0, 0, 7); ctx.fill();
+      var h = ctx.createRadialGradient(cxp, cyp, esc * 0.7, cxp, cyp, esc * 2.5);
+      h.addColorStop(0, cs + (0.18 + e.pulso * 0.16) + ')'); h.addColorStop(1, cs + '0)');
+      ctx.fillStyle = h; ctx.beginPath(); ctx.arc(cxp, cyp, esc * 2.5, 0, 7); ctx.fill();
+      var proy = function (p) { var f = 3.4 / (3.4 - p[2]); return [cxp + p[0] * esc * f, cyp + p[1] * esc * f, p[2]]; };
+      var segs = anillos.map(function (a, k) {
+        var pts = [];
+        for (var s = 0; s <= 80; s++) { var an = s / 80 * Math.PI * 2; pts.push(proy(rot(rot([Math.cos(an) * a.rad, 0, Math.sin(an) * a.rad], a.inc, 0), ax * 0.4, ay * 0.6 + a.fase))); }
+        return { pts: pts, k: k, fase: a.fase };
+      });
+      var trazar = function (adelante) {
+        segs.forEach(function (sg) {
+          ctx.lineWidth = adelante ? 2.2 : 1.2; ctx.strokeStyle = cs + (adelante ? 0.85 : 0.28) + ')';
+          for (var s = 0; s < sg.pts.length - 1; s++) {
+            var p = sg.pts[s], n = sg.pts[s + 1];
+            if ((p[2] > 0) !== adelante) continue;
+            ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(n[0], n[1]); ctx.stroke();
+          }
+          var tt = ts / 1000 * (0.12 + sg.k * 0.05) * (1 + e.vel * 90) + sg.fase;
+          for (var d = 0; d < 4; d++) {
+            var pp = sg.pts[Math.floor((((tt + d / 4) % 1) + 1) % 1 * (sg.pts.length - 1))];
+            if ((pp[2] > 0) !== adelante) continue;
+            ctx.fillStyle = cs + (adelante ? 0.95 : 0.3) + ')';
+            ctx.beginPath(); ctx.arc(pp[0], pp[1], adelante ? 3.2 : 2, 0, 7); ctx.fill();
+          }
+        });
+      };
+      trazar(false);
+      var P = V.map(function (v) { return rot(v, ax, ay); });
+      var caras = [];
+      F.forEach(function (f) {
+        var a = P[f[0]], b = P[f[1]], d = P[f[2]];
+        var cen = norm([a[0] + b[0] + d[0], a[1] + b[1] + d[1], a[2] + b[2] + d[2]]);
+        if (cen[2] < -0.08) return;
+        var l = Math.max(0, cen[0] * luz[0] + cen[1] * luz[1] + cen[2] * luz[2]);
+        caras.push({ p: [proy(a), proy(b), proy(d)], z: cen[2], l: l });
+      });
+      caras.sort(function (x, y) { return x.z - y.z; });
+      caras.forEach(function (cr) {
+        var v = 168 + cr.l * 84, k = (1 - cr.z) * (0.10 + e.pulso * 0.14);
+        ctx.fillStyle = 'rgb(' + Math.round(v - (v - c[0]) * k) + ',' + Math.round(v - (v - c[1]) * k) + ',' + Math.round(v - (v - c[2]) * k) + ')';
+        ctx.strokeStyle = 'rgba(100,116,139,.38)'; ctx.lineWidth = 0.7;
+        ctx.beginPath(); ctx.moveTo(cr.p[0][0], cr.p[0][1]); ctx.lineTo(cr.p[1][0], cr.p[1][1]); ctx.lineTo(cr.p[2][0], cr.p[2][1]); ctx.closePath(); ctx.fill(); ctx.stroke();
+      });
+      trazar(true);
+      ctx.globalAlpha = 1;
+      cuadros++;
+      if (cuadros === 120 && (ts - t0) / 120 > 45) quieto = true;   // equipo lento: queda el último cuadro
+      if (!quieto) requestAnimationFrame(dibujar);
+    };
+    requestAnimationFrame(dibujar);
+  }
+
+  /* ---------- vistas 01-05 con la píldora ---------- */
+  var hojas = q(document, '.hoja[data-vista]');
+  var nombres = { 1: 'Diagnóstico', 2: 'Térmica', 3: 'Rendimiento', 4: 'Nube', 5: 'Acciones' };
+  var vistas = [];
+  hojas.forEach(function (h) { var v = +h.getAttribute('data-vista'); if (vistas.indexOf(v) < 0) vistas.push(v); });
+  vistas.sort(function (a, b) { return a - b; });
+  var actual = null;
+  var ir = function (v) {
+    if (v === actual) return;
+    actual = v;
+    q(document, '#pildora button').forEach(function (b) { b.classList.toggle('activo', +b.getAttribute('data-v') === v); });
+    hojas.forEach(function (h) {
+      if (+h.getAttribute('data-vista') === v) { h.style.display = ''; h.classList.remove('entra'); void h.offsetWidth; h.classList.add('entra'); }
+      else { h.style.display = 'none'; }
+    });
+    window.scrollTo(0, 0);
+    nucleo.vista(v);
+    try { history.replaceState(null, '', '#v' + v); } catch (x) { }
+  };
+  if (vistas.length > 1) {
+    document.documentElement.classList.add('con-vistas');
+    var nav = document.createElement('nav'); nav.id = 'pildora';
+    vistas.forEach(function (v, i) {
+      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-v', v);
+      b.innerHTML = '<span>0' + (i + 1) + '</span>' + nombres[v];
+      b.addEventListener('click', function () { ir(v); });
+      nav.appendChild(b);
+    });
+    document.body.appendChild(nav);
+    document.addEventListener('keydown', function (ev) {
+      var i = vistas.indexOf(actual);
+      if (ev.key === 'ArrowRight' && i < vistas.length - 1) ir(vistas[i + 1]);
+      if (ev.key === 'ArrowLeft' && i > 0) ir(vistas[i - 1]);
+    });
+    var ini = +(location.hash.replace('#v', '')) || vistas[0];
+    ir(vistas.indexOf(ini) >= 0 ? ini : vistas[0]);
+  }
+  var btn = document.getElementById('btnInspeccionar');
+  if (btn) btn.addEventListener('click', function () {
+    nucleo.pulso();
+    var i = vistas.indexOf(actual);
+    if (i >= 0 && i < vistas.length - 1) setTimeout(function () { ir(vistas[i + 1]); }, 850);
+  });
+
+  /* ---------- brillo cian que sigue al cursor ---------- */
+  document.addEventListener('mousemove', function (ev) {
+    var el = ev.target && ev.target.closest && ev.target.closest('.caja, .kpi, .am');
+    if (!el) return;
+    var r = el.getBoundingClientRect();
+    el.style.setProperty('--mx', (ev.clientX - r.left) + 'px');
+    el.style.setProperty('--my', (ev.clientY - r.top) + 'px');
+  });
+})();
+</script>
+'@
+}
+
 function ConvertTo-InformeVisual {
     # Arma el HTML del informe. -Origen: 'remoto' o 'kit' (cambia la frase de cómo se hizo).
     # Con -Resultado (Get-ResultadoTrabajo) es el informe de un trabajo hecho: $Doc es el DESPUÉS, $DocAntes el ANTES.
@@ -741,7 +1062,7 @@ function ConvertTo-InformeVisual {
     $modelo = Get-NombreModeloVisual -Equipo $eq
     $pie = { param($n) "<div class='pie'><div>$(& $H $modelo) · $(& $H $fechaTxt)</div><div>$(& $H "$($tecnico.nombre)") · Servicio técnico$(if ($contacto) { ' · ' + (& $H $contacto) })</div><div>$n</div></div>" }
     $sb = New-Object Text.StringBuilder
-    [void]$sb.Append("<!doctype html><html lang='es'><head><meta charset='utf-8'><title>Informe · $(& $H $modelo)</title><style>$(Get-CssVisual)</style></head><body>")
+    [void]$sb.Append("<!doctype html><html lang='es'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Informe · $(& $H $modelo)</title><style>$(Get-CssVisual)</style></head><body>")
 
     # ---- Portada
     $nivel = Get-EtiquetaPuntaje $puntaje
@@ -752,8 +1073,9 @@ function ConvertTo-InformeVisual {
         $frase = 'Terminé el trabajo en tu equipo. En la página siguiente está lo que hice y cómo cambió; después, cómo quedó cada área.'
         if ($null -ne $puntajeAntes -and $null -ne $puntaje) { $frase = "Antes del trabajo la salud general era $puntajeAntes; ahora es $puntaje. " + $frase }
     }
-    [void]$sb.Append("<div class='hoja portada'><div class='arriba'><div class='marca'>$(if ($Resultado) { 'Informe de trabajo' } else { 'Informe de diagnóstico' })$(if ($Origen -eq 'remoto') { ' · a distancia' })</div>")
+    [void]$sb.Append("<div class='hoja portada' data-vista='1'><div class='arriba'><div class='marca'>$(if ($Resultado) { 'Informe de trabajo' } else { 'Informe de diagnóstico' })$(if ($Origen -eq 'remoto') { ' · a distancia' })</div>")
     [void]$sb.Append("<h1>$(& $H $modelo)</h1><div class='sub'>$(if ($Resultado) { 'Lo que se hizo en tu equipo y cómo quedó.' } else { "Revisión completa del equipo$(if ($Sensores) { ' y prueba de temperatura' }): cómo está, qué significa y qué conviene hacer." })</div>")
+    [void]$sb.Append("<div class='solo-pantalla'><button class='btn-inspeccionar' id='btnInspeccionar' type='button'>Inspeccionar telemetría &#9656;</button></div>")
     [void]$sb.Append("<div class='datos'><div>Fecha<b>$(& $H $fechaTxt)</b></div><div>Equipo<b>$(& $H $eq.NombreEquipo)</b></div><div>Windows<b>$(& $H ("$($d.windows.Nombre)" -replace '^Windows (\d+) (Home|Pro).*$', 'Windows $1 $2')) $(& $H $d.windows.Version)</b></div><div>$(if ($Cliente) { 'Cliente' } else { 'Técnico' })<b>$(& $H $(if ($Cliente) { $Cliente } else { $tecnico.nombre }))</b></div></div></div>")
     $peores = @($areas | Where-Object { $null -ne $_.Puntaje } | Sort-Object Puntaje | Select-Object -First 2)
     $txtPuntaje = "$puntaje de 100 es '$nivel'. Es el promedio de las $(@($areas | Where-Object { $null -ne $_.Puntaje }).Count) áreas de abajo (temperatura y almacenamiento pesan más). Lo que más lo baja: $(($peores | ForEach-Object { "$($_.Nombre.ToLower()) ($($_.Puntaje))" }) -join ' y ')."
@@ -766,7 +1088,7 @@ function ConvertTo-InformeVisual {
 
     # ---- Trabajo hecho: antes -> después y lo aplicado
     if ($Resultado) {
-        [void]$sb.Append("<div class='hoja'><div class='sec'><h2><span class='num-sec'>✓</span>Lo que hicimos y cómo cambió<small>Medido con el mismo diagnóstico antes y después del trabajo, con el equipo recién encendido y en reposo.</small></h2>")
+        [void]$sb.Append("<div class='hoja' data-vista='5'><div class='sec'><h2><span class='num-sec'>✓</span>Lo que hicimos y cómo cambió<small>Medido con el mismo diagnóstico antes y después del trabajo, con el equipo recién encendido y en reposo.</small></h2>")
         [void]$sb.Append("<div style='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 14px'>")
         foreach ($t in @($Resultado.Tarjetas | Where-Object { $_ -and ($null -ne $_.Antes -or $null -ne $_.Despues) })) {
             $col = if ($t.Mejoro -eq $true) { '#1e8a52' } elseif ($t.Mejoro -eq $false) { '#c0392b' } else { '#5a6675' }
@@ -788,7 +1110,7 @@ function ConvertTo-InformeVisual {
     }
 
     # ---- Página 2: áreas y equipo
-    [void]$sb.Append("<div class='hoja'>")
+    [void]$sb.Append("<div class='hoja' data-vista='1'>")
     [void]$sb.Append("<div class='sec'><h2><span class='num-sec'>1</span>Cómo está cada área<small>Puntaje de 0 a 100: sobre 85 muy bien, 70 a 84 bien, 55 a 69 mejorable, bajo 55 necesita atención.</small></h2><div class='caja'>")
     foreach ($a in $areas) {
         $col = Get-ColorPuntaje $a.Puntaje
@@ -827,7 +1149,7 @@ function ConvertTo-InformeVisual {
         $rep = Get-ReposoSensores -Sensores $Sensores
         $m = $Sensores.metricas
         $min = if ($Sensores.carga) { $Sensores.carga.minutos } else { $Sensores.duracion_min }
-        [void]$sb.Append("<div class='hoja'><div class='sec'><h2><span class='num-sec'>3</span>Prueba de temperatura<small>Primero el equipo en reposo y después el procesador al 100 % por $(Format-Numero ([double]$min) 0) minutos, como cuando juegas o abres algo pesado. Se registró cada $(Format-Numero ([double]$Sensores.intervalo_seg) 0) segundos.</small></h2>")
+        [void]$sb.Append("<div class='hoja' data-vista='2'><div class='sec'><h2><span class='num-sec'>3</span>Prueba de temperatura<small>Primero el equipo en reposo y después el procesador al 100 % por $(Format-Numero ([double]$min) 0) minutos, como cuando juegas o abres algo pesado. Se registró cada $(Format-Numero ([double]$Sensores.intervalo_seg) 0) segundos.</small></h2>")
         [void]$sb.Append("<div class='resumen'><div class='kpi' style='border-color:var(--rojo)'$(Get-AtribExplica 'Temperatura máxima' "Lo más caliente que llegó el procesador en los 10 minutos al 100 %. Bajo 80 °C es cómodo; entre 80 y 90, caliente; desde 95 °C se frena solo para protegerse.")><div class='v'>$(Format-Numero ([double]$t.max) 1) °C</div><div class='t'>Temperatura máxima</div></div>")
         [void]$sb.Append("<div class='kpi' style='border-color:var(--ambar)'$(Get-AtribExplica 'Promedio con carga' "La temperatura promedio mientras trabajaba al máximo. Dice cómo aguanta un uso exigente largo, como jugar o renderizar.")><div class='v'>$(Format-Numero ([double]$t.media) 1) °C</div><div class='t'>Promedio con carga</div></div>")
         [void]$sb.Append("<div class='kpi'$(Get-AtribExplica 'Velocidad con carga' "A qué velocidad trabajó el procesador durante la prueba (GHz = miles de millones de pasos por segundo). Si se calentara demasiado, este número bajaría.")><div class='v'>$(if ($m.cpu_frec_efectiva) { "$(Format-Numero ([double]$m.cpu_frec_efectiva.media / 1000) 1) GHz" } else { '–' })</div><div class='t'>Velocidad con carga</div></div>")
@@ -856,7 +1178,7 @@ function ConvertTo-InformeVisual {
 
     # ---- Página: espacio, memoria y encendido
     $np = if ($t) { 4 } else { 3 }
-    [void]$sb.Append("<div class='hoja'><div class='sec'><h2><span class='num-sec'>$np</span>Espacio en disco<small>Windows necesita espacio libre para actualizarse y trabajar fluido; bajo 20 % libre empieza a ponerse lento.</small></h2>")
+    [void]$sb.Append("<div class='hoja' data-vista='3'><div class='sec'><h2><span class='num-sec'>$np</span>Espacio en disco<small>Windows necesita espacio libre para actualizarse y trabajar fluido; bajo 20 % libre empieza a ponerse lento.</small></h2>")
     $vols = @($d.espacio.Volumenes | Where-Object { $_ -and ($_.EsSistema -or -not $_.EsKit) })
     [void]$sb.Append("<div class='caja'><div style='display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start'>")
     foreach ($v in $vols) {
@@ -895,7 +1217,7 @@ function ConvertTo-InformeVisual {
 
     # ---- Página: batería, seguridad, estabilidad
     $np2 = $np + 3
-    [void]$sb.Append("<div class='hoja'><div class='dos'>")
+    [void]$sb.Append("<div class='hoja' data-vista='3'><div class='dos'>")
     $b = @($d.hardware.Baterias | Where-Object { $_ -and $null -ne $_.SaludPct }) | Select-Object -First 1
     if ($b) {
         $sp = [double]$b.SaludPct
@@ -956,7 +1278,8 @@ function ConvertTo-InformeVisual {
     # ---- Recomendaciones
     $nr++
     $servicios = @(Get-ServiciosCliente -Doc $Doc -Sensores $Sensores -Origen $Origen)
-    [void]$sb.Append("<div class='hoja'><div class='sec'><h2><span class='num-sec'>$nr</span>Lo que te propongo<small>Lo que encontré en el diagnóstico, agrupado en lo que puedo hacer por tu equipo, de lo más importante a lo menos.</small></h2>")
+    [void]$sb.Append((Get-HtmlOneDriveVisual -Doc $Doc -Pie $pie))
+    [void]$sb.Append("<div class='hoja' data-vista='5'><div class='sec'><h2><span class='num-sec'>$nr</span>Lo que te propongo<small>Lo que encontré en el diagnóstico, agrupado en lo que puedo hacer por tu equipo, de lo más importante a lo menos.</small></h2>")
     for ($i = 0; $i -lt $servicios.Count; $i++) {
         $x = $servicios[$i]
         $col = if ($x.Tipo -eq 'Servicio') { '#1f5fa8' } else { '#d4900a' }
@@ -989,7 +1312,7 @@ function ConvertTo-InformeVisual {
     }
     [void]$sb.Append('</div>')
     [void]$sb.Append("<div style='background:linear-gradient(135deg,#17406f,#1f5fa8);color:#fff;border-radius:12px;padding:13px 16px;margin:4px 0 12px;display:flex;justify-content:space-between;align-items:center;gap:14px;page-break-inside:avoid'><div><div style='font-size:12.5pt;font-weight:700'>¿Lo dejamos listo?</div><div style='font-size:9.4pt;opacity:.9'>Me encargo de todo, con respaldo de lo que se cambia y un informe del antes y el después para que veas la diferencia.</div></div><div style='text-align:right;font-size:9.4pt;white-space:nowrap'><b>$(& $H "$($tecnico.nombre)")</b><br>$(& $H $contacto)</div></div>")
-    [void]$sb.Append("$(& $pie ($np + 2))</div>$(Get-ScriptAnimacionVisual)</body></html>")
+    [void]$sb.Append("$(& $pie ($np + 2))</div>$(Get-ScriptAnimacionVisual)$(Get-ScriptVistasVisual)</body></html>")
     $sb.ToString()
 }
 
