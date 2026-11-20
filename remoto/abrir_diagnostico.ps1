@@ -27,8 +27,8 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 . (Join-Path $PSScriptRoot 'motor\Cifrado.ps1')
 
 $Archivo = (Resolve-Path -LiteralPath $Archivo).ProviderPath
-$privada = Join-Path $env:LOCALAPPDATA 'kitservicio\remoto_llave_privada.dat'
-if (-not [IO.File]::Exists($privada)) { throw "No está la llave privada en este PC ($privada). Se crea con remoto\crear_llaves.ps1." }
+$privada = Get-RutaLlavePrivada
+if (-not $privada) { throw "No está la llave privada en este PC ($privada). Se crea con remoto\crear_llaves.ps1." }
 $xml = [Text.Encoding]::UTF8.GetString([Security.Cryptography.ProtectedData]::Unprotect([IO.File]::ReadAllBytes($privada), $null, 'CurrentUser'))
 $zip = Unprotect-DatosRemoto -Datos ([IO.File]::ReadAllBytes($Archivo)) -LlavePrivadaXml $xml
 $xml = $null

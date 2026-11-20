@@ -82,8 +82,8 @@ $plan = [ordered]@{
 }
 $bytesPlan = (New-Object Text.UTF8Encoding $false).GetBytes(($plan | ConvertTo-Json -Depth 8))
 if (-not $LlavePrivadaXml) {
-    $privada = Join-Path $env:LOCALAPPDATA 'kitservicio\remoto_llave_privada.dat'
-    if (-not [IO.File]::Exists($privada)) { throw "No está la llave privada en este PC ($privada)." }
+    $privada = Get-RutaLlavePrivada
+    if (-not $privada) { throw "No está la llave privada en este PC ($env:LOCALAPPDATA\kitservicio\remoto_llave_privada.dat)." }
     $LlavePrivadaXml = [Text.Encoding]::UTF8.GetString([Security.Cryptography.ProtectedData]::Unprotect([IO.File]::ReadAllBytes($privada), $null, 'CurrentUser'))
 }
 $firma = Get-FirmaRemoto -Datos $bytesPlan -LlavePrivadaXml $LlavePrivadaXml

@@ -7,6 +7,22 @@
 
 $script:MagiaRemoto = [Text.Encoding]::ASCII.GetBytes("KITREM1`0")
 
+function Get-RutaLlavePrivada {
+    # %LOCALAPPDATA%\kitservicio\remoto_llave_privada.dat. Si no está ahí, la busca en la carpeta privada de la
+    # app Claude (Packages\Claude_*\LocalCache\Local\kitservicio): lo que se crea desde la consola de Claude queda
+    # redirigido ahí y los programas normales no lo ven. $null si no está en ninguna.
+    $normal = Join-Path $env:LOCALAPPDATA 'kitservicio\remoto_llave_privada.dat'
+    if ([IO.File]::Exists($normal)) { return $normal }
+    $paquetes = Join-Path $env:LOCALAPPDATA 'Packages'
+    if ([IO.Directory]::Exists($paquetes)) {
+        foreach ($d in @([IO.Directory]::GetDirectories($paquetes, 'Claude_*'))) {
+            $r = Join-Path $d 'LocalCache\Local\kitservicio\remoto_llave_privada.dat'
+            if ([IO.File]::Exists($r)) { return $r }
+        }
+    }
+    $null
+}
+
 function Get-LlavesNuevasRemoto {
     # Devuelve un par de llaves nuevo (XML de .NET): Publica y Privada.
     $rsa = New-Object Security.Cryptography.RSACryptoServiceProvider -ArgumentList 3072
