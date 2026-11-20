@@ -62,6 +62,20 @@ try {
     Test-AlertasOneDrive -OneDrive (New-OneDrivePrueba -Duplicadas @([pscustomobject]@{ Raiz = 'x'; Carpetas = 'Documents y Documentos'; Motivo = 'm' }) -Locales @([pscustomobject]@{ Carpeta = 'Escritorio'; Ruta = 'x'; Archivos = 7 }))
     Assert 'repetidas y copias locales como info' (@(Get-AlertasDe 'ESP-ONEDRIVE-DUP').Count -eq 1 -and @(Get-AlertasDe 'ESP-ONEDRIVE-LOCAL').Count -eq 1 -and @(Get-AlertasDe 'ESP-ONEDRIVE-LOCAL')[0].Texto -match '7 archivos')
     $script:Ctx.Alertas.Clear()
+    Test-AlertasOneDrive -OneDrive (New-OneDrivePrueba -Locales @([pscustomobject]@{ Carpeta = 'Documentos'; Ruta = 'C:\Users\<U1>\Documents'; Archivos = 5400; GB = 102.7; Completo = $true }))
+    $loc = @(@(Get-AlertasDe 'ESP-ONEDRIVE-LOCAL'))
+    Assert 'carpeta local antigua con GB: aviso con el tamaño' ($loc.Count -eq 1 -and $loc[0].Severidad -eq 'AVISO' -and $loc[0].Texto -match '102,7 GB') "$($loc.Texto)"
+
+    '== Medir una carpeta con subcarpetas'
+    $med = Join-Path $tmp 'medir'
+    $null = New-Item -ItemType Directory (Join-Path $med 'a\b') -Force
+    [IO.File]::WriteAllBytes((Join-Path $med 'uno.bin'), (New-Object byte[] 1000))
+    [IO.File]::WriteAllBytes((Join-Path $med 'a\b\dos.bin'), (New-Object byte[] 3000))
+    [IO.File]::WriteAllText((Join-Path $med 'desktop.ini'), 'x')
+    $m = Measure-CarpetaKit -Ruta $med -LimiteSeg 10
+    Assert 'cuenta subcarpetas y no desktop.ini' ($m.Archivos -eq 2 -and $m.Bytes -eq 4000 -and $m.Completo)
+
+    $script:Ctx.Alertas.Clear()
     Test-AlertasOneDrive -OneDrive ([pscustomobject]@{ Vinculado = $false })
     Assert 'sin OneDrive: sin alertas' ($script:Ctx.Alertas.Count -eq 0)
 
@@ -130,6 +144,9 @@ try {
     $opt = $sv | Where-Object Titulo -EQ 'Optimización de Windows'
     Assert 'optimización con OneDrive lleno, repetidas y reinicio' ($opt -and (@($opt.Hallazgos) -join ' ') -match '12,4 GB' -and (@($opt.Hallazgos) -join ' ') -match 'repetidas' -and (@($opt.Hallazgos) -join ' ') -match 'reinicio') "$(@($opt.Hallazgos) -join ' | ')"
     Assert 'OneDrive lleno pesa como impacto alto' ($opt.Impacto -eq 3)
+    $docV.datos.espacio.OneDrive = New-OneDrivePrueba -Locales @([pscustomobject]@{ Carpeta = 'Documentos'; Ruta = 'C:\Users\<U1>\Documents'; Archivos = 5400; GB = 102.7; Completo = $true })
+    $optL = @(Get-ServiciosCliente -Doc $docV) | Where-Object Titulo -EQ 'Optimización de Windows'
+    Assert 'el cliente ve los GB de las carpetas antiguas' ((@($optL.Hallazgos) -join ' ') -match '103 GB en carpetas antiguas \(Documentos\)') "$(@($optL.Hallazgos) -join ' | ')"
     $tec = [Net.WebUtility]::HtmlDecode((ConvertTo-HojaTecnica -Doc $docV))
     Assert 'hoja técnica con OneDrive y reinicio' ($tec -match '<h2>OneDrive</h2>' -and $tec -match 'Escritorio, Documentos' -and $tec -match 'Reinicio pendiente')
 } finally {

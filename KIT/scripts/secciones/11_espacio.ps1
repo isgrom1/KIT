@@ -219,6 +219,27 @@ function Get-DatosEspacio {
     $d
 }
 
+function Measure-CarpetaKit {
+    # Cantidad de archivos y bytes de una carpeta con sus subcarpetas, con tope de tiempo. No sigue junctions ni
+    # enlaces (reparse points). Solo cuenta: no abre archivos ni guarda nombres.
+    param([Parameter(Mandatory)][string]$Ruta, [double]$LimiteSeg = 30)
+    $reloj = [Diagnostics.Stopwatch]::StartNew()
+    $n = 0; $bytes = 0.0; $completo = $true
+    $pila = New-Object System.Collections.Generic.Stack[string]
+    $pila.Push($Ruta)
+    while ($pila.Count) {
+        if ($reloj.Elapsed.TotalSeconds -ge $LimiteSeg) { $completo = $false; break }
+        try {
+            foreach ($i in (New-Object IO.DirectoryInfo($pila.Pop())).EnumerateFileSystemInfos()) {
+                if ($i -is [IO.DirectoryInfo]) { if (-not ($i.Attributes -band [IO.FileAttributes]::ReparsePoint)) { $pila.Push($i.FullName) }; continue }
+                if ($i.Name -ieq 'desktop.ini') { continue }
+                $n++; $bytes += $i.Length
+            }
+        } catch { Write-Verbose $_ }
+    }
+    [pscustomobject]@{ Archivos = $n; Bytes = $bytes; Completo = $completo }
+}
+
 function Get-OneDriveKit {
     # OneDrive del usuario actual. Solo lee: cuentas vinculadas (tipo y carpeta, nunca el correo), qué
     # carpetas de Windows manda a la nube, carpetas repetidas (Documents/Documentos, copias "-<EQUIPO>") y,
@@ -264,9 +285,9 @@ function Get-OneDriveKit {
     foreach ($x in @(@('Desktop', 'Escritorio'), @('Documents', 'Documentos'), @('Pictures', 'Imágenes'))) {
         $local = Join-Path $perfil $x[0]
         if (-not @($resp | Where-Object Carpeta -EQ $x[1]).Count -or -not [IO.Directory]::Exists($local)) { continue }
-        $n = 0
-        try { foreach ($f in [IO.Directory]::EnumerateFiles($local)) { if ([IO.Path]::GetFileName($f) -ine 'desktop.ini') { $n++ } } } catch { Write-Verbose $_ }
-        if ($n -gt 0) { $loc.Add([pscustomobject][ordered]@{ Carpeta = $x[1]; Ruta = $local; Archivos = $n }) }
+        # Todo lo que quedó adentro (subcarpetas incluidas): suele ser mucho y el cliente ya no lo ve como "Documentos".
+        $m = Measure-CarpetaKit -Ruta $local -LimiteSeg 30
+        if ($m.Archivos -gt 0) { $loc.Add([pscustomobject][ordered]@{ Carpeta = $x[1]; Ruta = $local; Archivos = $m.Archivos; GB = (ConvertTo-GB $m.Bytes 1); Completo = $m.Completo }) }
     }
     $r.CopiasLocales = $loc.ToArray()
 
@@ -276,18 +297,18 @@ function Get-OneDriveKit {
         $limite = 60
         $total = 0.0; $nube = 0.0; $archivos = 0; $conflictos = 0; $completo = $true
         $pila = New-Object System.Collections.Generic.Stack[string]
-        foreach ($raiz in @($cuentas | Where-Object Existe | ForEach-Object Carpeta)) { $pila.Push($raiz) }
+        $vistas = New-Object System.Collections.Generic.HashSet[string]
+        foreach ($raiz in @($cuentas | Where-Object Existe | ForEach-Object Carpeta)) { if ($vistas.Add($raiz.ToLowerInvariant())) { $pila.Push($raiz) } }
         while ($pila.Count) {
             if ($reloj.Elapsed.TotalSeconds -ge $limite) { $completo = $false; break }
             $dir = New-Object IO.DirectoryInfo($pila.Pop())
             try {
                 foreach ($i in $dir.EnumerateFileSystemInfos()) {
                     if ($i -is [IO.DirectoryInfo]) {
-                        # Las carpetas de OneDrive con "archivos a petición" son reparse points con atributos de nube
-                        # (0x40000 recall on open, 0x80000 pinned, 0x100000 unpinned, 0x400000 recall on data access):
-                        # esas se recorren. Otros reparse points (junctions, enlaces) no se siguen.
-                        if (($i.Attributes -band [IO.FileAttributes]::ReparsePoint) -and -not ([int]$i.Attributes -band 0x5C0000)) { continue }
-                        $pila.Push($i.FullName); continue
+                        # Dentro de OneDrive las carpetas son reparse points de nube (con o sin atributos de "a petición"):
+                        # se recorren todas. Para no dar vueltas por un enlace, cada carpeta se visita una sola vez.
+                        if ($vistas.Add($i.FullName.ToLowerInvariant())) { $pila.Push($i.FullName) }
+                        continue
                     }
                     $archivos++
                     $total += $i.Length
@@ -316,7 +337,9 @@ function Test-AlertasOneDrive {
         Add-Alerta -Severidad INFO -Codigo 'ESP-ONEDRIVE-DUP' -Texto "Carpetas repetidas en OneDrive: $((@($o.Duplicadas) | ForEach-Object Carpetas) -join '; ')"
     }
     if (@($o.CopiasLocales).Count) {
-        Add-Alerta -Severidad INFO -Codigo 'ESP-ONEDRIVE-LOCAL' -Texto "Quedaron archivos en carpetas locales que ya no se usan (Windows usa las de OneDrive): $((@($o.CopiasLocales) | ForEach-Object { "$($_.Carpeta) local, $($_.Archivos) archivos" }) -join '; ')"
+        $gbLoc = (@($o.CopiasLocales) | ForEach-Object { [double]$_.GB } | Measure-Object -Sum).Sum
+        $sev = if ($gbLoc -ge 1) { 'AVISO' } else { 'INFO' }
+        Add-Alerta -Severidad $sev -Codigo 'ESP-ONEDRIVE-LOCAL' -Texto "Quedaron archivos en carpetas locales que Windows ya no muestra (usa las de OneDrive): $((@($o.CopiasLocales) | ForEach-Object { "$($_.Carpeta) local, $($_.Archivos) archivos$(if ($null -ne $_.GB) { ", $(Format-Numero ([double]$_.GB) 1) GB" })" }) -join '; '). El cliente puede creer que no los tiene, y ocupan disco"
     }
     if ($o.Recorrido -and [int]$o.Recorrido.Conflictos -gt 0) {
         Add-Alerta -Severidad INFO -Codigo 'ESP-ONEDRIVE-CONFLICTOS' -Texto "$($o.Recorrido.Conflictos) archivos duplicados por conflictos de sincronización en OneDrive (con el nombre del equipo agregado)"
@@ -373,7 +396,7 @@ function Format-ResumenEspacio {
             "OneDrive   : $((@($o.Cuentas) | ForEach-Object Tipo) -join ', ')$rec | $(if ($o.EnEjecucion) { 'abierto' } else { 'cerrado' })"
             "             respalda: $(if (@($o.Respaldadas).Count) { (@($o.Respaldadas) | ForEach-Object Carpeta) -join ', ' } else { 'ninguna carpeta de Windows' })"
             foreach ($x in @($o.Duplicadas)) { "             repetidas: $($x.Carpetas) ($($x.Motivo))" }
-            foreach ($x in @($o.CopiasLocales)) { "             $($x.Carpeta) local con $($x.Archivos) archivos (Windows usa la de OneDrive)" }
+            foreach ($x in @($o.CopiasLocales)) { "             $($x.Carpeta) local con $($x.Archivos) archivos$(if ($null -ne $x.GB) { " ($(Format-Numero ([double]$x.GB) 1) GB$(if (-not $x.Completo) { ', parcial' }))" }) en $($x.Ruta) (Windows ya no la muestra: usa la de OneDrive)" }
             if ($o.Recorrido -and $o.Recorrido.Conflictos) { "             $($o.Recorrido.Conflictos) archivos en conflicto (copias con el nombre del equipo)" }
         }
     }

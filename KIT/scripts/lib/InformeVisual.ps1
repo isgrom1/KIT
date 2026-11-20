@@ -247,6 +247,15 @@ function Get-RecomendacionesVisual {
     @($r | Sort-Object @{ Expression = 'Impacto'; Descending = $true }, @{ Expression = 'Esfuerzo'; Descending = $false })
 }
 
+function Get-GBCopiaLocal {
+    # GB de una carpeta local antigua (OneDrive): el que midió el diagnóstico o, en diagnósticos anteriores que
+    # solo contaban los archivos sueltos, el de esa carpeta en el top de carpetas del recorrido de espacio.
+    param($Copia, $Doc)
+    if ($Copia.PSObject.Properties['GB'] -and $null -ne $Copia.GB) { return [double]$Copia.GB }
+    $top = @($Doc.datos.espacio.TopCarpetas | Where-Object { $_ -and "$($_.Carpeta)" -ieq "$($Copia.Ruta)" }) | Select-Object -First 1
+    if ($top) { [double]$top.TamanoGB } else { 0.0 }
+}
+
 function Get-ServiciosCliente {
     # Lo que ve el cliente: las recomendaciones agrupadas en servicios, con lo encontrado y lo que gana, sin
     # el cómo (eso va en la hoja técnica). Optimización de Windows junta espacio, inicio, drivers y apagados.
@@ -287,7 +296,11 @@ function Get-ServiciosCliente {
             $hall.Add("OneDrive guarda $(Format-Numero ([double]$od.Recorrido.TotalGB) 1) GB y la cuenta gratis trae $(Format-Numero $limiteOd 0) GB: lo nuevo probablemente no se está respaldando.")
             $gana.Add('Respaldo funcionando'); $imp = [math]::Max($imp, 3)
         }
-        if (@($od.Duplicadas).Count -or @($od.CopiasLocales).Count) { $hall.Add('Hay carpetas repetidas entre OneDrive y el equipo (por ejemplo Documents y Documentos).'); $gana.Add('Archivos ordenados') }
+        $gbLoc = (@($od.CopiasLocales) | Where-Object { $_ } | ForEach-Object { Get-GBCopiaLocal -Copia $_ -Doc $Doc } | Measure-Object -Sum).Sum
+        if ($gbLoc -ge 1) {
+            $hall.Add("Hay $(Format-Numero $gbLoc 0) GB en carpetas antiguas ($((@($od.CopiasLocales) | ForEach-Object Carpeta) -join ', ')) que Windows ya no muestra desde que se activó OneDrive.")
+            $gana.Add('Archivos ordenados'); $gana.Add('Más espacio'); $imp = [math]::Max($imp, 3)
+        } elseif (@($od.Duplicadas).Count -or @($od.CopiasLocales).Count) { $hall.Add('Hay carpetas repetidas entre OneDrive y el equipo (por ejemplo Documents y Documentos).'); $gana.Add('Archivos ordenados') }
     }
     $e = $d.estabilidad
     if ($e -and ([int]$e.Apagados + [int]$e.Pantallazos) -ge 2) { $hall.Add("$([int]$e.Apagados + [int]$e.Pantallazos) apagados o pantallazos inesperados en $($e.Dias) días: reviso la causa."); $gana.Add('Más estabilidad'); $imp = [math]::Max($imp, 2) }
@@ -789,6 +802,10 @@ function ConvertTo-InformeVisual {
         [void]$sb.Append("<div><b>$(& $H $g[0]):</b> $(& $H $g[1])</div>")
     }
     [void]$sb.Append('</div></div>')
+    $como = if ($Origen -eq 'remoto') { 'Se ejecutó el <b>diagnóstico a distancia</b>: revisa 13 áreas del equipo <b>solo leyendo</b>, sin modificar nada, sin instalar programas y sin internet. El resultado viajó cifrado: solo el técnico puede abrirlo.' } else { 'Se ejecutó el <b>kit de servicio técnico</b> desde un pendrive: revisa 13 áreas del equipo <b>solo leyendo</b>, sin modificar nada y sin instalar programas.' }
+    $bloqueComo = "<div class='caja' style='font-size:8.3pt;padding:8px 12px;page-break-inside:avoid'><b>Cómo se hizo.</b> $como$(if ($Sensores) { ' La prueba de temperatura usó HWiNFO y OCCT.' }) No se revisaron documentos, fotos, contraseñas ni historial de navegación. " +
+    "<span style='color:var(--suave)'>El puntaje es una guía con reglas fijas (temperatura y almacenamiento 25 % cada una, estabilidad y seguridad 15 %, batería y encendido 10 %), no una medición de laboratorio.</span></div>"
+    [void]$sb.Append("<div style='margin-top:12px'>$bloqueComo</div>")
     [void]$sb.Append("$(& $pie ($np + 1))</div>")
 
     # ---- Recomendaciones
@@ -809,9 +826,6 @@ function ConvertTo-InformeVisual {
         foreach ($g in $x.Gana) { [void]$sb.Append("<span class='chip' style='background:var(--verde2);border-color:#bfe3cd;color:var(--verde)'>✓ $(& $H $g)</span>") }
         [void]$sb.Append('</div></div></div></div></div></div>')
     }
-    $como = if ($Origen -eq 'remoto') { 'Se ejecutó el <b>diagnóstico a distancia</b>: revisa 13 áreas del equipo <b>solo leyendo</b>, sin modificar nada, sin instalar programas y sin internet. El resultado viajó cifrado: solo el técnico puede abrirlo.' } else { 'Se ejecutó el <b>kit de servicio técnico</b> desde un pendrive: revisa 13 áreas del equipo <b>solo leyendo</b>, sin modificar nada y sin instalar programas.' }
-    $bloqueComo = "<div class='caja' style='font-size:8.7pt;page-break-inside:avoid'><h3>Cómo se hizo</h3><p>$como$(if ($Sensores) { ' La prueba de temperatura usó HWiNFO y OCCT.' }) No se revisaron documentos, fotos, contraseñas ni historial de navegación.</p>" +
-    "<p style='color:var(--suave);font-size:8pt;margin-bottom:0'><b>Sobre el puntaje:</b> cada área se califica con reglas fijas (espacio según el % libre del disco de Windows, batería según su capacidad, temperatura según el máximo con carga...). La salud general es su promedio: temperatura y almacenamiento 25 % cada una, estabilidad y seguridad 15 %, batería y encendido 10 %. Es una guía para priorizar, no una medición de laboratorio.</p></div>"
     if (-not $servicios.Count) {
         [void]$sb.Append("<div class='explica'>No hay nada urgente: el equipo está bien. Lo ideal es una mantención preventiva una vez al año para que siga así.</div>")
     }
@@ -830,7 +844,6 @@ function ConvertTo-InformeVisual {
     }
     [void]$sb.Append('</div>')
     [void]$sb.Append("<div style='background:linear-gradient(135deg,#17406f,#1f5fa8);color:#fff;border-radius:12px;padding:13px 16px;margin:4px 0 12px;display:flex;justify-content:space-between;align-items:center;gap:14px;page-break-inside:avoid'><div><div style='font-size:12.5pt;font-weight:700'>¿Lo dejamos listo?</div><div style='font-size:9.4pt;opacity:.9'>Me encargo de todo, con respaldo de lo que se cambia y un informe del antes y el después para que veas la diferencia.</div></div><div style='text-align:right;font-size:9.4pt;white-space:nowrap'><b>$(& $H "$($tecnico.nombre)")</b><br>$(& $H $contacto)</div></div>")
-    [void]$sb.Append($bloqueComo)
     [void]$sb.Append("$(& $pie ($np + 2))</div></body></html>")
     $sb.ToString()
 }
@@ -890,7 +903,7 @@ function Get-ResultadoTrabajo {
 function ConvertTo-HojaTecnica {
     # Para el técnico, NO para el cliente: qué hacer en concreto (lo que el informe del cliente solo menciona
     # como servicio). Recomendaciones con detalle, programas al inicio, lo que más ocupa y dispositivos con error.
-    param([Parameter(Mandatory)]$Doc, $Sensores)
+    param([Parameter(Mandatory)]$Doc, $Sensores, [string]$Origen = 'remoto')
     $d = $Doc.datos
     $H = { param($t) Get-HtmlVisual $t }
     $recos = @(Get-RecomendacionesVisual -Doc $Doc -Sensores $Sensores)
@@ -898,6 +911,17 @@ function ConvertTo-HojaTecnica {
     [void]$sb.Append("<!doctype html><html lang='es'><head><meta charset='utf-8'><title>Hoja técnica · $(& $H (Get-NombreModeloVisual -Equipo $d.equipo))</title><style>body{font-family:'Segoe UI',Arial;font-size:10pt;color:#1b2430;max-width:900px;margin:20px auto;padding:0 16px}h1{font-size:16pt;margin:0}h2{font-size:12pt;color:#1f5fa8;margin:18px 0 6px;border-bottom:2px solid #e3e8ee;padding-bottom:3px}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #e3e8ee;padding:4px 6px;text-align:left;vertical-align:top}th{color:#5a6675;font-size:8.5pt;text-transform:uppercase}.t{font-size:8pt;font-weight:700;padding:1px 6px;border-radius:8px;background:#eef1f5}.aviso{background:#fdf3e2;border-left:4px solid #b7700a;padding:6px 10px;margin:8px 0}</style></head><body>")
     [void]$sb.Append("<h1>Hoja técnica · $(& $H (Get-NombreModeloVisual -Equipo $d.equipo))</h1><div>Equipo $(& $H $d.equipo.NombreEquipo) · serie $(& $H $d.equipo.Serie) · diagnóstico $(& $H $Doc.kit.generado)</div>")
     [void]$sb.Append("<div class='aviso'>Solo para ti: el informe del cliente muestra estos puntos como servicios, sin el cómo.</div>")
+    $sv = @(Get-ServiciosCliente -Doc $Doc -Sensores $Sensores -Origen $Origen)
+    if ($sv.Count) {
+        [void]$sb.Append('<h2>Lo que se le propone al cliente</h2><table><tr><th>Servicio</th><th>Pack</th><th>Precio</th></tr>')
+        foreach ($x in $sv) {
+            $nomPack = if ($x.Pack) { '{0}) {1}' -f $x.Pack.Numero, $x.Pack.Nombre } else { '' }
+            [void]$sb.Append("<tr><td>$(& $H $x.Titulo)</td><td>$(& $H $nomPack)</td><td>$(& $H (Format-PrecioPaquete $x.Pack))</td></tr>")
+        }
+        $sum = (@($sv | Where-Object { $_.Pack -and $null -ne $_.Pack.Precio }) | ForEach-Object { [double]$_.Pack.Precio } | Measure-Object -Sum).Sum
+        if ($sum) { [void]$sb.Append("<tr><td colspan='2'><b>Total (mano de obra)</b></td><td><b>`$$(Format-Numero $sum 0)</b></td></tr>") }
+        [void]$sb.Append('</table>')
+    }
     [void]$sb.Append('<h2>Qué hacer</h2><table><tr><th>#</th><th>Tarea</th><th>Tipo</th><th>Impacto</th><th>Detalle</th></tr>')
     for ($i = 0; $i -lt $recos.Count; $i++) { $x = $recos[$i]; [void]$sb.Append("<tr><td>$($i + 1)</td><td><b>$(& $H $x.Titulo)</b></td><td><span class='t'>$(& $H $x.Tipo)</span></td><td>$('●' * [int]$x.Impacto)</td><td>$(& $H $x.Detalle)</td></tr>") }
     [void]$sb.Append('</table><h2>Programas al inicio</h2><table><tr><th>Nombre</th><th>Empresa</th><th>Microsoft</th><th>De la Store</th></tr>')
@@ -913,7 +937,7 @@ function ConvertTo-HojaTecnica {
         [void]$sb.Append("<tr><td>Respalda</td><td>$(& $H $(if (@($od.Respaldadas).Count) { (@($od.Respaldadas) | ForEach-Object Carpeta) -join ', ' } else { 'ninguna carpeta de Windows' }))</td></tr>")
         if ($od.Recorrido) { [void]$sb.Append("<tr><td>Tamaño</td><td>$(Format-Numero ([double]$od.Recorrido.TotalGB) 1) GB en $('{0:N0}' -f $od.Recorrido.Archivos) archivos ($(Format-Numero ([double]$od.Recorrido.LocalGB) 1) GB en el disco, $(Format-Numero ([double]$od.Recorrido.SoloNubeGB) 1) GB solo en la nube)$(if (-not $od.Recorrido.Completo) { ' · PARCIAL' }) · $($od.Recorrido.Conflictos) archivos en conflicto</td></tr>") }
         foreach ($x in @($od.Duplicadas)) { [void]$sb.Append("<tr><td>Repetidas</td><td>$(& $H $x.Carpetas) ($(& $H $x.Motivo))</td></tr>") }
-        foreach ($x in @($od.CopiasLocales)) { [void]$sb.Append("<tr><td>Copia local</td><td>$(& $H $x.Carpeta): $($x.Archivos) archivos en $(& $H $x.Ruta) (Windows usa la de OneDrive)</td></tr>") }
+        foreach ($x in @($od.CopiasLocales)) { $gbx = Get-GBCopiaLocal -Copia $x -Doc $Doc; [void]$sb.Append("<tr><td>Copia local</td><td><b>$(& $H $x.Carpeta): $(if ($x.PSObject.Properties['GB']) { "$($x.Archivos) archivos, " })$(Format-Numero $gbx 1) GB</b> en $(& $H $x.Ruta). Windows ya no la muestra (usa la de OneDrive): revisar con el cliente qué guardar y moverlo, nunca borrar.</td></tr>") }
         [void]$sb.Append("</table><p>Con el cliente: liberar espacio en OneDrive, contratar más o dejar de respaldar carpetas (OneDrive &gt; Configuración &gt; Sincronizar y hacer copia de seguridad). Las carpetas repetidas se juntan moviendo, nunca borrando.</p>")
     }
     $err = @($d.dispositivos.ConError | Where-Object { $_ })
@@ -941,7 +965,7 @@ function Export-InformeVisual {
     $rutaHtml = [IO.Path]::ChangeExtension($Salida, '.html')
     [IO.File]::WriteAllText($rutaHtml, $html, (New-Object Text.UTF8Encoding $true))
     $rutaTec = [IO.Path]::Combine([IO.Path]::GetDirectoryName($Salida), [IO.Path]::GetFileNameWithoutExtension($Salida) + '_tecnico.html')
-    [IO.File]::WriteAllText($rutaTec, (ConvertTo-HojaTecnica -Doc $doc -Sensores $sens), (New-Object Text.UTF8Encoding $true))
+    [IO.File]::WriteAllText($rutaTec, (ConvertTo-HojaTecnica -Doc $doc -Sensores $sens -Origen $Origen), (New-Object Text.UTF8Encoding $true))
     $pdf = $null; $err = $null
     try { $pdf = Export-PdfInforme -Html $rutaHtml -Pdf ([IO.Path]::ChangeExtension($Salida, '.pdf')) } catch { $err = $_.Exception.Message }
     [pscustomobject]@{ Html = $rutaHtml; Pdf = $pdf; Tecnico = $rutaTec; Error = $err }
