@@ -16,7 +16,8 @@
 [CmdletBinding()]
 param(
     [string]$Herramientas,
-    [string]$Salida
+    [string]$Salida,
+    [string]$LlavePrivadaXml   # solo para pruebas; lo normal es la llave del PC (DPAPI)
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -35,7 +36,7 @@ if ([IO.Directory]::Exists($dir)) { Remove-Item -LiteralPath $dir -Recurse -Forc
 $motor = Join-Path $dir 'motor'
 $null = [IO.Directory]::CreateDirectory($motor)
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'paquete\DIAGNOSTICO.cmd'), (Join-Path $PSScriptRoot 'paquete\LEEME.txt') -Destination $dir
-foreach ($f in 'remoto.ps1', 'calor.ps1', 'Cifrado.ps1') { Copy-Item -LiteralPath (Join-Path $PSScriptRoot "motor\$f") -Destination $motor }
+foreach ($f in 'remoto.ps1', 'calor.ps1', 'Cifrado.ps1', 'bienvenida.ps1') { Copy-Item -LiteralPath (Join-Path $PSScriptRoot "motor\$f") -Destination $motor }
 Copy-Item -LiteralPath $llave -Destination $motor
 
 # Motor del kit: lo que necesita diagnostico.ps1, sin la interfaz ni los datos propios de Isaac.
@@ -61,6 +62,13 @@ $r = Set-ConfigOcct -Carpeta (Join-Path $dHerr 'OCCT') -Base (Join-Path $kitScri
 Get-ChildItem -LiteralPath (Join-Path $dHerr 'OCCT') -Recurse -File -Filter '*.bak' | Remove-Item -Force
 Write-Host "Prueba fija de OCCT: $($r.Estado) ($($r.Cambios) cambios)"
 if ($r.NoEncontrados) { Write-Host "  No encontrados en OCCT.config.json: $($r.NoEncontrados -join ', ')" -ForegroundColor Yellow }
+
+# Firma de Isaac: lista de archivos con su huella, firmada. En el equipo se comprueba antes de pedir admin.
+. (Join-Path $PSScriptRoot 'motor\Cifrado.ps1')
+if (-not $LlavePrivadaXml) { $LlavePrivadaXml = Read-LlavePrivadaIsaac }
+$nFirmados = Write-ManifiestoPaquete -Raiz $dir -LlavePrivadaXml $LlavePrivadaXml
+$LlavePrivadaXml = $null
+Write-Host "Firmado: $nFirmados archivos. Código de Isaac: $(Get-CodigoIsaac -LlavePublicaXml ([IO.File]::ReadAllText((Join-Path $dir 'motor\llave_publica.xml'))))" -ForegroundColor Cyan
 
 $zip = Join-Path $Salida ("Diagnostico_remoto_{0}.zip" -f (Get-Date -Format 'yyyyMMdd'))
 if ([IO.File]::Exists($zip)) { Remove-Item -LiteralPath $zip -Force }

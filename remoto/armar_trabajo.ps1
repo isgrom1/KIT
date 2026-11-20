@@ -87,7 +87,6 @@ if (-not $LlavePrivadaXml) {
     $LlavePrivadaXml = [Text.Encoding]::UTF8.GetString([Security.Cryptography.ProtectedData]::Unprotect([IO.File]::ReadAllBytes($privada), $null, 'CurrentUser'))
 }
 $firma = Get-FirmaRemoto -Datos $bytesPlan -LlavePrivadaXml $LlavePrivadaXml
-$LlavePrivadaXml = $null
 
 # Paquete
 $nombre = 'Trabajo_{0}_{1}' -f (Get-NombreArchivo "$($doc.datos.equipo.NombreEquipo)" 20), $ahora.ToString('yyyyMMdd_HHmm')
@@ -96,7 +95,7 @@ if ([IO.Directory]::Exists($dir)) { Remove-Item -LiteralPath $dir -Recurse -Forc
 $motor = Join-Path $dir 'motor'
 $null = [IO.Directory]::CreateDirectory($motor)
 foreach ($f in 'TRABAJO.cmd', 'DESHACER.cmd', 'LEEME.txt') { Copy-Item -LiteralPath (Join-Path $PSScriptRoot "paquete_trabajo\$f") -Destination $dir }
-foreach ($f in 'trabajo.ps1', 'Cifrado.ps1') { Copy-Item -LiteralPath (Join-Path $PSScriptRoot "motor\$f") -Destination $motor }
+foreach ($f in 'trabajo.ps1', 'Cifrado.ps1', 'bienvenida.ps1') { Copy-Item -LiteralPath (Join-Path $PSScriptRoot "motor\$f") -Destination $motor }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'llave_publica.xml') -Destination $motor
 $dScripts = Join-Path $motor 'scripts'
 $null = [IO.Directory]::CreateDirectory($dScripts)
@@ -113,10 +112,16 @@ $null = [IO.Directory]::CreateDirectory((Join-Path (Join-Path $dExp $atencion) '
 Copy-Item -LiteralPath (Join-Path $rutaExp 'ficha.json') -Destination $dExp
 foreach ($f in 'diagnostico.json', 'metricas.json') { $o = Join-Path $json.Directory.FullName $f; if ([IO.File]::Exists($o)) { Copy-Item -LiteralPath $o -Destination (Join-Path (Join-Path $dExp $atencion) 'antes') } }
 
+# Firma de Isaac sobre todos los archivos del paquete (se comprueba en el equipo antes de pedir admin).
+$nFirmados = Write-ManifiestoPaquete -Raiz $dir -LlavePrivadaXml $LlavePrivadaXml
+$LlavePrivadaXml = $null
+$codigo = Get-CodigoIsaac -LlavePublicaXml ([IO.File]::ReadAllText((Join-Path $motor 'llave_publica.xml')))
+
 $zip = "$dir.zip"
 if ([IO.File]::Exists($zip)) { Remove-Item -LiteralPath $zip -Force }
 [IO.Compression.ZipFile]::CreateFromDirectory($dir, $zip, [IO.Compression.CompressionLevel]::Optimal, $true)
 Write-Host ''
 Write-Host (" Listo: {0} ({1:N1} MB), {2} acciones, vence el {3}" -f $zip, ((Get-Item -LiteralPath $zip).Length / 1MB), $elegidas.Count, $plan.vence) -ForegroundColor Green
 Write-Host ' Mándaselo al cliente: lo descomprime y abre TRABAJO.cmd. Después te devuelve un archivo .kitdiag.' -ForegroundColor Gray
+Write-Host " Firmado ($nFirmados archivos). Dile que al abrirlo debe ver el código de Isaac: ISAAC · $codigo" -ForegroundColor Cyan
 if ($PassThru) { [pscustomobject]@{ Zip = $zip; Carpeta = $dir; Plan = $plan.id; Acciones = $elegidas.Count } }

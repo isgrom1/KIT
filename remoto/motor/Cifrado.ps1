@@ -122,3 +122,89 @@ function Unprotect-DatosRemoto {
     [Array]::Clear($llaves, 0, $llaves.Length); [Array]::Clear($kAes, 0, 32); [Array]::Clear($kMac, 0, 32)
     , $plano
 }
+
+# ---------------------------------------------------------------- paquete firmado y código de Isaac
+# Al armar un paquete, Isaac firma la lista de sus archivos con su huella SHA-256 (motor\manifiesto.json y
+# motor\manifiesto.firma). En el equipo del cliente, antes de pedir administrador, se comprueba la firma con la
+# llave pública del paquete y cada huella. El "código de Isaac" sale de esa llave pública: es el mismo en todos
+# sus paquetes y él lo manda por WhatsApp, así que un paquete con otra llave muestra otro código.
+# Fuera del manifiesto: la llave pública (es el ancla, se comprueba con el código), el manifiesto y su firma, y
+# en herramientas\ todo lo que no es .exe (OCCT y HWiNFO escriben su configuración al usarse).
+
+function Get-CodigoIsaac {
+    # 'XXXX-XXXX' a partir del módulo de la llave pública (no depende de cómo está escrito el XML).
+    param([Parameter(Mandatory)][string]$LlavePublicaXml)
+    $x = [xml]$LlavePublicaXml
+    $mod = [Convert]::FromBase64String("$($x.RSAKeyValue.Modulus)".Trim())
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { $h = $sha.ComputeHash($mod) } finally { $sha.Dispose() }
+    $hex = -join ($h[0..3] | ForEach-Object { $_.ToString('X2') })
+    '{0}-{1}' -f $hex.Substring(0, 4), $hex.Substring(4, 4)
+}
+
+function Get-ArchivosManifiesto {
+    # Rutas relativas (con \) de los archivos del paquete que van en el manifiesto, ordenadas.
+    param([Parameter(Mandatory)][string]$Raiz)
+    $base = $Raiz.TrimEnd('\').Length + 1
+    $fuera = @('motor\llave_publica.xml', 'motor\manifiesto.json', 'motor\manifiesto.firma')
+    @(Get-ChildItem -LiteralPath $Raiz -Recurse -File | ForEach-Object { $_.FullName.Substring($base) } |
+            Where-Object { $fuera -notcontains $_ -and ($_ -notlike 'herramientas\*' -or $_ -like '*.exe') } | Sort-Object)
+}
+
+function Get-HuellaArchivo {
+    param([Parameter(Mandatory)][string]$Ruta)
+    $sha = [Security.Cryptography.SHA256]::Create()
+    $fs = [IO.File]::OpenRead($Ruta)
+    try { -join ($sha.ComputeHash($fs) | ForEach-Object { $_.ToString('x2') }) } finally { $fs.Dispose(); $sha.Dispose() }
+}
+
+function Write-ManifiestoPaquete {
+    # Escribe y firma el manifiesto de un paquete armado en $Raiz. Devuelve cuántos archivos cubre.
+    param([Parameter(Mandatory)][string]$Raiz, [Parameter(Mandatory)][string]$LlavePrivadaXml)
+    $lista = @(Get-ArchivosManifiesto -Raiz $Raiz | ForEach-Object { [ordered]@{ ruta = $_; sha256 = (Get-HuellaArchivo -Ruta (Join-Path $Raiz $_)) } })
+    $man = [ordered]@{ formato = 'KITMANIF1'; creado = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss'); archivos = $lista }
+    $bytes = (New-Object Text.UTF8Encoding $false).GetBytes(($man | ConvertTo-Json -Depth 4))
+    $firma = Get-FirmaRemoto -Datos $bytes -LlavePrivadaXml $LlavePrivadaXml
+    [IO.File]::WriteAllBytes((Join-Path $Raiz 'motor\manifiesto.json'), $bytes)
+    [IO.File]::WriteAllText((Join-Path $Raiz 'motor\manifiesto.firma'), [Convert]::ToBase64String($firma), [Text.Encoding]::ASCII)
+    $lista.Count
+}
+
+function Test-ManifiestoPaquete {
+    # ¿Es un paquete de Isaac sin cambios? Devuelve Ok, Codigo (código de Isaac de la llave del paquete), Motivo
+    # (en palabras para el cliente) y Archivos. Solo lee.
+    param([Parameter(Mandatory)][string]$Raiz)
+    $r = [pscustomobject]@{ Ok = $false; Codigo = $null; Motivo = $null; Archivos = 0 }
+    try {
+        $llave = Join-Path $Raiz 'motor\llave_publica.xml'
+        $rm = Join-Path $Raiz 'motor\manifiesto.json'
+        $rf = Join-Path $Raiz 'motor\manifiesto.firma'
+        if (-not [IO.File]::Exists($llave)) { $r.Motivo = 'Falta la llave de Isaac en el paquete.'; return $r }
+        $pub = [IO.File]::ReadAllText($llave)
+        $r.Codigo = Get-CodigoIsaac -LlavePublicaXml $pub
+        if (-not [IO.File]::Exists($rm) -or -not [IO.File]::Exists($rf)) { $r.Motivo = 'El paquete no trae la firma de Isaac.'; return $r }
+        $bytes = [IO.File]::ReadAllBytes($rm)
+        $firma = [Convert]::FromBase64String([IO.File]::ReadAllText($rf).Trim())
+        if (-not (Test-FirmaRemoto -Datos $bytes -Firma $firma -LlavePublicaXml $pub)) { $r.Motivo = 'La firma de Isaac no coincide: el paquete fue modificado.'; return $r }
+        $man = (New-Object Text.UTF8Encoding $false).GetString($bytes) | ConvertFrom-Json
+        if ($man.formato -ne 'KITMANIF1') { $r.Motivo = 'Formato de firma desconocido: pídele a Isaac un paquete nuevo.'; return $r }
+        foreach ($a in @($man.archivos)) {
+            $ruta = Join-Path $Raiz $a.ruta
+            if (-not [IO.File]::Exists($ruta)) { $r.Motivo = "Falta un archivo del paquete ($($a.ruta)): descomprímelo completo o pídele uno nuevo a Isaac."; return $r }
+            if ((Get-HuellaArchivo -Ruta $ruta) -ne $a.sha256) { $r.Motivo = "La firma de Isaac no coincide: el archivo $($a.ruta) fue modificado."; return $r }
+        }
+        $r.Archivos = @($man.archivos).Count
+        $r.Ok = $true
+    } catch { $r.Motivo = "No se pudo comprobar la firma ($($_.Exception.Message))." }
+    $r
+}
+
+function Read-LlavePrivadaIsaac {
+    # La llave privada de Isaac (XML), guardada con DPAPI en su usuario. Solo en el PC de Isaac (para firmar).
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseCompatibleTypes', '', Justification = 'ProtectedData viene con .NET Framework y se carga con Add-Type -AssemblyName System.Security')]
+    param()
+    $ruta = Get-RutaLlavePrivada
+    if (-not $ruta) { throw "No está la llave privada en este PC ($env:LOCALAPPDATA\kitservicio\remoto_llave_privada.dat)." }
+    Add-Type -AssemblyName System.Security
+    [Text.Encoding]::UTF8.GetString([Security.Cryptography.ProtectedData]::Unprotect([IO.File]::ReadAllBytes($ruta), $null, 'CurrentUser'))
+}

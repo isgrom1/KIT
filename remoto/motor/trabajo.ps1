@@ -35,6 +35,10 @@ function Exit-Trabajo([string]$Texto, [int]$Codigo = 2) { Write-Host ''; Write-H
 $Host.UI.RawUI.WindowTitle = 'Trabajo de Isaac en tu computador - no cierres esta ventana'
 Get-ChildItem -LiteralPath $raiz -Recurse -File | Unblock-File -ErrorAction SilentlyContinue
 
+# 0. Firma de Isaac sobre todo el paquete (también en la copia del perfil, que trae su manifiesto).
+$verif = Test-ManifiestoPaquete -Raiz $raiz
+if (-not $verif.Ok) { Exit-Trabajo "Este paquete no es de Isaac o fue modificado (la firma no coincide): no se aplica nada. $($verif.Motivo)" 3 }
+
 # 1. Plan: firma, equipo y vigencia.
 $rutaPlan = Join-Path $raiz 'plan\plan.json'
 $rutaFirma = Join-Path $raiz 'plan\plan.firma'

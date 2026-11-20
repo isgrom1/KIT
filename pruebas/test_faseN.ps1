@@ -92,13 +92,43 @@ try {
     Assert 'trae el expediente ANTES' (@(Get-ChildItem (Join-Path $p.Carpeta 'plan\clientes') -Recurse -Filter diagnostico.json).Count -eq 1)
     Assert 'TRABAJO.cmd y DESHACER.cmd en ASCII' (@([IO.File]::ReadAllBytes((Join-Path $p.Carpeta 'TRABAJO.cmd')) + [IO.File]::ReadAllBytes((Join-Path $p.Carpeta 'DESHACER.cmd')) | Where-Object { $_ -gt 127 }).Count -eq 0)
 
+    '== Paquete firmado y código de Isaac (fase Q)'
+    $cod = Get-CodigoIsaac -LlavePublicaXml $llaves.Publica
+    Assert 'código de Isaac con formato XXXX-XXXX y estable' ($cod -cmatch '^[0-9A-F]{4}-[0-9A-F]{4}$' -and (Get-CodigoIsaac -LlavePublicaXml ($llaves.Publica -replace '><', ">`r`n  <")) -eq $cod) $cod
+    Assert 'otra llave da otro código' ((Get-CodigoIsaac -LlavePublicaXml (Get-LlavesNuevasRemoto).Publica) -ne $cod)
+    Assert 'el paquete trae bienvenida, manifiesto y su firma' (@(@('motor\bienvenida.ps1', 'motor\manifiesto.json', 'motor\manifiesto.firma') | Where-Object { -not (Test-Path (Join-Path $p.Carpeta $_)) }).Count -eq 0)
+    $vm = Test-ManifiestoPaquete -Raiz $p.Carpeta
+    Assert 'paquete recién armado: verificado, con el código de la llave' ($vm.Ok -and $vm.Codigo -eq $cod -and $vm.Archivos -gt 50) "$($vm.Motivo) ($($vm.Archivos))"
+    $man = [IO.File]::ReadAllText((Join-Path $p.Carpeta 'motor\manifiesto.json')) | ConvertFrom-Json
+    Assert 'la firma cubre los .cmd, el plan y el motor, no la llave' (@($man.archivos.ruta) -contains 'TRABAJO.cmd' -and @($man.archivos.ruta) -contains 'plan\plan.json' -and @($man.archivos.ruta) -contains 'motor\trabajo.ps1' -and @($man.archivos.ruta) -notcontains 'motor\llave_publica.xml')
+    $cm = Join-Path $tmp 'cambiado'; Copy-Item $p.Carpeta $cm -Recurse
+    Add-Content -LiteralPath (Join-Path $cm 'motor\scripts\lib\Comun.ps1') -Value '# cambio'
+    $vc = Test-ManifiestoPaquete -Raiz $cm
+    Assert 'un script cambiado: no verificado y dice cuál' (-not $vc.Ok -and $vc.Motivo -match 'Comun\.ps1') $vc.Motivo
+    $fa = Join-Path $tmp 'falta'; Copy-Item $p.Carpeta $fa -Recurse
+    Remove-Item -LiteralPath (Join-Path $fa 'DESHACER.cmd')
+    Assert 'un archivo que falta: no verificado' (-not (Test-ManifiestoPaquete -Raiz $fa).Ok)
+    $ot = Join-Path $tmp 'otrallave'; Copy-Item $p.Carpeta $ot -Recurse
+    [IO.File]::WriteAllText((Join-Path $ot 'motor\llave_publica.xml'), (Get-LlavesNuevasRemoto).Publica)
+    $vo = Test-ManifiestoPaquete -Raiz $ot
+    Assert 'llave cambiada: la firma no coincide y el código es otro' (-not $vo.Ok -and $vo.Codigo -ne $cod) "$($vo.Motivo) $($vo.Codigo)"
+    $ex = Join-Path $tmp 'extra'; Copy-Item $p.Carpeta $ex -Recurse
+    [IO.File]::WriteAllText((Join-Path $ex 'estado.json'), '{}')
+    Assert 'archivos nuevos que deja el trabajo (estado) no rompen la firma' ((Test-ManifiestoPaquete -Raiz $ex).Ok)
+    $sb = & $ps -NoProfile -MTA -ExecutionPolicy Bypass -File (Join-Path $cm 'motor\bienvenida.ps1') -Modo Trabajo 2>&1 | Out-String
+    Assert 'bienvenida con paquete cambiado: avisa y no deja empezar (código 3)' ($LASTEXITCODE -eq 3 -and $sb -match 'NO ES DE ISAAC') $sb
+    $png = Join-Path $tmp 'bienvenida.png'
+    & $ps -NoProfile -STA -ExecutionPolicy Bypass -File (Join-Path $p.Carpeta 'motor\bienvenida.ps1') -Modo Trabajo -Captura $png 2>&1 | Out-Null
+    Assert 'bienvenida con paquete bueno: ventana con el código (código 0)' ($LASTEXITCODE -eq 0 -and [IO.File]::Exists($png) -and (Get-Item $png).Length -gt 20000)
+    $rc = Invoke-Trabajo -Paquete $cm -Argumentos @('-Si', '-Estado', (Join-Path $tmp 'estado_cm'))
+    Assert 'trabajo.ps1 con un script cambiado: no aplica nada' ($rc.Codigo -eq 3 -and $rc.Salida -match 'no es de Isaac' -and -not (Test-Path (Join-Path $tmp 'estado_cm'))) $rc.Salida
     '== trabajo.ps1 rechaza sin tocar nada'
     $mod = Join-Path $tmp 'modificado'
     Copy-Item $p.Carpeta $mod -Recurse
     $txt = [IO.File]::ReadAllText((Join-Path $mod 'plan\plan.json')).Replace('KitPruebaTrabajo', 'KitPruebaOtraCosa')
     [IO.File]::WriteAllText((Join-Path $mod 'plan\plan.json'), $txt, (New-Object Text.UTF8Encoding $false))
     $r = Invoke-Trabajo -Paquete $mod -Argumentos @('-Si', '-Estado', (Join-Path $tmp 'estado_mod'))
-    Assert 'plan modificado: no aplica nada' ($r.Codigo -eq 2 -and $r.Salida -match 'firma' -and -not (Test-Path (Join-Path $tmp 'estado_mod'))) $r.Salida
+    Assert 'plan modificado: no aplica nada' ($r.Codigo -eq 3 -and $r.Salida -match 'firma' -and -not (Test-Path (Join-Path $tmp 'estado_mod'))) $r.Salida
     $otroEq = [pscustomobject]@{ Fabricante = 'Otra'; Modelo = 'Maquina'; Serie = 'SERIE-QUE-NO-ES'; SerieOriginal = 'SERIE-QUE-NO-ES'; Uuid = $null; PlacaSerie = $null }
     $po = New-PaquetePrueba -Nombre 'otro' -Identidad $otroEq
     $r = Invoke-Trabajo -Paquete $po.Carpeta -Argumentos @('-Si', '-Estado', (Join-Path $tmp 'estado_otro'))

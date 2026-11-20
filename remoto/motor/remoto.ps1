@@ -61,6 +61,10 @@ if (-not (New-Object Security.Principal.WindowsPrincipal $id).IsInRole([Security
 }
 $llave = Join-Path $motor 'llave_publica.xml'
 if (-not [IO.File]::Exists($llave)) { Write-Host ' Falta llave_publica.xml en el paquete: pídele a Isaac uno nuevo.' -ForegroundColor Red; exit 2 }
+# Firma de Isaac sobre todo el paquete (bienvenida.ps1 ya la comprobó antes del permiso; aquí, otra vez con admin).
+$verif = Test-ManifiestoPaquete -Raiz $raiz
+if (-not $verif.Ok) { Write-Host ' Este paquete no es de Isaac o fue modificado: no se ejecuta nada. Avísale a Isaac.' -ForegroundColor Red; Write-Host " $($verif.Motivo)" -ForegroundColor Red; exit 3 }
+Write-Host " Paquete verificado. Código de Isaac: ISAAC · $($verif.Codigo)" -ForegroundColor Green
 
 # Un ZIP bajado de internet o WhatsApp marca cada archivo; sin quitar esa marca, OCCT o HWiNFO pueden quedar
 # detenidos en un aviso de seguridad que nadie aprieta.
