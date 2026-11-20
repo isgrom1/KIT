@@ -662,7 +662,8 @@ function Export-PdfInforme {
     $null = [IO.Directory]::CreateDirectory($perfil)
     $salida = Join-Path $perfil 'informe.pdf'
     try {
-        $uri = (New-Object Uri($Html)).AbsoluteUri
+        # #pdf: los informes con animaciones (InformeVisual) las saltan y se imprimen en su estado final.
+        $uri = (New-Object Uri($Html)).AbsoluteUri + '#pdf'
         $argumentos = @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--disable-sync',
             '--disable-breakpad', '--no-pdf-header-footer', '--print-to-pdf-no-header', ('--user-data-dir="{0}"' -f $perfil), ('--print-to-pdf="{0}"' -f $salida), ('"{0}"' -f $uri)) -join ' '
         $psi = New-Object Diagnostics.ProcessStartInfo($edge, $argumentos)

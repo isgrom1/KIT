@@ -331,16 +331,17 @@ function Get-ServiciosCliente {
 
 function Get-SvgAnillo {
     # Anillo de puntaje con el número al centro.
-    param($Puntaje, [int]$Tam = 150, [string]$Fondo = 'rgba(255,255,255,.18)', [string]$Texto = '#fff')
+    param($Puntaje, [int]$Tam = 150, [string]$Fondo = 'rgba(255,255,255,.18)', [string]$Texto = '#fff', [switch]$Degradado)
     $r = $Tam / 2 - 10
     $cir = 2 * [math]::PI * $r
     $pct = if ($null -ne $Puntaje) { [double]$Puntaje / 100 } else { 0 }
     $col = Get-ColorPuntaje $Puntaje
     $c = Get-NumSvg ($Tam / 2)
     $num = if ($null -ne $Puntaje) { $Puntaje } else { '–' }
-    "<svg viewBox='0 0 $Tam $Tam' width='$Tam' height='$Tam'><circle cx='$c' cy='$c' r='$(Get-NumSvg $r)' fill='none' stroke='$Fondo' stroke-width='12'/>" +
-    "<circle cx='$c' cy='$c' r='$(Get-NumSvg $r)' fill='none' stroke='$col' stroke-width='12' stroke-linecap='round' stroke-dasharray='$(Get-NumSvg ($cir * $pct)) $(Get-NumSvg $cir)' transform='rotate(-90 $c $c)'/>" +
-    "<text x='$c' y='$(Get-NumSvg ($Tam / 2 + 4))' text-anchor='middle' font-size='$(Get-NumSvg ($Tam * 0.3) 0)' font-weight='700' fill='$Texto'>$num</text>" +
+    if ($Degradado) { $col = 'url(#anilloGrad)' }
+    "<svg viewBox='0 0 $Tam $Tam' width='$Tam' height='$Tam'><defs><linearGradient id='anilloGrad' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#06b6d4'/><stop offset='.5' stop-color='#2563eb'/><stop offset='1' stop-color='#7c3aed'/></linearGradient></defs><circle cx='$c' cy='$c' r='$(Get-NumSvg $r)' fill='none' stroke='$Fondo' stroke-width='12'/>" +
+    "<circle class='anim-arco' cx='$c' cy='$c' r='$(Get-NumSvg $r)' fill='none' stroke='$col' stroke-width='12' stroke-linecap='round' stroke-dasharray='$(Get-NumSvg ($cir * $pct)) $(Get-NumSvg $cir)' transform='rotate(-90 $c $c)'/>" +
+    "<text x='$c' y='$(Get-NumSvg ($Tam / 2 + 4))' text-anchor='middle' font-size='$(Get-NumSvg ($Tam * 0.3) 0)' font-weight='700' fill='$Texto'$(if ($null -ne $Puntaje) { " data-n='$Puntaje'" })>$num</text>" +
     "<text x='$c' y='$(Get-NumSvg ($Tam / 2 + $Tam * 0.2))' text-anchor='middle' font-size='$(Get-NumSvg ($Tam * 0.085) 0)' fill='$Texto' opacity='.85'>de 100</text></svg>"
 }
 
@@ -352,7 +353,7 @@ function Get-SvgDona {
     $c = Get-NumSvg ($Tam / 2)
     $p = [math]::Max(0, [math]::Min(100, $Pct)) / 100
     "<svg viewBox='0 0 $Tam $($Tam + 18)' width='$Tam' height='$($Tam + 18)'><circle cx='$c' cy='$c' r='$(Get-NumSvg $r)' fill='none' stroke='#e9edf2' stroke-width='16'/>" +
-    "<circle cx='$c' cy='$c' r='$(Get-NumSvg $r)' fill='none' stroke='$Color' stroke-width='16' stroke-dasharray='$(Get-NumSvg ($cir * $p)) $(Get-NumSvg $cir)' transform='rotate(-90 $c $c)'/>" +
+    "<circle class='anim-arco' cx='$c' cy='$c' r='$(Get-NumSvg $r)' fill='none' stroke='$Color' stroke-width='16' stroke-linecap='round' stroke-dasharray='$(Get-NumSvg ($cir * $p)) $(Get-NumSvg $cir)' transform='rotate(-90 $c $c)'/>" +
     "<text x='$c' y='$(Get-NumSvg ($Tam / 2 + 6))' text-anchor='middle' font-size='18' font-weight='700' fill='#1b2430'>$(Get-HtmlVisual $Centro)</text>" +
     "<text x='$c' y='$($Tam + 14)' text-anchor='middle' font-size='11' fill='#5a6675'>$(Get-HtmlVisual $Abajo)</text></svg>"
 }
@@ -397,10 +398,10 @@ function Get-SvgTemperatura {
     [void]$sb.Append("<text x='$($L + 4)' y='$(Get-NumSvg ((& $Yt $tj) - 4))' font-size='10' fill='#c0392b'>límite del procesador (~$tj °C)</text>")
     if ($fans.Count -gt 1) {
         $d = ($fans | ForEach-Object { '{0} {1}' -f (Get-NumSvg (& $X $_.minuto)), (Get-NumSvg (& $Yf $_.ventilador_cpu)) }) -join ' L'
-        [void]$sb.Append("<path d='M$d' fill='none' stroke='#1f5fa8' stroke-width='1.4' opacity='.55'/>")
+        [void]$sb.Append("<path class='anim-trazo' d='M$d' fill='none' stroke='#1f5fa8' stroke-width='1.4' opacity='.55'/>")
     }
     $d = ($pts | ForEach-Object { '{0} {1}' -f (Get-NumSvg (& $X $_.minuto)), (Get-NumSvg (& $Yt $_.$clave)) }) -join ' L'
-    [void]$sb.Append("<path d='M$d' fill='none' stroke='#c0392b' stroke-width='2.2' stroke-linejoin='round'/>")
+    [void]$sb.Append("<path class='anim-trazo' d='M$d' fill='none' stroke='#c0392b' stroke-width='2.2' stroke-linejoin='round'/>")
     $mx = $pts | Sort-Object { [double]$_.$clave } -Descending | Select-Object -First 1
     $metTemp = Get-TemperaturaSensores -Sensores $Sensores
     $txtMax = if ($metTemp) { Format-Numero ([double]$metTemp.max) 1 } else { Format-Numero ([double]$mx.$clave) 1 }
@@ -451,7 +452,7 @@ function Get-SvgZoomCarga {
     $linea = ($pts | ForEach-Object { '{0} {1}' -f (Get-NumSvg (& $X $_.minuto)), (Get-NumSvg (& $Y $_.$clave)) }) -join ' L'
     $x0 = Get-NumSvg (& $X $pts[0].minuto); $xN = Get-NumSvg (& $X $pts[$pts.Count - 1].minuto); $yB = Get-NumSvg ($H - $B)
     [void]$sb.Append("<path d='M$x0 $yB L$linea L$xN $yB Z' fill='url(#zcRelleno)'/>")
-    [void]$sb.Append("<path d='M$linea' fill='none' stroke='url(#zcLinea)' stroke-width='2.6' stroke-linejoin='round' stroke-linecap='round'/>")
+    [void]$sb.Append("<path class='anim-trazo' d='M$linea' fill='none' stroke='url(#zcLinea)' stroke-width='2.6' stroke-linejoin='round' stroke-linecap='round'/>")
     $prom = ($vals | Measure-Object -Average).Average
     $yp = Get-NumSvg (& $Y $prom)
     [void]$sb.Append("<line x1='$L' x2='$($W - $R)' y1='$yp' y2='$yp' stroke='#1b2430' stroke-dasharray='3 4' stroke-opacity='.55'/><text x='$($L + 6)' y='$(Get-NumSvg ((& $Y $prom) - 5))' font-size='10' fill='#1b2430' opacity='.75'>promedio $(Format-Numero $prom 1) °C</text>")
@@ -520,22 +521,29 @@ p { margin:3px 0 7px; }
 .sec { margin-bottom:14px; page-break-inside:avoid; }
 .num-sec { display:inline-flex; width:26px; height:26px; border-radius:7px; background:var(--azul); color:#fff; font-size:11pt; align-items:center; justify-content:center; margin-right:8px; vertical-align:2px; }
 /* portada */
-.portada { padding:0; background:linear-gradient(160deg,#0f2a4a 0%,#17406f 55%,#1f5fa8 100%); color:#fff; }
+/* portada: blanco futurista (brillos suaves, grilla fina, vidrio) */
+.portada { padding:0; color:#0f172a; background:
+  radial-gradient(circle at 88% 8%, rgba(124,58,237,.16), transparent 38%),
+  radial-gradient(circle at 6% 92%, rgba(6,182,212,.16), transparent 42%),
+  radial-gradient(circle at 60% 55%, rgba(37,99,235,.07), transparent 50%),
+  repeating-linear-gradient(0deg, rgba(15,23,42,.035) 0 1px, transparent 1px 26px),
+  repeating-linear-gradient(90deg, rgba(15,23,42,.035) 0 1px, transparent 1px 26px), #fbfcff; }
 .portada .arriba { padding:16mm 16mm 0; }
-.portada .marca { font-size:9pt; letter-spacing:3px; text-transform:uppercase; opacity:.8; }
-.portada h1 { font-size:30pt; line-height:1.1; margin:14mm 0 3mm; letter-spacing:-.6px; }
-.portada .sub { font-size:12pt; opacity:.9; max-width:140mm; }
-.portada .datos { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:10mm; font-size:8.5pt; }
-.portada .datos b { display:block; font-size:10.5pt; margin-top:2px; }
-.portada .puntaje { margin:12mm 16mm 0; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); border-radius:14px; padding:14px 18px; display:grid; grid-template-columns:160px 1fr; gap:18px; align-items:center; }
-.portada .puntaje .nivel { font-size:20pt; font-weight:700; }
-.portada .puntaje p { opacity:.92; font-size:10.5pt; }
-.portada .areas-mini { margin:8mm 16mm 0; display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
-.portada .am { background:#fff; color:var(--tinta); border-radius:10px; padding:9px 11px; display:grid; grid-template-columns:44px 1fr; gap:9px; align-items:center; }
-.portada .am .bola { width:44px; height:44px; border-radius:50%; color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; font-size:13pt; }
+.portada .marca { font-size:9pt; letter-spacing:4px; text-transform:uppercase; font-weight:700; background:linear-gradient(90deg,#2563eb,#7c3aed,#06b6d4); -webkit-background-clip:text; background-clip:text; color:transparent; display:inline-block; }
+.portada h1 { font-size:34pt; line-height:1.05; margin:14mm 0 3mm; letter-spacing:-1.2px; font-weight:300; font-family:"Segoe UI Light","Segoe UI",Arial,sans-serif; }
+.portada .sub { font-size:12pt; color:#475569; max-width:140mm; }
+.portada .datos { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:10mm; font-size:8.5pt; color:#64748b; }
+.portada .datos b { display:block; font-size:10.5pt; margin-top:2px; color:#0f172a; }
+.portada .puntaje { margin:12mm 16mm 0; background:rgba(255,255,255,.82); border:1px solid #e3e8f3; border-radius:24px; padding:16px 20px; display:grid; grid-template-columns:160px 1fr; gap:18px; align-items:center; box-shadow:0 24px 60px rgba(37,99,235,.12), inset 0 1px 0 #fff; }
+.portada .puntaje svg { filter:drop-shadow(0 8px 18px rgba(37,99,235,.18)); }
+.portada .puntaje .nivel { font-size:22pt; font-weight:600; background:linear-gradient(90deg,#0f172a,#2563eb 60%,#7c3aed); -webkit-background-clip:text; background-clip:text; color:transparent; display:inline-block; }
+.portada .puntaje p { color:#334155; font-size:10.5pt; }
+.portada .areas-mini { margin:8mm 16mm 0; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.portada .am { background:rgba(255,255,255,.88); color:var(--tinta); border:1px solid #e3e8f3; border-radius:16px; padding:10px 12px; display:grid; grid-template-columns:44px 1fr; gap:10px; align-items:center; box-shadow:0 10px 26px rgba(15,23,42,.06); }
+.portada .am .bola { width:44px; height:44px; border-radius:50%; color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; font-size:13pt; box-shadow:0 0 0 4px rgba(255,255,255,.9), 0 6px 16px rgba(15,23,42,.18); }
 .portada .am .n { font-size:8pt; text-transform:uppercase; letter-spacing:.8px; color:var(--suave); font-weight:600; }
 .portada .am .v { font-weight:600; font-size:10pt; }
-.portada .pie-portada { position:absolute; bottom:12mm; left:16mm; right:16mm; display:flex; justify-content:space-between; font-size:8.5pt; opacity:.8; border-top:1px solid rgba(255,255,255,.25); padding-top:8px; }
+.portada .pie-portada { position:absolute; bottom:12mm; left:16mm; right:16mm; display:flex; justify-content:space-between; font-size:8.5pt; color:#64748b; border-top:1px solid #e3e8f3; padding-top:8px; }
 /* bloques */
 .resumen { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:6px 0 10px; }
 .kpi { background:var(--fondo); border-radius:10px; padding:10px 12px; border-left:4px solid var(--azul); }
@@ -578,6 +586,88 @@ td.k { color:var(--suave); width:34%; }
 .pie { position:absolute; bottom:8mm; left:14mm; right:14mm; display:flex; justify-content:space-between; font-size:7.8pt; color:var(--suave); border-top:1px solid var(--linea); padding-top:5px; }
 .slot { border:2px solid var(--azul); border-radius:6px; padding:6px 8px; text-align:center; font-size:8.6pt; background:var(--azul2); }
 .slot.vacio { border-style:dashed; border-color:#c3ccd6; background:#fff; color:var(--suave); }
+/* toques futuristas en todas las páginas */
+.num-sec { background:linear-gradient(135deg,#2563eb,#7c3aed); box-shadow:0 4px 12px rgba(124,58,237,.25); }
+.caja { box-shadow:0 8px 26px rgba(15,23,42,.05); border-color:#e6eaf3; border-radius:16px; }
+.kpi { background:#fff; border:1px solid #e6eaf3; box-shadow:0 8px 22px rgba(15,23,42,.05); border-radius:14px; }
+/* EN PANTALLA (el HTML que abre el cliente): páginas como tarjetas y animaciones. En el PDF no aplica. */
+@media screen {
+  body { background:#eef1f8; }
+  .hoja { margin:28px auto; border-radius:28px; box-shadow:0 30px 80px rgba(15,23,42,.10); }
+  .hoja:not(.portada) { background:#fff; }
+  #progreso { position:fixed; top:0; left:0; height:4px; width:0; z-index:9; background:linear-gradient(90deg,#06b6d4,#2563eb,#7c3aed); box-shadow:0 0 12px rgba(37,99,235,.6); }
+  .anim .hoja { opacity:0; transform:translateY(34px) scale(.985); transition:opacity .9s ease, transform 1s cubic-bezier(.2,.7,.2,1); }
+  .anim .hoja.visible { opacity:1; transform:none; }
+  .anim .barra > div, .anim .anim-ancho { transition:width 1.6s cubic-bezier(.2,.7,.2,1); }
+  .anim .caja, .anim .kpi, .anim .am { transition:transform .25s ease, box-shadow .25s ease; }
+  .anim .caja:hover, .anim .kpi:hover, .anim .am:hover { transform:translateY(-3px); box-shadow:0 18px 40px rgba(37,99,235,.14); }
+  .anim .portada .puntaje svg { animation:brillo 3.2s ease-in-out 2.2s infinite; }
+  @keyframes brillo { 50% { filter:drop-shadow(0 0 22px rgba(37,99,235,.45)); } }
+  .anim .portada::after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(115deg, transparent 40%, rgba(255,255,255,.65) 50%, transparent 60%); background-size:250% 100%; animation:barrido 2.4s ease .4s 1 both; }
+  @keyframes barrido { from { background-position:120% 0; } to { background-position:-40% 0; } }
+}
+@media print { #progreso { display:none; } }
+@media (prefers-reduced-motion: reduce) { .anim .hoja { opacity:1; transform:none; } }
+'@
+}
+
+function Get-ScriptAnimacionVisual {
+    # Animaciones del HTML en pantalla: aparece cada página al bajar, se llenan los anillos y las donas, suben los
+    # números, crecen las barras y se dibujan las curvas. No corre al imprimir el PDF (Edge sin ventana o #pdf),
+    # ni si Windows pide menos movimiento: ahí todo queda en su estado final. Sin internet ni librerías.
+    @'
+<div id="progreso"></div>
+<script>
+(function () {
+  var sinAnim = /Headless/i.test(navigator.userAgent) || location.hash === '#pdf' ||
+    (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) || !('IntersectionObserver' in window);
+  var barra = document.getElementById('progreso');
+  if (sinAnim) { if (barra) barra.style.display = 'none'; return; }
+  document.documentElement.classList.add('anim');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement, max = h.scrollHeight - h.clientHeight;
+    barra.style.width = (max > 0 ? h.scrollTop / max * 100 : 0) + '%';
+  });
+  var suave = function (x) { return 1 - Math.pow(1 - x, 3); };
+  var animar = function (ms, paso) {
+    var t0 = null;
+    var f = function (t) { if (!t0) t0 = t; var x = Math.min(1, (t - t0) / ms); paso(suave(x)); if (x < 1) requestAnimationFrame(f); };
+    requestAnimationFrame(f);
+  };
+  var q = function (r, s) { return Array.prototype.slice.call(r.querySelectorAll(s)); };
+  q(document, '.anim-arco').forEach(function (c) {
+    var p = (c.getAttribute('stroke-dasharray') || '0 0').split(/[ ,]+/);
+    c._final = parseFloat(p[0]) || 0; c._total = p[1] || '0';
+    c.setAttribute('stroke-dasharray', '0 ' + c._total);
+  });
+  q(document, '.barra > div, .anim-ancho').forEach(function (b) { b._w = b.style.width; b.style.width = '0'; });
+  q(document, 'path.anim-trazo').forEach(function (p) {
+    var L = p.getTotalLength(); p._L = L; p.style.strokeDasharray = L; p.style.strokeDashoffset = L;
+  });
+  q(document, '[data-n]').forEach(function (e) { e._n = parseFloat(e.getAttribute('data-n')) || 0; e.textContent = '0'; });
+  var activar = function (h) {
+    h.classList.add('visible');
+    q(h, '.anim-arco').forEach(function (c) { animar(1700, function (k) { c.setAttribute('stroke-dasharray', (c._final * k).toFixed(1) + ' ' + c._total); }); });
+    q(h, '[data-n]').forEach(function (e) { animar(1500, function (k) { e.textContent = Math.round(e._n * k); }); });
+    setTimeout(function () { q(h, '.barra > div, .anim-ancho').forEach(function (b) { b.style.width = b._w; }); }, 150);
+    q(h, 'path.anim-trazo').forEach(function (p) {
+      p.style.transition = 'stroke-dashoffset 2.4s cubic-bezier(.4,0,.2,1)';
+      setTimeout(function () { p.style.strokeDashoffset = '0'; }, 60);
+    });
+    // Respaldo: si el navegador no dibuja cuadros (pestaña de fondo), a los 2,6 s todo queda en su valor final.
+    setTimeout(function () {
+      q(h, '.anim-arco').forEach(function (c) { c.setAttribute('stroke-dasharray', c._final.toFixed(1) + ' ' + c._total); });
+      q(h, '[data-n]').forEach(function (e) { e.textContent = Math.round(e._n); });
+      q(h, '.barra > div, .anim-ancho').forEach(function (b) { b.style.width = b._w; });
+      q(h, 'path.anim-trazo').forEach(function (p) { p.style.strokeDashoffset = '0'; });
+    }, 2600);
+  };
+  var obs = new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { obs.unobserve(e.target); activar(e.target); } });
+  }, { threshold: 0.12 });
+  q(document, '.hoja').forEach(function (h) { obs.observe(h); });
+})();
+</script>
 '@
 }
 
@@ -612,10 +702,10 @@ function ConvertTo-InformeVisual {
     [void]$sb.Append("<div class='hoja portada'><div class='arriba'><div class='marca'>$(if ($Resultado) { 'Informe de trabajo' } else { 'Informe de diagnóstico' })$(if ($Origen -eq 'remoto') { ' · a distancia' })</div>")
     [void]$sb.Append("<h1>$(& $H $modelo)</h1><div class='sub'>$(if ($Resultado) { 'Lo que se hizo en tu equipo y cómo quedó.' } else { "Revisión completa del equipo$(if ($Sensores) { ' y prueba de temperatura' }): cómo está, qué significa y qué conviene hacer." })</div>")
     [void]$sb.Append("<div class='datos'><div>Fecha<b>$(& $H $fechaTxt)</b></div><div>Equipo<b>$(& $H $eq.NombreEquipo)</b></div><div>Windows<b>$(& $H ("$($d.windows.Nombre)" -replace '^Windows (\d+) (Home|Pro).*$', 'Windows $1 $2')) $(& $H $d.windows.Version)</b></div><div>$(if ($Cliente) { 'Cliente' } else { 'Técnico' })<b>$(& $H $(if ($Cliente) { $Cliente } else { $tecnico.nombre }))</b></div></div></div>")
-    [void]$sb.Append("<div class='puntaje'><div>$(Get-SvgAnillo -Puntaje $puntaje -Tam 150)</div><div><div class='eti' style='color:#cfe0f5'>Salud general</div><div class='nivel'>$(& $H $nivel)</div><p>$(& $H $frase)</p></div></div>")
+    [void]$sb.Append("<div class='puntaje'><div>$(Get-SvgAnillo -Puntaje $puntaje -Tam 150 -Fondo '#e8edf7' -Texto '#0f172a' -Degradado)</div><div><div class='eti'>Salud general</div><div class='nivel'>$(& $H $nivel)</div><p>$(& $H $frase)</p></div></div>")
     [void]$sb.Append("<div class='areas-mini'>")
     foreach ($a in $areas) {
-        [void]$sb.Append("<div class='am'><div class='bola' style='background:$(Get-ColorPuntaje $a.Puntaje)'>$(if ($null -ne $a.Puntaje) { $a.Puntaje } else { '–' })</div><div><div class='n'>$(& $H $a.Nombre)</div><div class='v'>$(& $H $a.Valor)</div></div></div>")
+        [void]$sb.Append("<div class='am'><div class='bola' style='background:$(Get-ColorPuntaje $a.Puntaje)'$(if ($null -ne $a.Puntaje) { " data-n='$($a.Puntaje)'" })>$(if ($null -ne $a.Puntaje) { $a.Puntaje } else { '–' })</div><div><div class='n'>$(& $H $a.Nombre)</div><div class='v'>$(& $H $a.Valor)</div></div></div>")
     }
     [void]$sb.Append("</div><div class='pie-portada'><div>$(& $H "$($tecnico.nombre)") · Servicio técnico de notebooks y PC</div><div>$(& $H $contacto)</div></div></div>")
 
@@ -756,7 +846,7 @@ function ConvertTo-InformeVisual {
         $sp = [double]$b.SaludPct
         $colB = if ($sp -ge 80) { '#1e8a52' } elseif ($sp -ge 50) { '#d4900a' } else { '#c0392b' }
         $cod = ConvertTo-CodigoBateria -Texto "$($b.Id)"
-        [void]$sb.Append("<div class='sec'><h2><span class='num-sec'>$np2</span>Batería</h2><div class='caja'><div style='display:flex;align-items:center;gap:6px;margin:4px 0 8px'><div style='flex:1;height:34px;border:3px solid #1b2430;border-radius:7px;padding:3px'><div style='height:100%;width:$(Get-NumSvg $sp 0)%;background:$colB;border-radius:3px'></div></div><div style='width:6px;height:14px;background:#1b2430;border-radius:0 3px 3px 0'></div></div>")
+        [void]$sb.Append("<div class='sec'><h2><span class='num-sec'>$np2</span>Batería</h2><div class='caja'><div style='display:flex;align-items:center;gap:6px;margin:4px 0 8px'><div style='flex:1;height:34px;border:3px solid #1b2430;border-radius:7px;padding:3px'><div class='anim-ancho' style='height:100%;width:$(Get-NumSvg $sp 0)%;background:$colB;border-radius:3px'></div></div><div style='width:6px;height:14px;background:#1b2430;border-radius:0 3px 3px 0'></div></div>")
         [void]$sb.Append("<div style='display:flex;justify-content:space-between;font-size:9pt'><span><b style='font-size:14pt;color:$colB'>$(Format-Numero $sp 1) %</b> de su capacidad original</span><span style='color:var(--suave)'>$(Format-Numero ([double]$b.CargaCompletaMWh / 1000) 1) de $(Format-Numero ([double]$b.DisenoMWh / 1000) 1) Wh</span></div>")
         [void]$sb.Append("<p style='font-size:8.8pt;color:var(--suave);margin-top:8px'>$(if ($sp -ge 80) { 'Está en buen estado.' } elseif ($sp -ge 50) { 'Es el desgaste normal de unos años de uso. No hace falta cambiarla todavía; cuando dure muy poco desenchufada, se reemplaza.' } else { 'Está gastada: dura mucho menos que nueva. Conviene cambiarla.' })$(if ($cod) { " Código para el repuesto: <b>$(& $H $cod)</b>$(if ($b.Fabricante) { " ($(& $H $b.Fabricante))" })." })</p></div></div>")
     }
@@ -844,7 +934,7 @@ function ConvertTo-InformeVisual {
     }
     [void]$sb.Append('</div>')
     [void]$sb.Append("<div style='background:linear-gradient(135deg,#17406f,#1f5fa8);color:#fff;border-radius:12px;padding:13px 16px;margin:4px 0 12px;display:flex;justify-content:space-between;align-items:center;gap:14px;page-break-inside:avoid'><div><div style='font-size:12.5pt;font-weight:700'>¿Lo dejamos listo?</div><div style='font-size:9.4pt;opacity:.9'>Me encargo de todo, con respaldo de lo que se cambia y un informe del antes y el después para que veas la diferencia.</div></div><div style='text-align:right;font-size:9.4pt;white-space:nowrap'><b>$(& $H "$($tecnico.nombre)")</b><br>$(& $H $contacto)</div></div>")
-    [void]$sb.Append("$(& $pie ($np + 2))</div></body></html>")
+    [void]$sb.Append("$(& $pie ($np + 2))</div>$(Get-ScriptAnimacionVisual)</body></html>")
     $sb.ToString()
 }
 

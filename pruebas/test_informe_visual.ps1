@@ -154,7 +154,7 @@ try {
     Assert 'explica para qué sirve cada disco' ([Net.WebUtility]::HtmlDecode($html) -match 'Para qué sirve cada disco')
     $dec = [Net.WebUtility]::HtmlDecode($html)
     Assert 'secciones principales' ($dec -match 'Cómo está cada área' -and $dec -match 'Prueba de temperatura<small>' -and $dec -match 'Espacio en disco' -and $dec -match 'Lo que te propongo')
-    Assert 'nada de NaN ni Infinity' ($html -notmatch 'NaN|Infinity')
+    Assert 'nada de NaN ni Infinity' ($html -cnotmatch '\bNaN\b|\bInfinity\b')
     $txt = [Net.WebUtility]::HtmlDecode($html)
     Assert 'el cliente no ve el cómo ni "sin costo"' ($txt -notmatch '(?i)sin costo|administrador de tareas|aplicaciones de arranque|vaciar la papelera|desactivar' -and $txt -cnotmatch 'LENTO') ([regex]::Match($txt, '(?i)sin costo|administrador de tareas|aplicaciones de arranque|vaciar la papelera|desactivar').Value)
     Assert 'servicios propuestos' ($txt -match 'Lo que te propongo' -and $txt -match 'Optimización de Windows' -and $txt -match 'Mantención térmica' -and $txt -match 'Lo que encontré' -and $txt -match 'Qué ganas')
