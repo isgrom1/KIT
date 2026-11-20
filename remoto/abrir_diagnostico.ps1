@@ -4,7 +4,9 @@
     Abre un diagnóstico remoto (.kitdiag) que mandó un familiar o cliente. Solo funciona en el PC de Isaac.
 .DESCRIPTION
     Descifra con la llave privada (DPAPI, %LOCALAPPDATA%\kitservicio) y extrae el contenido en una carpeta
-    con el mismo nombre del archivo, al lado de él (o en -Destino). Después abre la carpeta.
+    con el mismo nombre del archivo en X:\kitservicio_datos\remotos (la carpeta hermana del maestro de
+    config.json; ahí también guarda una copia del .kitdiag). Sin maestro, al lado del archivo. -Destino manda.
+    Si ya se abrió, crea <nombre>_2. Después abre la carpeta, el PDF para el cliente y la hoja técnica.
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .\remoto\abrir_diagnostico.ps1 -Archivo "$env:USERPROFILE\Downloads\Diagnostico_....kitdiag"
 #>
@@ -30,8 +32,29 @@ if (-not [IO.File]::Exists($privada)) { throw "No está la llave privada en este
 $xml = [Text.Encoding]::UTF8.GetString([Security.Cryptography.ProtectedData]::Unprotect([IO.File]::ReadAllBytes($privada), $null, 'CurrentUser'))
 $zip = Unprotect-DatosRemoto -Datos ([IO.File]::ReadAllBytes($Archivo)) -LlavePrivadaXml $xml
 $xml = $null
-if (-not $Destino) { $Destino = Join-Path (Split-Path -Parent $Archivo) ([IO.Path]::GetFileNameWithoutExtension($Archivo)) }
+$base = [IO.Path]::GetFileNameWithoutExtension($Archivo)
+$copiar = $false
+if (-not $Destino) {
+    # Siempre en el PC: <maestro>\..\remotos (X:\kitservicio_datos\remotos), nunca en el pendrive ni en Descargas.
+    # Sin maestro configurado o sin su carpeta (otro PC), al lado del archivo como antes.
+    $remotos = $null
+    try {
+        $cfg = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'KIT\scripts\config\config.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        $maestro = "$($cfg.sincronizacion.ruta_maestro)"
+        if ($maestro -and [IO.Directory]::Exists((Split-Path -Parent $maestro))) { $remotos = Join-Path (Split-Path -Parent $maestro) 'remotos' }
+    } catch { Write-Verbose "Sin carpeta de remotos: $($_.Exception.Message)" }
+    if ($remotos) { $Destino = Join-Path $remotos $base; $copiar = $true } else { $Destino = Join-Path (Split-Path -Parent $Archivo) $base }
+    # Si ya se abrió antes, una carpeta nueva al lado (_2, _3...) en vez de negarse.
+    $n = 2; $original = $Destino
+    while ([IO.Directory]::Exists($Destino) -and @(Get-ChildItem -LiteralPath $Destino -Force).Count) { $Destino = "${original}_$n"; $n++ }
+}
 if ([IO.Directory]::Exists($Destino) -and @(Get-ChildItem -LiteralPath $Destino -Force).Count) { throw "La carpeta $Destino ya existe y tiene archivos: no se sobrescribe." }
+if ($copiar) {
+    # El .kitdiag queda guardado junto a su carpeta (va cifrado). El original no se toca.
+    $null = [IO.Directory]::CreateDirectory((Split-Path -Parent $Destino))
+    $guardado = Join-Path (Split-Path -Parent $Destino) (Split-Path -Leaf $Archivo)
+    if (-not [IO.File]::Exists($guardado)) { Copy-Item -LiteralPath $Archivo -Destination $guardado }
+}
 $null = [IO.Directory]::CreateDirectory($Destino)
 $ms = New-Object IO.MemoryStream (, $zip)
 $z = New-Object IO.Compression.ZipArchive ($ms, [IO.Compression.ZipArchiveMode]::Read)

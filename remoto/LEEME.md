@@ -27,7 +27,7 @@ de `KIT\herramientas` (o `-Herramientas D:\KIT\herramientas`). `remoto\_salida` 
 ## Lo más fácil: arrastrar y soltar
 
 - **`remoto\ABRIR_KITDIAG.cmd`**: arrastra encima el `.kitdiag` que te mandaron (diagnóstico o trabajo).
-  Deja al lado una carpeta con el mismo nombre y abre el PDF para el cliente y tu hoja técnica.
+  Lo abre en `X:\kitservicio_datos\remotos\<nombre>` (con una copia del `.kitdiag`), nunca en el pendrive ni en Descargas,`r`n  y abre el PDF para el cliente y tu hoja técnica. Si ya lo abriste, crea `<nombre>_2`.
 - **`remoto\ARMAR_TRABAJO.cmd`**: arrastra encima esa carpeta. Elige las acciones con números y deja el
   paquete en `remoto\_salida\Trabajo_<equipo>_<fecha>.zip` para mandárselo al cliente.
 
