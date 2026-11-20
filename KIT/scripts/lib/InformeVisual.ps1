@@ -898,8 +898,8 @@ function Get-ScriptVistasVisual {
     var vels = { 1: 0.0045, 2: 0.013, 3: 0.007, 4: 0.006, 5: 0.0035 };
     var e = { rx: -0.35, ry: 0, vel: 0.0045, objVel: 0.0045, col: [6, 182, 212], objCol: [6, 182, 212], pulso: 0, mx: 0, my: 0, arr: false, ax: 0, ay: 0 };
     nucleo = {
-      vista: function (v) { e.objCol = colores[v] || colores[1]; e.objVel = vels[v] || 0.0045; e.pulso = Math.max(e.pulso, 0.8); },
-      pulso: function () { e.pulso = 1.8; e.vel = 0.05; }
+      vista: function (v) { e.objCol = colores[v] || colores[1]; e.objVel = vels[v] || 0.0045; e.pulso = Math.max(e.pulso, 0.8); if (quieto) { e.col = e.objCol.slice ? e.objCol.slice() : e.objCol; requestAnimationFrame(dibujar); } },
+      pulso: function () { e.pulso = 1.8; e.vel = 0.05; if (quieto) requestAnimationFrame(dibujar); }
     };
     var W, H;
     var tam = function () {
@@ -922,7 +922,7 @@ function Get-ScriptVistasVisual {
     var dibujar = function (ts) {
       if (!t0) t0 = ts;
       var ancho = W > 1320;
-      var R = ancho ? Math.min(W * 0.085, 160) : Math.min(W * 0.26, 110);
+      var R = ancho ? Math.min(W * 0.068, 125) : Math.min(W * 0.26, 110);
       var cxp = (ancho ? W - Math.max(190, (W - 820) / 4) : W * 0.5) + e.mx * 34;
       var cyp = (ancho ? H * 0.5 : H * 0.24) + e.my * 22;
       e.vel += (e.objVel - e.vel) * 0.04;
@@ -986,6 +986,8 @@ function Get-ScriptVistasVisual {
       if (!quieto) requestAnimationFrame(dibujar);
     };
     requestAnimationFrame(dibujar);
+    // Equipo lento (núcleo quieto): al cambiar el tamaño el canvas se borra, así que se vuelve a dibujar un cuadro.
+    window.addEventListener('resize', function () { if (quieto) requestAnimationFrame(dibujar); });
   }
 
   /* ---------- vistas 01-05 con la píldora ---------- */
