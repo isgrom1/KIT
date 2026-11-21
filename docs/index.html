@@ -36,8 +36,16 @@ h2 { font-size:20px; margin:0 0 12px; }
 .codigo b.cod { font-family:var(--f-mono); font-size:clamp(22px,5vw,30px); background:#0f172a; color:#5eead4; padding:10px 18px; border-radius:14px; white-space:nowrap; }
 .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
 .pasos { counter-reset:p; list-style:none; padding:0; margin:0; }
-.pasos li { counter-increment:p; position:relative; padding:0 0 14px 46px; }
-.pasos li::before { content:"0" counter(p); position:absolute; left:0; top:-2px; font-family:var(--f-mono); font-weight:700; font-size:20px; background:linear-gradient(135deg,var(--cian),var(--violeta)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.pasos li { counter-increment:p; position:relative; padding:4px 0 18px 104px; min-height:58px; }
+.pasos li::before { content:"0" counter(p); position:absolute; left:0; top:12px; font-family:var(--f-mono); font-weight:700; font-size:20px; background:linear-gradient(135deg,var(--cian),var(--violeta)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.pasos li b:first-of-type { display:block; }
+.ico, .ico-h { display:inline-flex; align-items:center; justify-content:center; border-radius:14px; background:linear-gradient(135deg,rgba(6,182,212,.14),rgba(124,58,237,.14)); border:1px solid var(--linea); }
+.ico { position:absolute; left:38px; top:0; width:50px; height:50px; }
+.ico-h { width:34px; height:34px; border-radius:10px; margin-right:10px; vertical-align:middle; }
+.ico svg, .ico-h svg { width:26px; height:26px; fill:none; stroke:var(--violeta); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.ico-h svg { width:20px; height:20px; stroke:var(--verde); }
+@media (prefers-color-scheme: dark) { .ico svg { stroke:#a78bfa; } }
+@media (max-width:520px) { .pasos li { padding-left:62px; min-height:84px; } .ico { left:0; width:46px; height:46px; } .pasos li::before { top:52px; left:12px; font-size:15px; } }
 ul.si, ul.no { list-style:none; padding:0; margin:0; }
 ul.si li, ul.no li { padding-left:26px; position:relative; margin-bottom:8px; }
 ul.si li::before { content:"✓"; color:var(--verde); position:absolute; left:0; font-weight:700; }
@@ -78,21 +86,24 @@ a { color:#0891b2; } @media (prefers-color-scheme: dark) { a { color:#5eead4; } 
     </p>
   </section>
 
-Paquete“Paquete verificado”</b> y mostrar este mismo código. Si muestra otro, o dice que el paquete fue modificado, no sigas.</div>
+  <section class="tarjeta codigo">
+    <div>
+      <h2><span class="ico-h" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span>Cómo comprobar que el paquete es auténtico</h2>
+      <div class="chico" style="font-size:15px;max-width:540px">Al abrir el programa, éste verifica la firma digital de cada archivo. En la esquina superior derecha de la ventana debe aparecer <b>✓ Paquete de Isaac · 54A8-32F4</b>, con el mismo código que ves aquí. Si aparece un código distinto o un aviso de que el paquete fue modificado, no continúes y avísale a Isaac.</div>
     </div>
     <b class="cod">ISAAC · 54A8-32F4</b>
   </section>
 
   <section class="tarjeta">
-    <h2>Cómo se usa</h2>
+    <h2>Instrucciones</h2>
     <ol class="pasos">
-      <li>Descarga el ZIP y descomprímelo (clic derecho &gt; <b>Extraer todo</b>).</li>
-      <li>Cierra juegos y programas pesados. Si es notebook, déjalo enchufado.</li>
-      <li>Abre la carpeta y haz doble clic en <b>DIAGNOSTICO.cmd</b>. Se abre una ventana que te explica lo que va a hacer.</li>
-      <li>Aprieta <b>Empezar</b> (si te pide un código, escribe el que te mandó Isaac) y acepta el permiso de administrador. Espera unos 20 minutos sin usar el computador: se abren solos dos programas de prueba, no los toques.</li>
-      <li>Al final se abre tu informe en el navegador y queda un archivo <b>Diagnostico_para_Isaac_….kitdiag</b>. Mándaselo a Isaac por WhatsApp o correo.</li>
+      <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg></span><b>Descarga y extrae el archivo.</b> Descarga el ZIP, haz clic derecho sobre él y elige <b>Extraer todo</b>.</li>
+      <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4M9 8.5l6 5M15 8.5l-6 5"/></svg></span><b>Prepara el computador.</b> Cierra todos los programas abiertos (juegos, navegador, Word, Spotify, etc.). Si es un notebook, conéctalo al cargador.</li>
+      <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M10 11l4 2-4 2z"/></svg></span><b>Abre el programa.</b> Entra a la carpeta extraída y haz doble clic en <b>DIAGNOSTICO.cmd</b>. Se abrirá una ventana que explica qué hace el programa y qué no.</li>
+      <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><b>Inicia el diagnóstico.</b> Haz clic en <b>Empezar</b> y, cuando Windows lo solicite, autoriza el permiso de administrador (se necesita para leer los sensores y los discos). El proceso dura unos 20 minutos: durante ese tiempo no uses el computador. Se abrirán solos dos programas de medición, HWiNFO y OCCT; no los cierres.</li>
+      <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/></svg></span><b>Envía el resultado.</b> Al terminar se abrirá tu informe en el navegador y quedará un archivo llamado <b>Diagnostico_para_Isaac_….kitdiag</b>. Envíaselo a Isaac por WhatsApp o correo.</li>
     </ol>
-    <div class="aviso"><b>Si Windows dice “Windows protegió su PC”:</b> aprieta <i>Más información</i> y después <i>Ejecutar de todas formas</i>. Sale con cualquier programa que no es de una gran empresa.</div>
+    <div class="aviso"><b>Si aparece el aviso “Windows protegió su PC”:</b> haz clic en <i>Más información</i> y luego en <i>Ejecutar de todas formas</i>. Windows muestra este aviso con los programas que no provienen de una gran empresa; la autenticidad del paquete se comprueba con el código de arriba.</div>
   </section>
 
   <section class="grid">
