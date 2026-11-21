@@ -2,6 +2,9 @@
 # apps de la Store, tareas programadas de inicio de sesión/arranque que no son de Microsoft y
 # servicios automáticos que no son de Microsoft. Marca entradas sospechosas y huérfanas.
 # Con admin, también la duración de los últimos arranques (Diagnostics-Performance, evento 100).
+# Además, señales de malware (lib\Malware.ps1): intérpretes escondidos, nombres de marca falsos, extensiones y
+# hosts nativos de navegador, carpetas con nombre al azar, conexiones abiertas y Defender reciente. Solo lee.
+. (Join-Path (Split-Path -Parent $PSScriptRoot) 'lib\Malware.ps1')
 
 $script:ReglasSospecha = @(
     @{ Patron = '(?i)\\(AppData\\Local\\)?Temp\\'; Motivo = 'ejecuta desde una carpeta temporal' }
@@ -63,6 +66,8 @@ function Get-DatosArranque {
     if ($d.Servicios) { Add-Tabla -Nombre 'servicios_terceros' -Filas $d.Servicios.Terceros }
     $d.TiempoArranque = Invoke-Paso 'tiempo de arranque' { Get-TiempoArranqueKit }
     if ($d.TiempoArranque) { Add-Tabla -Nombre 'tiempos_arranque' -Filas $d.TiempoArranque.Ultimos }
+    $d.Malware = Invoke-Paso 'señales de malware' { Get-DatosMalware -Entradas (@($d.Entradas) + @($d.Tareas)) }
+    if ($d.Malware) { Add-Tabla -Nombre 'senales_malware' -Filas $d.Malware.Senales }
 
     $hallazgos = New-Object System.Collections.Generic.List[object]
     foreach ($e in @(@($d.Entradas) + @($d.Tareas) | Where-Object { $_ })) {
@@ -323,6 +328,22 @@ function Test-AlertasArranque {
         }
     }
     Add-AlertasSoftwareConocido -Hallazgos $d.Detectados -Prefijo 'ARR'
+    Test-AlertasMalware -Malware $d.Malware
+}
+
+function Test-AlertasMalware {
+    param($Malware)
+    if (-not $Malware) { return }
+    foreach ($s in @($Malware.Senales | Where-Object { $_ })) {
+        if ($s.Nivel -eq 'ALTA') { Add-Alerta -Severidad CRITICO -Codigo 'SEG-MALWARE' -Texto "Posible malware: $($s.Titulo). $($s.Detalle)" }
+        else { Add-Alerta -Severidad AVISO -Codigo 'SEG-MALWARE-REVISAR' -Texto "Revisar: $($s.Titulo). $($s.Detalle)" }
+    }
+    $def = $Malware.Defender
+    if ($def -and @($def.Detecciones).Count) {
+        $lista = @($def.Detecciones | Select-Object -First 5 | ForEach-Object { "$($_.Amenaza) ($((@($_.Archivos)) -join ', '), $($_.Fecha.Substring(0, 10)))" }) -join '; '
+        Add-Alerta -Severidad INFO -Codigo 'SEG-DEFENDER-RECIENTE' -Texto "Defender encontró $(@($def.Detecciones).Count) amenaza(s) en los últimos 30 días: $lista. Pregunta qué se instaló (cracks, activadores, instaladores pirata)."
+    }
+    if ($def -and @($def.Exclusiones).Count) { Add-Alerta -Severidad INFO -Codigo 'SEG-DEFENDER-EXCLUSIONES' -Texto "Defender tiene exclusiones (no revisa ahí): $(@($def.Exclusiones) -join '; '). Confirma con el cliente que son suyas." }
 }
 
 function Format-ResumenArranque {
@@ -342,6 +363,10 @@ function Format-ResumenArranque {
     $t = @($d.Tareas | Where-Object { $_ })
     "Tareas     : $($t.Count) tareas de terceros al iniciar sesión/arranque"
     foreach ($x in $t) { "             + $($x.Nombre) [$($x.Disparador), $($x.Estado)]$(if ($x.Empresa) { ' - ' + $x.Empresa })" }
+    if ($d.Malware) {
+        "Malware    : $($d.Malware.Altas) señal(es) fuertes, $($d.Malware.Medias) para revisar$(if ($d.Malware.Defender) { " | Defender: $(@($d.Malware.Defender.Detecciones).Count) detección(es) en 30 días, $(@($d.Malware.Defender.Exclusiones).Count) exclusión(es)" })"
+        foreach ($x in @($d.Malware.Senales | Where-Object { $_ })) { "             ! [$($x.Nivel)] $($x.Titulo)" }
+    }
     if ($d.Servicios) {
         $s = @($d.Servicios.Terceros)
         "Servicios  : $($d.Servicios.TotalAutomaticos) automáticos, $($s.Count) de terceros"

@@ -200,6 +200,26 @@ try {
     $rc = Export-InformeCliente -Diagnostico $jC -CsvSensores $csv -Salida (Join-Path $tmp 'cli\Informe_de_tu_equipo.html')
     $quedan = @(Get-ChildItem (Join-Path $tmp 'cli') -File | ForEach-Object Name)
     Assert 'Export-InformeCliente deja solo el HTML (sin hoja técnica ni PDF)' ([IO.File]::Exists($rc) -and $quedan.Count -eq 2 -and -not ($quedan -match 'tecnico|\.pdf$')) ($quedan -join ', ')
+    '== Fase R: señales de malware en los informes'
+    $docMal = New-DocPrueba
+    $malFix = [pscustomobject]@{ Altas = 2; Medias = 1; Senales = @(
+            [pscustomobject]@{ Nivel = 'ALTA'; Tipo = 'impostor'; Titulo = 'AdobeCloudSync (HKCU\Run) usa el nombre de una marca pero el archivo es de "Python Software Foundation"'; Detalle = 'Se hace pasar por un programa conocido.'; Ruta = 'C:\ProgramData\MicrosoftSvcHelper\pythonw.exe' }
+            [pscustomobject]@{ Nivel = 'ALTA'; Tipo = 'extension'; Titulo = 'Extensión "Guardar en Drive" en Brave (Default) cargada desde una carpeta (no de la tienda)'; Detalle = 'Permisos: nativeMessaging, cookies'; Ruta = 'C:\Users\<U1>\AppData\Local\HbXqZpWkT' }
+            [pscustomobject]@{ Nivel = 'MEDIA'; Tipo = 'carpeta'; Titulo = 'Carpeta con nombre al azar: QwRt8KXZ'; Detalle = 'Tiene: host.bat, host.ps1'; Ruta = 'C:\Users\<U1>\AppData\Local\QwRt8KXZ' })
+        Defender = [pscustomobject]@{ Detecciones = @([pscustomobject]@{ Fecha = '2026-11-18 13:57:53'; Amenaza = 'HackTool:Win32/crack'; Archivos = @('programa_crack.exe'); Resuelta = $true }); Exclusiones = @() } }
+    $docMal.datos.arranque | Add-Member -NotePropertyName Malware -NotePropertyValue $malFix -Force
+    $segM = @(Get-AreasSalud -Doc $docMal) | Where-Object Clave -EQ 'seguridad'
+    Assert 'seguridad cae a 15 o menos y dice "Posible malware"' ($segM.Puntaje -le 15 -and $segM.Valor -eq 'Posible malware') "$($segM.Puntaje) $($segM.Valor)"
+    $svM = @(Get-ServiciosCliente -Doc $docMal)
+    Assert 'propone "Limpieza de seguridad" primero' ($svM.Count -and $svM[0].Titulo -eq 'Limpieza de seguridad' -and @($svM[0].Hallazgos | Where-Object { $_ -match 'marca conocida' }).Count -eq 1) "$($svM | ForEach-Object Titulo)"
+    $hM = ConvertTo-InformeVisual -Doc $docMal -ParaCliente
+    $tM = [Net.WebUtility]::HtmlDecode($hM)
+    Assert 'el cliente ve el aviso en palabras simples' ($tM -match 'Encontré señales de un programa malicioso' -and $tM -match 'cambia tus contraseñas desde el celular')
+    Assert 'el cliente no ve rutas ni nombres técnicos' ($tM -notmatch 'ProgramData|AppData|pythonw|QwRt8KXZ|nativeMessaging|HKCU') ([regex]::Match($tM, 'ProgramData|AppData|pythonw|QwRt8KXZ|nativeMessaging|HKCU').Value)
+    $tecM = ConvertTo-HojaTecnica -Doc $docMal
+    Assert 'la hoja técnica trae las señales, las rutas, Defender y cómo contener' ($tecM -match 'Señales de malware' -and $tecM -match 'MicrosoftSvcHelper' -and $tecM -match 'HackTool:Win32/crack' -and $tecM -match 'Cómo se contiene')
+    $segSano = @(Get-AreasSalud -Doc (New-DocPrueba)) | Where-Object Clave -EQ 'seguridad'
+    Assert 'sin malware, seguridad no cambia' ($segSano.Valor -eq 'Protegido')
     '== PDF'
     $json = Join-Path $tmp 'diagnostico.json'
     [IO.File]::WriteAllText($json, ((New-DocPrueba -LibrePct 14.9) | ConvertTo-Json -Depth 8), (New-Object Text.UTF8Encoding $false))

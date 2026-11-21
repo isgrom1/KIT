@@ -133,7 +133,13 @@ function Get-AreasSalud {
     if ($s.SecureBoot -and $s.SecureBoot.Firmware -eq 'UEFI' -and -not $s.SecureBoot.Activo) { $fallas.Add('arranque seguro') }
     if ($d.windows.Licencia -and $d.windows.Licencia.Estado -ne 'Activado') { $fallas.Add('activación') }
     if ($d.windows.Soporte -and $d.windows.Soporte.EnTabla -and -not $d.windows.Soporte.Vigente) { $fallas.Add('soporte de Windows') }
-    & $nueva 'seguridad' 'Seguridad' 15 (100 - 20 * $fallas.Count) $(if ($fallas.Count) { "$($fallas.Count) punto(s) a revisar" } else { 'Protegido' }) $(if ($fallas.Count) { 'Revisar: ' + ($fallas -join ', ') + '.' } else { 'Antivirus al día, Windows activado y con soporte.' })
+    $mal = $d.arranque.Malware
+    $malAltas = if ($mal) { [int]$mal.Altas } else { 0 }
+    $malMedias = if ($mal) { [int]$mal.Medias } else { 0 }
+    if ($malAltas) { $fallas.Insert(0, 'posible programa malicioso') } elseif ($malMedias) { $fallas.Add('algo raro para revisar') }
+    $pSeg = 100 - 20 * $fallas.Count
+    if ($malAltas) { $pSeg = [math]::Min($pSeg, 15) }
+    & $nueva 'seguridad' 'Seguridad' 15 $pSeg $(if ($malAltas) { 'Posible malware' } elseif ($fallas.Count) { "$($fallas.Count) punto(s) a revisar" } else { 'Protegido' }) $(if ($fallas.Count) { 'Revisar: ' + ($fallas -join ', ') + '.' } else { 'Antivirus al día, Windows activado y con soporte.' })
 
     # Batería.
     $b = @($d.hardware.Baterias | Where-Object { $_ -and $null -ne $_.SaludPct }) | Select-Object -First 1
@@ -229,6 +235,10 @@ function Get-RecomendacionesVisual {
         $ej = ($ini | ForEach-Object { $_.Nombre }) -join ', '
         & $nueva 'Ordenar el inicio de Windows' "$($todosIni.Count) programas arrancan solos$(if ($lento) { " y el encendido tarda $(Format-Numero ([double]$ta.UltimoSeg) 0) s" }). Candidatos a desactivar (motivo LENTO, con deshacer): $(if ($ej) { $ej } else { 'ninguno de terceros; revisar los de Microsoft' })." 'Sin costo' $(if ($lento) { 3 } else { 2 }) 1
     }
+    $malR = $d.arranque.Malware
+    if ($malR -and ([int]$malR.Altas + [int]$malR.Medias)) {
+        & $nueva 'Contener y limpiar el malware' "$([int]$malR.Altas) señal(es) fuerte(s) y $([int]$malR.Medias) para revisar (detalle en Señales de malware). Con el OK del cliente: contener, cuarentena, quitar extensiones, Defender sin conexión y cambio de contraseñas desde otro equipo." 'Servicio' $(if ([int]$malR.Altas) { 3 } else { 2 }) 2
+    }
     foreach ($m in @($Doc.mejoras | Where-Object { $_ -and $_.Codigo -ne 'MEJ-TERMICA' })) {
         $imp = switch ("$($m.Prioridad)") { 'Alta' { 3 } 'Media' { 2 } default { 1 } }
         & $nueva $m.Titulo "$($m.Motivo) $($m.Comprar) $($m.Beneficio)" 'Compra' $imp 3
@@ -254,6 +264,26 @@ function Get-GBCopiaLocal {
     if ($Copia.PSObject.Properties['GB'] -and $null -ne $Copia.GB) { return [double]$Copia.GB }
     $top = @($Doc.datos.espacio.TopCarpetas | Where-Object { $_ -and "$($_.Carpeta)" -ieq "$($Copia.Ruta)" }) | Select-Object -First 1
     if ($top) { [double]$top.TamanoGB } else { 0.0 }
+}
+
+function Get-HallazgosMalwareCliente {
+    # Lo encontrado, en palabras para el cliente (sin rutas ni nombres técnicos).
+    param($Malware)
+    $tipos = @($Malware.Senales | Where-Object { $_ } | ForEach-Object Tipo | Select-Object -Unique)
+    $f = New-Object System.Collections.Generic.List[string]
+    if ($tipos -contains 'impostor') { $f.Add('Un programa que arranca solo se hace pasar por una marca conocida.') }
+    if ($tipos -contains 'interprete') { $f.Add('Hay un programa escondido que se ejecuta solo al prender el equipo.') }
+    if ($tipos -contains 'extension') { $f.Add('Una extensión del navegador, instalada por fuera de la tienda, puede ver lo que haces en internet.') }
+    if ($tipos -contains 'host_nativo') { $f.Add('Esa extensión además puede ejecutar comandos en el equipo.') }
+    if ($tipos -contains 'conexion') { $f.Add('Uno de esos programas estaba conectado a un servidor de afuera.') }
+    if ($tipos -contains 'carpeta') { $f.Add('Hay carpetas con nombres al azar que guardan programas.') }
+    if ($Malware.Defender -and @($Malware.Defender.Detecciones).Count) { $f.Add('Windows Defender bloqueó hace poco programas pirata o cracks: suelen traer esto.') }
+    $f.ToArray()
+}
+
+function Get-FraseMalwareCliente {
+    param($Malware)
+    (@(Get-HallazgosMalwareCliente -Malware $Malware) | Select-Object -First 3) -join ' '
 }
 
 function Get-ServiciosCliente {
@@ -318,6 +348,11 @@ function Get-ServiciosCliente {
         & $nuevo 'Mantención térmica' 'Servicio' 'Limpieza interna de ventiladores y disipador, y cambio de pasta térmica.' $hT @('Menos temperatura', 'Menos ruido', 'Más vida útil') $rT.Impacto 'mantencion_termica'
     }
 
+    $malS = $d.arranque.Malware
+    if ($malS -and ([int]$malS.Altas + [int]$malS.Medias)) {
+        $hM = @(Get-HallazgosMalwareCliente -Malware $malS)
+        & $nuevo 'Limpieza de seguridad' 'Servicio' 'Saco los programas y extensiones maliciosas, reviso que no vuelvan a arrancar y te digo qué cuentas proteger.' $hM @('Equipo sin programas espía', 'Navegador limpio', 'Tus cuentas protegidas') $(if ([int]$malS.Altas) { 4 } else { 2 }) $null
+    }
     foreach ($m in @($Doc.mejoras | Where-Object { $_ -and $_.Codigo -ne 'MEJ-TERMICA' })) {
         $impM = switch ("$($m.Prioridad)") { 'Alta' { 3 } 'Media' { 2 } default { 1 } }
         $ganaM = switch -Regex ("$($m.Codigo)") { 'SSD|DISCO' { @('Más espacio', 'Más velocidad') } 'RAM' { @('Más velocidad', 'Más programas a la vez') } 'BATERIA' { @('Más autonomía') } default { @('Mejor rendimiento') } }
@@ -1293,6 +1328,11 @@ function ConvertTo-InformeVisual {
     $cif = @($s.BitLocker | Where-Object { $_ -and $_.Cifrado })
     if ($cif.Count) { $chk.Add(@($true, "Disco cifrado ($((($cif | ForEach-Object { $_.Volumen }) -join ', ')))", 'Guarda la clave de recuperación: aka.ms/myrecoverykey')) }
     [void]$sb.Append("<div class='sec'><h2><span class='num-sec'>$($np2 + $(if ($b) { 1 } else { 0 }))</span>Seguridad</h2><div class='caja'>")
+    $malV = $d.arranque.Malware
+    if ($malV -and ([int]$malV.Altas + [int]$malV.Medias)) {
+        $fuerte = [int]$malV.Altas -gt 0
+        [void]$sb.Append("<div style='border-left:5px solid $(if ($fuerte) { '#e5484d' } else { '#d4900a' });background:$(if ($fuerte) { '#fef2f2' } else { '#fdf3e2' });border-radius:10px;padding:10px 14px;margin-bottom:10px'><b>$(if ($fuerte) { 'Encontré señales de un programa malicioso.' } else { 'Encontré algo raro que conviene revisar.' })</b><br><span style='font-size:9pt'>$(& $H (Get-FraseMalwareCliente -Malware $malV))$(if ($fuerte) { ' Hasta revisarlo, no entres al banco desde este equipo y cambia tus contraseñas desde el celular.' })</span></div>")
+    }
     foreach ($c in $chk) { [void]$sb.Append("<div class='check'><i style='background:$(if ($c[0]) { '#1e8a52' } else { '#c0392b' })'>$(if ($c[0]) { '✓' } else { '!' })</i><div><b>$(& $H $c[1])</b>$(if ($c[2]) { "<br><span style='color:var(--suave);font-size:8.6pt'>$(& $H $c[2])</span>" })</div></div>") }
     [void]$sb.Append('</div></div></div>')
     $e = $d.estabilidad
@@ -1452,7 +1492,23 @@ function ConvertTo-HojaTecnica {
         if ($sum) { [void]$sb.Append("<tr><td colspan='2'><b>Total (mano de obra)</b></td><td><b>`$$(Format-Numero $sum 0)</b></td></tr>") }
         [void]$sb.Append('</table>')
     }
-    [void]$sb.Append('<h2>Qué hacer</h2><table><tr><th>#</th><th>Tarea</th><th>Tipo</th><th>Impacto</th><th>Detalle</th></tr>')
+    $malT = $d.arranque.Malware
+    if ($malT -and (@($malT.Senales).Count -or ($malT.Defender -and (@($malT.Defender.Detecciones).Count -or @($malT.Defender.Exclusiones).Count)))) {
+        [void]$sb.Append('<h2>Señales de malware</h2>')
+        if (@($malT.Senales).Count) {
+            [void]$sb.Append('<table><tr><th>Nivel</th><th>Tipo</th><th>Qué</th><th>Dónde</th></tr>')
+            foreach ($x in @($malT.Senales | Where-Object { $_ })) { [void]$sb.Append("<tr><td><b style='color:$(if ($x.Nivel -eq 'ALTA') { '#c0392b' } else { '#b7700a' })'>$(& $H $x.Nivel)</b></td><td>$(& $H $x.Tipo)</td><td>$(& $H $x.Titulo)<br><span style='color:#5a6675;font-size:8.5pt'>$(& $H $x.Detalle)</span></td><td style='font-size:8.5pt;word-break:break-all'>$(& $H $x.Ruta)</td></tr>") }
+            [void]$sb.Append('</table>')
+            [void]$sb.Append("<div class='aviso'><b>Cómo se contiene (con el OK del cliente):</b> anotar las conexiones abiertas; detener los procesos; respaldar y quitar lo que los arranca (Run, tarea, host nativo); mover las carpetas a un ZIP de cuarentena (no borrar); quitar la extensión en cada navegador; análisis sin conexión de Defender; que el cliente cambie contraseñas y cierre sesiones <b>desde otro equipo</b>.</div>")
+        }
+        $dfT = $malT.Defender
+        if ($dfT -and @($dfT.Detecciones).Count) {
+            [void]$sb.Append('<table><tr><th>Defender (30 días)</th><th>Amenaza</th><th>Archivos</th><th>Resuelta</th></tr>')
+            foreach ($x in @($dfT.Detecciones)) { [void]$sb.Append("<tr><td>$(& $H $x.Fecha)</td><td>$(& $H $x.Amenaza)</td><td>$(& $H ((@($x.Archivos)) -join ', '))</td><td>$(if ($x.Resuelta) { 'sí' } else { 'no' })</td></tr>") }
+            [void]$sb.Append('</table>')
+        }
+        if ($dfT -and @($dfT.Exclusiones).Count) { [void]$sb.Append("<p><b>Exclusiones de Defender:</b> $(& $H ((@($dfT.Exclusiones)) -join '; '))</p>") }
+    }    [void]$sb.Append('<h2>Qué hacer</h2><table><tr><th>#</th><th>Tarea</th><th>Tipo</th><th>Impacto</th><th>Detalle</th></tr>')
     for ($i = 0; $i -lt $recos.Count; $i++) { $x = $recos[$i]; [void]$sb.Append("<tr><td>$($i + 1)</td><td><b>$(& $H $x.Titulo)</b></td><td><span class='t'>$(& $H $x.Tipo)</span></td><td>$('●' * [int]$x.Impacto)</td><td>$(& $H $x.Detalle)</td></tr>") }
     [void]$sb.Append('</table><h2>Programas al inicio</h2><table><tr><th>Nombre</th><th>Empresa</th><th>Microsoft</th><th>De la Store</th></tr>')
     foreach ($x in @(Get-InicioCliente -Doc $Doc)) { [void]$sb.Append("<tr><td>$(& $H $x.Nombre)</td><td>$(& $H $x.Empresa)</td><td>$(if ($x.Windows) { 'sí' })</td><td>$(if ($x.Store) { 'sí' })</td></tr>") }
