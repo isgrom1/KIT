@@ -34,6 +34,11 @@ function Invoke-Trabajo {
 $tmp = Join-Path $env:TEMP ('kit_prueba_N_' + [guid]::NewGuid().ToString('N').Substring(0, 6))
 $null = New-Item -ItemType Directory $tmp
 $llaves = Get-LlavesNuevasRemoto
+# En GitHub (o un clon nuevo) no está remoto\llave_publica.xml (va en .gitignore): los armadores la copian,
+# así que se pone una de prueba y se quita al final.
+$llavePubRepo = Join-Path $repo 'remoto\llave_publica.xml'
+$llavePubPuesta = -not [IO.File]::Exists($llavePubRepo)
+if ($llavePubPuesta) { [IO.File]::WriteAllText($llavePubRepo, $llaves.Publica) }
 $ident = Get-IdentidadEquipo
 $runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $aprob = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run'
@@ -212,6 +217,7 @@ try {
     $script:fallas++
 } finally {
     $script:Ctx.CarpetaClientes = $clientesReales
+    if ($llavePubPuesta) { Remove-Item -LiteralPath $llavePubRepo -Force -ErrorAction SilentlyContinue }
     Remove-ItemProperty -Path $runKey -Name 'KitPruebaTrabajo' -ErrorAction SilentlyContinue
     Remove-ItemProperty -Path $aprob -Name 'KitPruebaTrabajo' -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
