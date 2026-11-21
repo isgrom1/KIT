@@ -48,7 +48,7 @@ function Show-Lista {
 }
 
 try {
-    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Expediente', 'Sincronizacion', 'Respaldo') { . (Join-Path $PSScriptRoot "lib\$lib.ps1") }
+    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Expediente', 'DatosPersonales', 'Sincronizacion', 'Respaldo') { . (Join-Path $PSScriptRoot "lib\$lib.ps1") }
     Initialize-Contexto -RaizScripts $PSScriptRoot
     if ($EsTecnico) { exit $(if (Test-EquipoTecnico) { 0 } else { 1 }) }
     if (-not (Test-EquipoTecnico) -and -not $Forzar) { throw "Sincronizar es solo para tus equipos (config.json -> equipos_tecnico) y este es $env:COMPUTERNAME." }

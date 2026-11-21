@@ -1,0 +1,14 @@
+{
+  "_leeme": "Texto del consentimiento (Ley 21.719), aprobado por Isaac el 2026-11-21. Si cambias el texto, cambia también la versión: queda guardada junto a cada aceptación.",
+  "version": "2026-11-21",
+  "titulo": "Tus datos y este diagnóstico",
+  "parrafos": [
+    "Para revisar tu equipo, este programa registra datos del equipo (modelo, número de serie, componentes, temperatura, espacio en disco, programas que arrancan con Windows y estado de seguridad) y, solo si me los das, tu nombre, forma de contacto y comuna.",
+    "No registra tus documentos, fotos, contraseñas, historial de navegación ni el contenido de tus archivos.",
+    "Para qué: solo para diagnosticar y atender tu equipo. No vendo ni comparto estos datos con nadie.",
+    "Cuánto tiempo: los guardo 18 meses desde tu última atención, por la garantía y por si vuelves. Después los borro o los dejo sin datos que te identifiquen.",
+    "Tus derechos: puedes pedirme en cualquier momento ver tus datos, corregirlos o borrarlos. Escríbeme por el mismo medio por el que me contactaste."
+  ],
+  "casilla_acepto": "Acepto que se registren estos datos para diagnosticar mi equipo.",
+  "casilla_anual": "Quiero que me avises para la revisión anual gratuita de mi equipo (opcional)."
+}

@@ -8,6 +8,7 @@
   "respaldo": { "_leeme": "Copia cifrada del maestro después de cada sincronización (solo en equipos_tecnico). La contraseña se crea con respaldar_maestro.ps1 -NuevaClave. Se guardan los últimos 'conservar'.", "destino": "Z:\\kitservicio_respaldos", "conservar": 10 },
   "tecnico": { "nombre": "Isaac", "contacto": "" },
   "remoto": { "_leeme": "Página pública de descarga del diagnóstico a distancia (docs/ del repo en GitHub Pages) ; pedir_codigo: si el diagnóstico pide el código de cada cliente (armar_paquete mete la clave solo si es true); dias_codigo: cuánto dura.", "pagina": "https://isgrom1.github.io/KIT/", "pedir_codigo": false, "dias_codigo": 7 },
+  "datos_personales": { "_leeme": "Ley 21.719: meses que se guardan los datos desde la última atención (después se anonimizan o borran con el OK del técnico).", "retencion_meses": 18 },
   "expediente": { "garantia_dias": 30, "proxima_mantencion_meses": 12, "dias_para_borrar": 30, "condiciones_garantia": "Cubre el trabajo realizado y las piezas cambiadas. No cubre golpes, líquidos, fallas de piezas no intervenidas ni cambios hechos por terceros." },
   "archivos": {
     "_leeme": "Motivo ARCHIVOS. Nunca se borra: todo se mueve a <unidad>:\\_PARA_BORRAR. Los patrones son expresiones regulares sobre la ruta completa.",

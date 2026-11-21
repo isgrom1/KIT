@@ -50,6 +50,8 @@ function Get-DatosSeguridad {
     }
     $d.Tpm = Invoke-Paso 'TPM' { Get-TpmKit }
     $d.ControlApps = Invoke-Paso 'control de aplicaciones' { Get-ControlAppsKit }
+    $d.Asr = Invoke-Paso 'reglas ASR' { Get-AsrKit }
+    $d.Windows11 = Invoke-Paso 'apto para Windows 11' { Get-AptoWindows11 -SecureBoot $d.SecureBoot -Tpm $d.Tpm }
     # En las ediciones Home, BitLocker solo existe como "Cifrado de dispositivo".
     $d.NombreCifrado = if ($script:Ctx.Datos['windows'] -and $script:Ctx.Datos.windows.GrupoEdicion -eq 'hogar') { 'Cifrado de dispositivo' } else { 'BitLocker' }
     $d
@@ -216,6 +218,103 @@ function Get-TpmKit {
     [pscustomobject]$r
 }
 
+$script:NombreAsr = @{
+    '56a863a9-875e-4185-98a7-b882c64b5ce5' = 'controladores vulnerables firmados'
+    '7674ba52-37eb-4a4f-a9a1-f0f9a1619a2c' = 'Adobe Reader crea procesos hijos'
+    'd4f940ab-401b-4efc-aadc-ad5f3c50688a' = 'Office crea procesos hijos'
+    '9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2' = 'robo de credenciales de LSASS'
+    'be9ba2d9-53ea-4cdc-84e5-9b1eeee46550' = 'ejecutables desde el correo'
+    '01443614-cd74-433a-b99e-2ecdc07bfc25' = 'ejecutables poco comunes'
+    '5beb7efe-fd9a-4556-801d-275e5ffc04cc' = 'scripts ofuscados'
+    'd3e037e1-3eb8-44c8-a917-57927947596d' = 'JavaScript/VBScript que lanza descargas'
+    '3b576869-a4ec-4529-8536-b80a7769e899' = 'Office crea ejecutables'
+    '75668c1f-73b5-4cf0-bb93-3ecf5cb7cc84' = 'Office inyecta código'
+    '26190899-1602-49e8-8b27-eb1d0a1ce869' = 'Outlook crea procesos hijos'
+    'e6db77e5-3df2-4cf1-b95a-636979351e5b' = 'persistencia por WMI'
+    'd1e49aac-8f56-4280-b9ba-993a6d77406c' = 'procesos desde PSExec y WMI'
+    '33ddedf1-c6e0-47cb-833e-de6133960387' = 'reinicio en modo seguro'
+    'b2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4' = 'procesos sin firma desde USB'
+    'c0033c00-d16d-4114-a5a0-dc9b3a7d2ceb' = 'herramientas de sistema copiadas'
+    'a8f5898e-1dc8-49a9-9878-85004b8a61e6' = 'webshells en servidores'
+    '92e97fa1-2edf-4476-bdd6-9dd0b4dddc7b' = 'llamadas Win32 desde macros'
+    'c1db55ab-c21a-4637-bb3f-a12568109d35' = 'protección avanzada contra ransomware'
+}
+
+function Get-AsrKit {
+    # Reglas de reducción de la superficie de ataque (ASR) de Defender. Solo lee: 0 apagada, 1 bloquear,
+    # 2 auditar, 6 advertir. Sin Defender activo no aplican.
+    $p = Get-Cim -Namespace 'root/Microsoft/Windows/Defender' -Clase MSFT_MpPreference -Propiedades AttackSurfaceReductionRules_Ids, AttackSurfaceReductionRules_Actions
+    $ids = @($p.AttackSurfaceReductionRules_Ids | Where-Object { $_ })
+    $acc = @($p.AttackSurfaceReductionRules_Actions)
+    $reglas = for ($i = 0; $i -lt $ids.Count; $i++) {
+        $a = if ($i -lt $acc.Count) { [int]$acc[$i] } else { 0 }
+        $id = "$($ids[$i])".ToLowerInvariant()
+        [pscustomobject][ordered]@{
+            Id     = $id
+            Nombre = $(if ($script:NombreAsr[$id]) { $script:NombreAsr[$id] } else { 'regla ' + $id.Substring(0, 8) })
+            Modo   = switch ($a) { 0 { 'Apagada' } 1 { 'Bloquear' } 2 { 'Auditar' } 6 { 'Advertir' } default { "código $a" } }
+        }
+    }
+    $reglas = @($reglas)
+    [pscustomobject][ordered]@{
+        Reglas    = $reglas
+        Bloquear  = @($reglas | Where-Object { $_.Modo -in 'Bloquear', 'Advertir' }).Count
+        Auditar   = @($reglas | Where-Object { $_.Modo -eq 'Auditar' }).Count
+    }
+}
+
+function Test-CpuWindows11 {
+    # Aproximación por el nombre a la lista de CPU de Windows 11: 'si', 'no' o 'revisar'.
+    param([AllowEmptyString()][string]$Nombre)
+    $n = "$Nombre"
+    if ($n -match 'Core\(TM\)\s*Ultra|Core Ultra|Intel\(R\) N\d{2,3}\b|\bi3-N\d{3}\b|Ryzen AI') { return 'si' }
+    if ($n -match '\bi[3579]-(\d{4,5})') {
+        $num = $Matches[1]
+        $gen = if ($num.Length -eq 5) { [int]$num.Substring(0, 2) } else { [int]$num.Substring(0, 1) }
+        if ($gen -ge 8) { return 'si' } else { return 'no' }
+    }
+    if ($n -match 'Core\(TM\)\s*[3579]\s+\d{3}') { return 'si' }   # Core 5 120U, Core 7 150U (2023+)
+    if ($n -match 'Ryzen\s+(Threadripper\s+)?(AI\s+)?[3579]?\s*(PRO\s+)?(\d)\d{3}') {
+        $g = [int]$Matches[4]
+        if ($n -match 'Ryzen AI') { return 'si' }
+        if ($g -ge 3) { return 'si' } elseif ($g -eq 2) { return 'revisar' } else { return 'no' }
+    }
+    if ($n -match 'Ryzen\s+(AI\s+)?\d\s+\d{3}\b') { return 'si' }   # Ryzen 5 220, Ryzen AI 9 365
+    if ($n -match 'Core\(TM\)2|Core 2|Pentium\(R\) (Dual|D)|Athlon\(tm\) II|Phenom|\bA(4|6|8|10|12)-\d{4}') { return 'no' }
+    'revisar'
+}
+
+function Get-AptoWindows11 {
+    # Requisitos de Windows 11: CPU de la lista, TPM 2.0, UEFI con Secure Boot posible, 4 GB de RAM y
+    # 64 GB de disco. Sirve para ofrecer la actualización a equipos que todavía tienen Windows 10.
+    param($SecureBoot, $Tpm)
+    $hw = $script:Ctx.Datos['hardware']
+    $cpu = if ($hw -and @($hw.Cpu).Count) { "$(@($hw.Cpu)[0].Nombre)" } else { '' }
+    $ram = if ($hw -and $hw.Ram) { [double]$hw.Ram.TotalGB } else { $null }
+    $disco = if ($hw) { @($hw.Discos | Where-Object { $_ -and $_.Sistema }) | Select-Object -First 1 } else { $null }
+    $req = [ordered]@{
+        Cpu        = Test-CpuWindows11 $cpu
+        Tpm        = $(if (-not $Tpm) { 'revisar' } elseif ($Tpm.Presente -and "$($Tpm.Version)" -like '2*') { 'si' } elseif ($Tpm.Presente -or $null -eq $Tpm.Presente) { 'no' } else { 'revisar' })
+        Uefi       = $(if ($SecureBoot -and "$($SecureBoot.Firmware)" -eq 'UEFI') { 'si' } elseif ($SecureBoot -and "$($SecureBoot.Firmware)" -eq 'Legacy') { 'no' } else { 'revisar' })
+        SecureBoot = $(if ($SecureBoot -and $SecureBoot.Activo) { 'si' } elseif ($SecureBoot -and "$($SecureBoot.Firmware)" -eq 'UEFI') { 'activable' } else { 'revisar' })
+        Ram        = $(if ($null -eq $ram -or $ram -le 0) { 'revisar' } elseif ($ram -ge 4) { 'si' } else { 'no' })
+        Disco      = $(if (-not $disco) { 'revisar' } elseif ([double]$disco.TamanoGB -ge 64) { 'si' } else { 'no' })
+    }
+    $valores = @($req.Values)
+    $faltan = @($req.Keys | Where-Object { $req[$_] -eq 'no' })
+    $dudas = @($req.Keys | Where-Object { $req[$_] -eq 'revisar' })
+    $veredicto = if ($faltan.Count) { 'No' } elseif ($dudas.Count) { 'Revisar' } else { 'Sí' }
+    $nota = if ($valores -contains 'activable' -and -not $faltan.Count) { 'Secure Boot está apagado: hay que activarlo en la BIOS antes de actualizar.' } else { $null }
+    [pscustomobject][ordered]@{
+        Apto       = $veredicto
+        Requisitos = [pscustomobject]$req
+        Faltan     = $faltan
+        Revisar    = $dudas
+        Cpu        = $cpu
+        Nota       = $nota
+    }
+}
+
 function Test-AlertasSeguridad {
     $d = $script:Ctx.Datos.seguridad
     $av = @($d.Antivirus | Where-Object { $_ })
@@ -263,6 +362,18 @@ function Test-AlertasSeguridad {
         $txt = if ($d.Tpm.Presente) { "TPM $($d.Tpm.Version)" } else { 'Sin TPM visible (puede estar apagado en la BIOS)' }
         Add-Alerta -Severidad AVISO -Codigo 'SEG-TPM' -Texto "$txt. Windows 11 y algunos anti-cheats piden TPM 2.0"
     }
+    if ($d.Asr -and $d.Asr.Bloquear -gt 0) {
+        Add-Alerta -Severidad INFO -Codigo 'SEG-ASR' -Texto "Defender con $($d.Asr.Bloquear) regla(s) ASR bloqueando ($(@($d.Asr.Reglas | Where-Object { $_.Modo -in 'Bloquear', 'Advertir' } | ForEach-Object { $_.Nombre }) -join '; ')): equipo endurecido, pueden frenar herramientas portables o scripts. No las desactives"
+    }
+    $w11 = $d.Windows11
+    $win = $script:Ctx.Datos['windows']
+    if ($w11 -and $win -and [int]$win.Build -gt 0 -and [int]$win.Build -lt 22000) {
+        switch ($w11.Apto) {
+            'Sí' { Add-Alerta -Severidad INFO -Codigo 'SEG-WIN11' -Texto "Apto para Windows 11: se puede ofrecer la actualización (Windows 10 ya no recibe actualizaciones de seguridad)$(if ($w11.Nota) { '. ' + $w11.Nota })" }
+            'No' { Add-Alerta -Severidad AVISO -Codigo 'SEG-WIN11' -Texto "No cumple los requisitos de Windows 11 (falta: $($w11.Faltan -join ', ')): conversar opciones con el cliente (cambio de equipo o de pieza, o seguir con Windows 10 sabiendo el riesgo)" }
+            default { Add-Alerta -Severidad INFO -Codigo 'SEG-WIN11' -Texto "Windows 11: revisar a mano $($w11.Revisar -join ', ') (CPU: $($w11.Cpu))" }
+        }
+    }
     $c = $d.ControlApps
     if ($c) {
         if ($c.SacActivo) {
@@ -303,6 +414,11 @@ function Format-ResumenSeguridad {
     if ($d.Hipervisor) { "Hipervisor : presente: $(if ($d.Hipervisor.Presente) { 'sí' } else { 'no' }) | hypervisorlaunchtype: $(if ($d.Hipervisor.Hypervisorlaunchtype) { $d.Hipervisor.Hypervisorlaunchtype } else { '(requiere admin)' }) | $(if ($d.Hipervisor.Caracteristicas.Count) { $d.Hipervisor.Caracteristicas -join ', ' } else { 'sin características de virtualización' })" }
     if ($d.SecureBoot) { "Secure Boot: $($d.SecureBoot.Estado) | firmware $($d.SecureBoot.Firmware)" }
     if ($d.Tpm) { "TPM        : $(if ($d.Tpm.Presente) { "$($d.Tpm.Nombre) | versión $($d.Tpm.Version)" } else { 'no visible' })$(if ($null -ne $d.Tpm.Habilitado) { " | habilitado: $($d.Tpm.Habilitado) | activado: $($d.Tpm.Activado) | $($d.Tpm.Fabricante)" })" }
+    if ($d.Asr) { "ASR        : $(if (@($d.Asr.Reglas).Count) { "$($d.Asr.Bloquear) bloqueando, $($d.Asr.Auditar) en auditoría, de $(@($d.Asr.Reglas).Count) configuradas" } else { 'sin reglas configuradas' })" }
+    if ($d.Windows11) {
+        $rq = $d.Windows11.Requisitos
+        "Windows 11 : apto: $($d.Windows11.Apto) | CPU $($rq.Cpu) | TPM 2.0 $($rq.Tpm) | UEFI $($rq.Uefi) | Secure Boot $($rq.SecureBoot) | RAM $($rq.Ram) | disco $($rq.Disco)"
+    }
     $c = $d.ControlApps
     if ($c) {
         "Control app: Smart App Control $($c.SmartAppControl) | WDAC usuario $($c.WdacUsuario) / kernel $($c.WdacKernel) | AppLocker: $(if ($c.AppLocker.Count) { $c.AppLocker -join '; ' } else { 'sin reglas' })"

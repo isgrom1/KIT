@@ -27,6 +27,14 @@ $v = Test-ManifiestoPaquete -Raiz $raiz
 $claveCod = if ($Modo -eq 'Diagnostico') { Get-ClaveCodigosPaquete -Motor $motor } else { $null }
 $pideCodigo = [bool]$claveCod
 $script:CodigoOk = $null
+# Consentimiento (Ley 21.719): solo en el diagnóstico; el trabajo usa lo que ya se aceptó ahí.
+$ct = $null
+if ($Modo -eq 'Diagnostico') {
+    $rutaCt = Join-Path $motor 'scripts\config\consentimiento.json'
+    if ([IO.File]::Exists($rutaCt)) { try { $ct = [IO.File]::ReadAllText($rutaCt, [Text.Encoding]::UTF8) | ConvertFrom-Json } catch { $ct = $null } }
+}
+$script:Acepta = -not $ct
+$script:Anual = $false
 
 $titulo = if ($Modo -eq 'Trabajo') { 'Trabajo de Isaac en tu computador' } else { 'Diagnóstico para Isaac' }
 $intro = if ($Modo -eq 'Trabajo') { 'Isaac preparó cambios para que tu computador ande más rápido. En la ventana siguiente ves cada cambio y decides si aplicarlos. Después se reinicia y se mide cómo quedó.' }
@@ -43,7 +51,10 @@ function Start-PaqueteAdmin {
     param()
     if (-not $PSCmdlet.ShouldProcess($cmd, 'Abrir con administrador')) { return $false }
     # El código va normalizado (solo A-Z, 0-9 y guiones): no puede meter nada raro en la línea del .cmd.
-    $argumentos = if ($script:CodigoOk) { "/admin $($script:CodigoOk.Codigo)" } else { '/admin' }
+    # /admin <código o -> <consentimiento>: el .cmd se los pasa a remoto.ps1, que anota la aceptación en el .kitdiag.
+    $cod = if ($script:CodigoOk) { $script:CodigoOk.Codigo } else { '-' }
+    $cons = if (-not $ct) { '-' } elseif ($script:Anual) { 'acepto_anual' } else { 'acepto' }
+    $argumentos = "/admin $cod $cons"
     try { Start-Process -FilePath $cmd -ArgumentList $argumentos -Verb RunAs -WorkingDirectory $raiz; $true } catch { $false }
 }
 
@@ -65,6 +76,14 @@ function Show-Consola {
         if (-not $c.Ok) { Write-Host " $($c.Motivo)" -ForegroundColor Red; return }
         $script:CodigoOk = $c
         Write-Host " Código de $($c.Nombre): válido hasta el $($c.Vence.ToString('dd-MM-yyyy'))." -ForegroundColor Green
+    }
+    if ($ct) {
+        Write-Host ''
+        Write-Host " $($ct.titulo)" -ForegroundColor White
+        foreach ($p in @($ct.parrafos)) { Write-Host " $p" }
+        if ((Read-Host " $($ct.casilla_acepto) Escribe SI para aceptar") -notmatch '^(?i)\s*s[ií]\s*$') { Write-Host ' Sin tu aceptación no se puede hacer el diagnóstico.' -ForegroundColor Yellow; return }
+        $script:Acepta = $true
+        $script:Anual = (Read-Host " $($ct.casilla_anual) (SI / NO)") -match '^(?i)\s*s[ií]\s*$'
     }
     $r = Read-Host ' Escribe SI y Enter para empezar (Windows te pedirá permiso de administrador)'
     if ("$r".Trim() -match '^(?i)s[ií]$') { if (-not (Start-PaqueteAdmin)) { Write-Host ' No se dio el permiso. Puedes volver a abrirlo cuando quieras.' -ForegroundColor Yellow } }
@@ -142,6 +161,16 @@ $xaml = @"
           </DockPanel>
         </StackPanel>
       </Border>
+      <Border x:Name="bdConsentimiento" Margin="0,16,0,0" Padding="16,12" CornerRadius="14" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" Visibility="$(if ($ct -and $v.Ok) { 'Visible' } else { 'Collapsed' })">
+        <StackPanel>
+          <TextBlock Text="$(if ($ct) { ConvertTo-TextoXaml "$($ct.titulo)".ToUpper() })" FontSize="11" FontWeight="Bold" Foreground="#64748B"/>
+          <ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto" Margin="0,6,0,0">
+            <StackPanel>$(if ($ct) { (@($ct.parrafos) | ForEach-Object { "<TextBlock Text='$(ConvertTo-TextoXaml $_)' TextWrapping='Wrap' FontSize='12' Foreground='#334155' Margin='0,0,0,5'/>" }) -join '' })</StackPanel>
+          </ScrollViewer>
+          <CheckBox x:Name="chkAcepto" Margin="0,8,0,0" FontWeight="SemiBold"><TextBlock Text="$(if ($ct) { ConvertTo-TextoXaml $ct.casilla_acepto })" TextWrapping="Wrap"/></CheckBox>
+          <CheckBox x:Name="chkAnual" Margin="0,5,0,0"><TextBlock Text="$(if ($ct) { ConvertTo-TextoXaml $ct.casilla_anual })" TextWrapping="Wrap" Foreground="#475569"/></CheckBox>
+        </StackPanel>
+      </Border>
       <DockPanel Margin="0,18,0,0" LastChildFill="False">
         <Button x:Name="btnCerrar" DockPanel.Dock="Right" Content="Cerrar" Padding="22,9" Margin="10,0,0,0" Background="White" BorderBrush="#CBD5E1"/>
         <Button x:Name="btnEmpezar" DockPanel.Dock="Right" Content="Empezar  ▶" Padding="26,9" FontWeight="Bold" Foreground="White" BorderThickness="0">
@@ -161,16 +190,25 @@ $txtNota = $w.FindName('txtNota')
 if (-not $v.Ok) { $btnEmpezar.Visibility = 'Collapsed'; $w.FindName('bdCodigo').Visibility = 'Collapsed'; $txtNota.Text = 'Por seguridad no se puede empezar.' }
 $txtCod = $w.FindName('txtCodCliente')
 $txtCodEstado = $w.FindName('txtCodEstado')
+$chkAcepto = $w.FindName('chkAcepto')
+$chkAnual = $w.FindName('chkAnual')
 $revisarCodigo = {
-    if (-not $pideCodigo -or -not $v.Ok) { return }
+    if (-not $v.Ok) { return }
+    if ($ct) { $script:Acepta = [bool]$chkAcepto.IsChecked; $script:Anual = [bool]$chkAnual.IsChecked }
+    if (-not $pideCodigo) {
+        $btnEmpezar.IsEnabled = $script:Acepta
+        if ($ct -and -not $script:Acepta) { $txtNota.Text = 'Marca la casilla "Acepto" para poder empezar.' } else { $txtNota.Text = 'Al apretar Empezar, Windows te pide permiso de administrador: es normal.' }
+        return
+    }
     $c = Test-CodigoCliente -Codigo $txtCod.Text -Clave $claveCod
     $script:CodigoOk = if ($c.Ok) { $c } else { $null }
-    $btnEmpezar.IsEnabled = [bool]$c.Ok
+    $btnEmpezar.IsEnabled = [bool]$c.Ok -and $script:Acepta
     if ($c.Ok) { $txtCodEstado.Text = "✓ Código de $($c.Nombre), válido hasta el $($c.Vence.ToString('dd-MM-yyyy'))."; $txtCodEstado.Foreground = '#10B981' }
     elseif ("$($txtCod.Text)".Trim()) { $txtCodEstado.Text = $c.Motivo; $txtCodEstado.Foreground = '#E5484D' }
     else { $txtCodEstado.Text = 'Ejemplo: JUAN-K7Q2-M9XA'; $txtCodEstado.Foreground = '#64748B' }
 }
 $txtCod.Add_TextChanged({ & $revisarCodigo })
+if ($chkAcepto) { $chkAcepto.Add_Click({ & $revisarCodigo }); $chkAnual.Add_Click({ & $revisarCodigo }) }
 if ($CodigoPrueba) { $txtCod.Text = $CodigoPrueba }
 & $revisarCodigo
 $btnEmpezar.Add_Click({

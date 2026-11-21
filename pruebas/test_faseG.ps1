@@ -92,7 +92,7 @@ try {
     Set-Ficha -Expediente (Read-Expediente $e.Ruta) -Atencion $at -Valores ([ordered]@{ motivos = 'CALOR' })
     $s = Get-SiguientePaso -Expediente (Read-Expediente $e.Ruta) -Atencion $at
     Assert 'después: completar la ficha, y dice qué falta' ($s.Codigo -eq 'ficha' -and $s.Texto -match 'Nombre del cliente' -and $s.Panel -eq 'pnlFicha')
-    Set-Ficha -Expediente (Read-Expediente $e.Ruta) -Valores @{ 'cliente.nombre' = 'Cliente de prueba'; 'cliente.contacto' = '+56 9 1111 2222' }
+    Set-Ficha -Expediente (Read-Expediente $e.Ruta) -Valores @{ 'cliente.nombre' = 'Cliente de prueba'; 'cliente.contacto' = '+56 9 1111 2222'; 'cliente.consentimiento' = 's' }
     Set-Ficha -Expediente (Read-Expediente $e.Ruta) -Atencion $at -Valores ([ordered]@{ sintoma = 'Se calienta' })
     $s = Get-SiguientePaso -Expediente (Read-Expediente $e.Ruta) -Atencion $at
     Assert 'después: el diagnóstico ANTES, en ② Antes' ($s.Codigo -eq 'diagnostico_antes' -and $s.Panel -eq 'pnlMedicion' -and $s.Momento -eq 'antes')
@@ -132,7 +132,7 @@ try {
     Assert 'entregada: recuerda sincronizar y no lleva a ningún panel' ($s.Codigo -eq 'entregada' -and -not $s.Panel)
     $e2 = New-Expediente -Identidad ([pscustomobject]@{ Fabricante = 'Prueba'; Modelo = 'Revision'; Serie = 'FLU002'; SerieOriginal = 'FLU002'; Uuid = $null; PlacaSerie = $null })
     $at2 = New-Atencion -Expediente $e2
-    Set-Ficha -Expediente (Read-Expediente $e2.Ruta) -Valores @{ 'cliente.nombre' = 'Otro'; 'cliente.contacto' = 'otro@ejemplo.cl' }
+    Set-Ficha -Expediente (Read-Expediente $e2.Ruta) -Valores @{ 'cliente.nombre' = 'Otro'; 'cliente.contacto' = 'otro@ejemplo.cl'; 'cliente.consentimiento' = 's' }
     Set-Ficha -Expediente (Read-Expediente $e2.Ruta) -Atencion $at2 -Valores ([ordered]@{ motivos = 'REVISION'; sintoma = 'Revisión' })
     $d2 = Join-Path (Join-Path $e2.Ruta $at2) 'antes'; $null = New-Item -ItemType Directory -Force $d2; Write-Texto "$d2\diagnostico.json" '{"kit":{},"alertas":[],"datos":{}}'
     Assert 'sin CALOR no pide CSV: pasa al trabajo' ((Get-SiguientePaso -Expediente (Read-Expediente $e2.Ruta) -Atencion $at2).Codigo -eq 'trabajo')

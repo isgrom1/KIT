@@ -281,6 +281,20 @@ function Invoke-Sincronizacion {
         & $escribir 'INICIO' "USB $Clientes -> maestro $Maestro (kit $($r.Kit), equipo $env:COMPUTERNAME)"
         & $AlAvance 'Buscando archivos en el USB...'
         $lista = Get-ArchivosExpedientes -Clientes $Clientes
+        if (Get-Command Get-HuellasOlvidadas -ErrorAction SilentlyContinue) {
+            # Clientes olvidados (Ley 21.719) en el maestro o en este USB: no se vuelven a copiar.
+            $olvidados = Get-HuellasOlvidadas -Carpetas $Maestro, $Clientes
+            if ($olvidados.Count) {
+                $quedan = New-Object System.Collections.Generic.List[object]
+                $saltados = New-Object System.Collections.Generic.HashSet[string]
+                foreach ($a in $lista.Archivos) {
+                    $idExp = ($a.Rel -split '\\')[0]
+                    if ($olvidados.Contains((Get-HuellaExpediente $idExp))) { [void]$saltados.Add($idExp) } else { $quedan.Add($a) }
+                }
+                foreach ($s in $saltados) { & $escribir 'OLVIDADO' "$(Get-HuellaExpediente $s) (cliente olvidado: no se copia al maestro)" }
+                $lista = [pscustomobject]@{ Archivos = $quedan.ToArray(); EnCurso = $lista.EnCurso }
+            }
+        }
         $r.EnCurso = @($lista.EnCurso)
         foreach ($d in $r.EnCurso) { & $escribir 'OMITIDO' "$d (medición en curso: se copia cuando termine)" }
         $total = @($lista.Archivos).Count

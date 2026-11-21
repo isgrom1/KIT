@@ -28,7 +28,7 @@ function New-AtencionPrueba {
     param([string]$Serie, [int]$TempAntes, [int]$MhzAntes, [int]$TempDespues, [int]$MhzDespues)
     $e = New-Expediente -Identidad ([pscustomobject]@{ Fabricante = 'Prueba'; Modelo = 'Velocidad'; Serie = $Serie; SerieOriginal = $Serie; Uuid = $null; PlacaSerie = $null })
     $a = New-Atencion -Expediente $e
-    Set-Ficha -Expediente $e -Valores @{ 'cliente.nombre' = 'Cliente de prueba'; 'cliente.contacto' = '+56 9 1111 2222' }
+    Set-Ficha -Expediente $e -Valores @{ 'cliente.nombre' = 'Cliente de prueba'; 'cliente.contacto' = '+56 9 1111 2222'; 'cliente.consentimiento' = 's' }
     Set-Ficha -Expediente $e -Atencion $a -Valores ([ordered]@{ motivos = 'CALOR'; sintoma = 'Se calienta'; paquete = 'Mantención'; precio = '30000'; 'checklist_fisico.limpieza' = 's'; 'checklist_fisico.pasta' = 'Pasta de prueba' })
     $cond = [ordered]@{ enchufado = 's'; plan = 'Equilibrado'; ventiladores = 'Auto'; superficie = 'Mesa'; temp_ambiente_c = '22'; carga_tipo = 'OCCT CPU'; carga_duracion_min = '10' }
     Set-CondicionesCalor -Expediente $e -Atencion $a -Momento antes -Valores $cond

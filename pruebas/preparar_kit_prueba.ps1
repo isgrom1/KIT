@@ -23,12 +23,12 @@ $scripts = Join-Path $kit 'scripts'
 foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Expediente') { . (Join-Path $scripts "lib\$lib.ps1") }
 Initialize-Contexto -RaizScripts $scripts
 $nitro = Read-Expediente (Get-ChildItem (Join-Path $kit 'clientes') -Directory -Filter 'Acer_Nitro*' | Select-Object -First 1).FullName
-Set-Ficha -Expediente $nitro -Valores @{ 'cliente.nombre' = 'Cliente de prueba'; 'cliente.contacto' = '+56 9 1234 5678'; 'cliente.comuna' = 'Providencia' }
+Set-Ficha -Expediente $nitro -Valores @{ 'cliente.nombre' = 'Cliente de prueba'; 'cliente.contacto' = '+56 9 1234 5678'; 'cliente.consentimiento' = 's'; 'cliente.comuna' = 'Providencia' }
 Set-Ficha -Expediente $nitro -Atencion '2026-11-01_atencion' -Valores ([ordered]@{ motivos = @('REVISION'); sintoma = 'Revisión general (prueba)'; paquete = 'Revisión'; precio = '15000'; entregado = '2026-11-01' })
 
 $id = [pscustomobject]@{ Fabricante = 'HP'; Modelo = 'Pavilion 15'; Serie = '5CD1234XYZ'; SerieOriginal = '5CD1234XYZ'; Uuid = $null; PlacaSerie = $null }
 $hp = New-Expediente -Identidad $id
-Set-Ficha -Expediente $hp -Valores @{ 'cliente.nombre' = 'Ana Pérez (sintético)'; 'cliente.contacto' = '+56 9 1111 2222'; 'cliente.comuna' = 'Ñuñoa' }
+Set-Ficha -Expediente $hp -Valores @{ 'cliente.nombre' = 'Ana Pérez (sintético)'; 'cliente.contacto' = '+56 9 1111 2222'; 'cliente.consentimiento' = 's'; 'cliente.comuna' = 'Ñuñoa' }
 $at = New-Atencion -Expediente $hp -Fecha ([datetime]'2026-10-20')
 $c = Join-Path $hp.Ruta $at
 $null = [IO.Directory]::CreateDirectory((Join-Path $c 'antes'))

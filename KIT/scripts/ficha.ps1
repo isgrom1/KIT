@@ -14,7 +14,7 @@ param()
 $ErrorActionPreference = 'Stop'
 $raizScripts = $PSScriptRoot
 try {
-    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Expediente') { . (Join-Path $raizScripts "lib\$lib.ps1") }
+    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Expediente', 'DatosPersonales') { . (Join-Path $raizScripts "lib\$lib.ps1") }
     Initialize-Contexto -RaizScripts $raizScripts
     Initialize-Privacidad
 } catch {
@@ -117,6 +117,18 @@ Write-Host ' CLIENTE (solo nombre, contacto y comuna: nada de RUT ni dirección)
 Request-Campo -Exp $exp -Atencion $atencion -Campo 'cliente.nombre' -Pregunta 'Nombre'
 Request-Campo -Exp $exp -Atencion $atencion -Campo 'cliente.contacto' -Pregunta 'Contacto' -Ayuda 'WhatsApp (+56 9 1234 5678) o correo'
 Request-Campo -Exp $exp -Atencion $atencion -Campo 'cliente.comuna' -Pregunta 'Comuna'
+# Consentimiento (Ley 21.719): se lee al cliente (o lo lee él) y se anota la fecha en que aceptó.
+$ct = Get-Consentimiento
+$cl = $exp.Ficha['cliente']
+if ($ct -and -not $cl['consentimiento']) {
+    Write-Host ''
+    Write-Host " $($ct.titulo) (léeselo al cliente o muéstraselo)" -ForegroundColor White
+    foreach ($p in @($ct.parrafos)) { Write-Host "    $p" -ForegroundColor Gray }
+}
+Request-Campo -Exp $exp -Atencion $atencion -Campo 'cliente.consentimiento' -Pregunta "¿Acepta? ($(if ($ct) { $ct.casilla_acepto } else { 'registrar sus datos' }))" -Ayuda 's = sí (se anota la fecha de hoy), n = no'
+if ($exp.Ficha['cliente']['consentimiento']) {
+    Request-Campo -Exp $exp -Atencion $atencion -Campo 'cliente.aviso_anual' -Pregunta '¿Quiere el aviso para la revisión anual gratuita? (opcional)' -Ayuda 's / n'
+}
 Write-Host ''
 Write-Host ' ATENCIÓN' -ForegroundColor White
 Request-Campo -Exp $exp -Atencion $atencion -Campo 'motivos' -Pregunta 'Motivos' -Ayuda 'C = calor/ruido/se apaga, L = lento, A = archivos y espacio, R = revisión (ej: CL)' -Convertir {

@@ -1,4 +1,4 @@
-# KIT SERVICIO
+﻿# KIT SERVICIO
 
 Herramienta portable para diagnosticar notebooks y PC con Windows 10/11 desde un pendrive Ventoy.
 Corre con el Windows PowerShell 5.1 que trae Windows: no instala nada en el equipo del cliente y no usa internet.
@@ -259,6 +259,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File KIT\scripts\diagnostico.ps1 
 - Ficha del cliente: solo nombre, contacto y comuna. Nada de RUT ni dirección exacta. La ficha no se enmascara, porque el nombre del cliente podría coincidir con el usuario de Windows. Las únicas rutas que guarda son las carpetas protegidas que anotes.
 - Los perfiles de usuario quedan como `C:\Users\<U1>` (`enmascarar_perfiles` en config.json).
 - Nunca se guardan contraseñas, historial, cookies, redes Wi-Fi, líneas de comando de procesos ni contenido de archivos. Nombres de archivo, solo de los mayores a 1 GB y de los logs mayores a 500 MB.
+
+### Datos personales (Ley 21.719)
+
+- **Consentimiento:** el texto aprobado está en `config\consentimiento.json` (con versión). En la ficha (consola o ventana) se le lee o muestra al cliente y se marca **"El cliente acepta"**: queda la fecha y la versión del texto. Sin eso la ficha no está completa y no se generan los informes. El aviso de la revisión anual es una casilla aparte y opcional. En el diagnóstico a distancia, la ventana de bienvenida muestra el mismo texto y no deja empezar sin **Acepto**; el `.kitdiag` trae `consentimiento.json` y al abrirlo queda en la ficha.
+- **Retención:** 18 meses desde la última atención (`config.json` → `datos_personales.retencion_meses`). Una atención abierta no vence.
+- **`KIT\scripts\datos_personales.ps1`** (en el kit y, en tu PC, también en el maestro):
+  - sin parámetros: revisión (vencidos, sin consentimiento, quienes quieren el aviso anual);
+  - `-Anonimizar`: a los vencidos les quita nombre, contacto, comuna, síntoma, notas, fotos e informes; quedan los datos técnicos;
+  - `-Olvidar "<nombre o serie>"`: borra el expediente completo y anota su huella en `_olvidados.txt` para que la sincronización no lo vuelva a traer. Los respaldos cifrados lo conservan hasta que se renueven;
+  - `-Entregar "<nombre o serie>"`: ZIP con sus datos (`mis_datos.json`) y sus informes, para dárselo.
+- Cada acción queda en `clientes\_registro_privacidad.csv` con la fecha y una huella del expediente (sin nombre ni serie).
+- **Incidentes** (equipo con malware, pendrive perdido, acceso no autorizado): anótalos en `privado\registro_incidentes.md` del PC del técnico (fuera del repo) con fecha, qué pasó, qué datos podían estar expuestos y qué se hizo.
 
 ## Mark of the Web, Unblock-File y por qué igual corre
 

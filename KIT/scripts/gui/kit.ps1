@@ -51,7 +51,7 @@ function Initialize-IconoVentana {
 }
 
 try {
-    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe', 'Herramientas', 'Sincronizacion', 'Flujo', 'Soporte', 'Drivers') { . (Join-Path $script:Raiz "lib\$lib.ps1") }
+    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'DatosPersonales', 'Sensores', 'Informe', 'Herramientas', 'Sincronizacion', 'Flujo', 'Soporte', 'Drivers') { . (Join-Path $script:Raiz "lib\$lib.ps1") }
     foreach ($m in 'calor', 'lento', 'archivos', 'revision') { . (Join-Path $script:Raiz "motivos\$m.ps1") }
     Initialize-Contexto -RaizScripts $script:Raiz
     if ($Clientes) { $script:Ctx.CarpetaClientes = $Clientes }
@@ -368,6 +368,11 @@ function Show-Ficha {
     $script:G.Cargando = $true
     $c = if ($f) { $f['cliente'] } else { @{} }
     $ui.txtNombre.Text = "$($c['nombre'])"; $ui.txtContacto.Text = "$($c['contacto'])"; $ui.txtComuna.Text = "$($c['comuna'])"
+    $ct = Get-Consentimiento
+    if ($ct) { $ui.chkConsentimiento.ToolTip = "$($ct.titulo)`n`n" + (@($ct.parrafos) -join "`n`n") + "`n`n☐ $($ct.casilla_acepto)" }
+    $ui.chkConsentimiento.IsChecked = [bool]$c['consentimiento']
+    $ui.txtConsentimiento.Text = if ($c['consentimiento']) { "Aceptó el $($c['consentimiento']) (texto $($c['consentimiento_version']))." } else { 'Pasa el mouse sobre la casilla para ver el texto y léeselo o muéstraselo al cliente.' }
+    $ui.chkAvisoAnual.IsChecked = [bool]$c['aviso_anual']
     $ui.txtSintoma.Text = "$($a['sintoma'])"; $ui.txtEstadoFisico.Text = "$($a['estado_fisico'])"; $ui.txtPaquete.Text = "$($a['paquete'])"
     $ui.txtPrecio.Text = if ($a -and $null -ne $a['precio']) { "$($a['precio'])" } else { '' }
     $cat = @(Format-CatalogoTexto)
@@ -400,6 +405,10 @@ function Save-FichaGui {
         'bitlocker.clave_confirmada' = [bool]$ui.chkClaveBitlocker.IsChecked
     }
     foreach ($k in $script:G.Chk.Keys) { $v["checklist_funcional.$k"] = @($null, 'ok', 'falla', 'no_aplica')[[math]::Max(0, $script:G.Chk[$k].SelectedIndex)] }
+    # Consentimiento: solo cambia si se marcó o desmarcó (así se conserva la fecha en que aceptó).
+    $yaAcepto = [bool]$script:G.Exp.Ficha['cliente']['consentimiento']
+    if ([bool]$ui.chkConsentimiento.IsChecked -ne $yaAcepto) { $v['cliente.consentimiento'] = [bool]$ui.chkConsentimiento.IsChecked }
+    $v['cliente.aviso_anual'] = [bool]$ui.chkAvisoAnual.IsChecked -and [bool]$ui.chkConsentimiento.IsChecked
     if ($ui.grpFichaArchivos.Visibility -eq 'Visible') {
         $v['consentimiento_archivos'] = @($null, 'solo_leer', 'mover', 'borrar_aprobado')[[math]::Max(0, $ui.cmbConsentimiento.SelectedIndex)]
         $v['carpetas_protegidas'] = (@($ui.txtProtegidas.Text -split "`r?`n" | Where-Object { $_.Trim() }) -join ';')

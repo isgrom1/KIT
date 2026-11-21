@@ -185,6 +185,9 @@
               <TextBlock Text="Nombre *" Style="{StaticResource Etiqueta}"/><TextBox Name="txtNombre"/>
               <TextBlock Text="Contacto * (WhatsApp o correo)" Style="{StaticResource Etiqueta}"/><TextBox Name="txtContacto"/>
               <TextBlock Text="Comuna" Style="{StaticResource Etiqueta}"/><TextBox Name="txtComuna"/>
+              <CheckBox Name="chkConsentimiento" Content="El cliente acepta que se registren sus datos (Ley 21.719) *" Margin="0,8,0,0" ToolTipService.ShowDuration="60000"/>
+              <TextBlock Name="txtConsentimiento" Style="{StaticResource Etiqueta}" Margin="22,0,0,0" TextWrapping="Wrap"/>
+              <CheckBox Name="chkAvisoAnual" Content="Quiere el aviso para la revisión anual gratuita (opcional)"/>
               <TextBlock Text="Síntoma * (en palabras del cliente)" Style="{StaticResource Etiqueta}"/><TextBox Name="txtSintoma" Height="60" TextWrapping="Wrap" AcceptsReturn="True" VerticalContentAlignment="Top"/>
               <TextBlock Text="Estado físico (golpes, piezas sueltas...)" Style="{StaticResource Etiqueta}"/><TextBox Name="txtEstadoFisico"/>
             </StackPanel>

@@ -152,7 +152,7 @@ function New-Expediente {
         id          = $id
         creado      = $ahora
         actualizado = $ahora
-        cliente     = [ordered]@{ nombre = $null; contacto = $null; comuna = $null }
+        cliente     = [ordered]@{ nombre = $null; contacto = $null; comuna = $null; consentimiento = $null; consentimiento_version = $null; aviso_anual = $null }
         equipo      = [ordered]@{
             fabricante        = $Identidad.Fabricante
             modelo            = $Identidad.Modelo
@@ -444,6 +444,14 @@ function ConvertTo-ValorFicha {
     }
     switch -Regex ($Campo) {
         '^cliente\.nombre$' { return (& $texto $Valor 80) }
+        '^cliente\.consentimiento$' {
+            # Sí = la fecha de hoy; también acepta la fecha en que aceptó (AAAA-MM-DD, del remoto). No = vacío.
+            if ("$Valor" -match '^\d{4}-\d{2}-\d{2}$') { return (& $fecha $Valor) }
+            if (& $siNo $Valor) { return (Get-Date).ToString('yyyy-MM-dd', $script:Invariante) }
+            return $null
+        }
+        '^cliente\.consentimiento_version$' { return (& $texto $Valor 20) }
+        '^cliente\.aviso_anual$' { return (& $siNo $Valor) }
         '^cliente\.comuna$' {
             $t = & $texto $Valor 40
             if ($t -match '\d') { throw 'solo la comuna, sin dirección ni números' }
@@ -534,6 +542,12 @@ function Set-Ficha {
     if ($errores.Count -gt 0) { throw ("No se guardó la ficha:`n- " + ($errores -join "`n- ")) }
     if (-not $PSCmdlet.ShouldProcess((Join-Path $Expediente.Ruta 'ficha.json'), ('Cambiar ' + (@($Valores.Keys) -join ', ')))) { return }
     foreach ($c in $cambios) { $c.Destino[$c.Clave] = $c.Valor }
+    if ($Valores.Contains('cliente.consentimiento') -and -not $Valores.Contains('cliente.consentimiento_version')) {
+        # La versión del texto que aceptó (config\consentimiento.json), o nada si no aceptó.
+        $cl = $Expediente.Ficha['cliente']
+        $cl['consentimiento_version'] = $null
+        if ($cl['consentimiento'] -and (Get-Command Get-Consentimiento -ErrorAction SilentlyContinue)) { $ct = Get-Consentimiento; if ($ct) { $cl['consentimiento_version'] = "$($ct.version)" } }
+    }
     if ($entrada -and $Valores.Contains('entregado') -and $entrada['entregado'] -and -not $Valores.Contains('garantia_hasta')) {
         # Garantía por defecto: fecha de entrega + N días (config.json: expediente.garantia_dias).
         $dias = 30
@@ -552,6 +566,7 @@ function Test-FichaCompleta {
     $cl = $Expediente.Ficha['cliente']
     if (-not $cl['nombre']) { & $agregar 'cliente.nombre' 'Nombre del cliente' }
     if (-not $cl['contacto']) { & $agregar 'cliente.contacto' 'Contacto del cliente (WhatsApp o correo)' }
+    if (-not $cl['consentimiento']) { & $agregar 'cliente.consentimiento' 'Consentimiento del cliente para registrar sus datos (Ley 21.719)' }
     $tec = $script:Ctx.Config.tecnico
     if (-not $tec -or -not $tec.nombre) { & $agregar 'tecnico.nombre' 'Nombre del técnico (config_local.json o config.json: tecnico.nombre)' }
     if (-not $tec -or -not $tec.contacto) { & $agregar 'tecnico.contacto' 'Contacto del técnico (config_local.json: tecnico.contacto)' }

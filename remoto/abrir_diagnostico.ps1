@@ -78,6 +78,16 @@ if (-not $Cliente -and [IO.File]::Exists($rutaCod)) {
     try { $Cliente = "$((Get-Content -LiteralPath $rutaCod -Raw -Encoding UTF8 | ConvertFrom-Json).cliente)"; Write-Host "Cliente (por su código): $Cliente" -ForegroundColor Cyan } catch { Write-Verbose $_ }
 }
 
+# Consentimiento (Ley 21.719, desde la fase J): la fecha en que el cliente aceptó y si quiere el aviso anual.
+$consent = $null
+$rutaCons = Join-Path $Destino 'consentimiento.json'
+if ([IO.File]::Exists($rutaCons)) {
+    try {
+        $consent = Get-Content -LiteralPath $rutaCons -Raw -Encoding UTF8 | ConvertFrom-Json
+        Write-Host "Consentimiento: aceptó el $($consent.fecha) (texto $($consent.version)); aviso anual: $(if ($consent.aviso_anual) { 'sí' } else { 'no' })" -ForegroundColor Cyan
+    } catch { Write-Verbose $_ }
+} else { Write-Host 'Consentimiento: el diagnóstico no lo trae (paquete anterior a la fase J).' -ForegroundColor DarkGray }
+
 # Informe para el cliente (PDF con diseño): lo arma la misma librería que usa el kit del pendrive.
 $pdf = $null
 $tec = $null
@@ -93,6 +103,12 @@ if (-not $SinInforme) {
         $despues = @($todos | Where-Object { $_.Directory.Name -eq 'despues' }) | Select-Object -First 1
         $csv = Join-Path $Destino 'calor\sensores_calor.csv'
         if (-not $json) { throw 'no viene diagnostico.json' }
+        if ($consent) {
+            try {
+                $expR = Read-Expediente $json.Directory.Parent.Parent.FullName
+                Set-Ficha -Expediente $expR -Valores @{ 'cliente.consentimiento' = "$($consent.fecha)"; 'cliente.consentimiento_version' = "$($consent.version)"; 'cliente.aviso_anual' = [bool]$consent.aviso_anual }
+            } catch { Write-Host "No se pudo anotar el consentimiento en la ficha: $($_.Exception.Message)" -ForegroundColor Yellow }
+        }
         $doc = Read-JsonKit $(if ($despues) { $despues.FullName } else { $json.FullName })
         $nombre = ('{0}_{1}_{2}' -f $(if ($despues) { 'Informe_trabajo' } else { 'Informe' }), ("$($doc.datos.equipo.Fabricante) $($doc.datos.equipo.Modelo)" -replace '[^\w-]+', '_').Trim('_'), ("$($doc.kit.generado)").Substring(0, 10))
         if ($despues) {

@@ -131,11 +131,26 @@ a { color:#0891b2; } @media (prefers-color-scheme: dark) { a { color:#5eead4; } 
     </div>
   </section>
 
+  <section class="tarjeta" id="privacidad">
+    <h2><span class="ico-h" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>Privacidad y tus datos</h2>
+    <p class="chico" style="font-size:14.5px">Antes de empezar, la ventana te muestra este texto y solo sigue si marcas <b>Acepto</b> (Ley 21.719 de protección de datos personales):</p>
+    <ul class="si">
+      <li>Se registran datos del equipo (modelo, número de serie, componentes, temperatura, espacio en disco, programas que arrancan con Windows y estado de seguridad) y, solo si se los das a Isaac, tu nombre, forma de contacto y comuna.</li>
+      <li>Se usan solo para diagnosticar y atender tu equipo. No se venden ni se comparten con nadie.</li>
+      <li>Se guardan <b>18 meses</b> desde tu última atención. Después se borran o quedan sin datos que te identifiquen.</li>
+      <li>Puedes pedir en cualquier momento ver tus datos, corregirlos o borrarlos, escribiéndole a Isaac por el mismo medio por el que lo contactaste.</li>
+    </ul>
+    <ul class="no" style="margin-top:8px">
+      <li>No se registran tus documentos, fotos, contraseñas, historial de navegación ni el contenido de tus archivos.</li>
+    </ul>
+    <p class="chico">El aviso para la revisión anual gratuita es opcional: va en una casilla aparte.</p>
+  </section>
+
   <section class="tarjeta">
     <h2>Para los que quieren revisar más</h2>
     <p class="chico">Cada paquete viene firmado por Isaac: la ventana lo comprueba sola y muestra arriba, en chico, <b>✓ Paquete de Isaac · 54A8-32F4</b>. Si en cambio dice que el paquete fue modificado, no sigas y avísale.</p>
     <p class="chico">El código de los scripts es público y se puede leer en <a href="https://github.com/isgrom1/KIT">github.com/isgrom1/KIT</a> (carpeta <code>remoto</code>). Cada paquete trae <code>motor\manifiesto.json</code> con la huella SHA-256 de cada archivo, firmada con la llave RSA-3072 de Isaac; el código de Isaac son los primeros 8 caracteres del SHA-256 del módulo de esa llave.</p>
-    <p class="chico">Huella SHA-256 del ZIP publicado:<br><code id="huella">94e920c72db17fe62e9beebb3eb27c7bc5d739736fbd1b74c5929b40cde69204</code></p>
+    <p class="chico">Huella SHA-256 del ZIP publicado:<br><code id="huella">db297fbaace239cfdf7eaa5ef1b4ce630c327f35574684e7ec9e31d0613ae2ee</code></p>
   </section>
 
   <footer>¿Dudas? Escríbele a Isaac por el mismo WhatsApp desde donde te llegó este link.</footer>

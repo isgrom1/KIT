@@ -27,7 +27,7 @@ Update-FichaDesdeDiagnostico -Expediente $exp -Atencion $at -Momento 'antes' -Da
 $dd = Read-JsonKit (Join-Path $exp.Ruta "$at\despues\diagnostico.json")
 Update-FichaDesdeDiagnostico -Expediente $exp -Atencion $at -Momento 'despues' -Datos $dd.datos -Generado $dd.kit.generado -Admin $false -Alertas @($dd.alertas)
 Set-Ficha -Expediente $exp -Atencion $at -Valores ([ordered]@{
-        'cliente.nombre' = 'Isaac (vista previa)'; 'cliente.contacto' = '+56 9 0000 0000'; 'cliente.comuna' = 'Santiago'
+        'cliente.nombre' = 'Isaac (vista previa)'; 'cliente.contacto' = '+56 9 0000 0000'; 'cliente.consentimiento' = 's'; 'cliente.comuna' = 'Santiago'
         motivos = 'CALOR'; sintoma = 'Se calienta mucho con carga pesada'; paquete = 'Mantención por temperatura'; precio = '0'
     })
 $null = Import-SensoresMedicion -Expediente $exp -Atencion $at -Momento 'antes' -Ruta (Join-Path $docs '08 Datos sueltos (csv-json)\reg.CSV')

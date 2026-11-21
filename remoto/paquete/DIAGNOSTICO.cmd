@@ -12,6 +12,6 @@ if errorlevel 1 (
   pause
   exit /b
 )
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0motor\remoto.ps1" -Codigo "%~2"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0motor\remoto.ps1" -Codigo "%~2" -Consentimiento "%~3"
 echo.
 pause

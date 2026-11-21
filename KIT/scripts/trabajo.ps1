@@ -16,7 +16,7 @@ param()
 $ErrorActionPreference = 'Stop'
 $raizScripts = $PSScriptRoot
 try {
-    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'Sensores', 'Informe', 'Flujo', 'Soporte', 'Drivers') { . (Join-Path $raizScripts "lib\$lib.ps1") }
+    foreach ($lib in 'Comun', 'Log', 'Privacidad', 'Alertas', 'Salidas', 'Expediente', 'DatosPersonales', 'Sensores', 'Informe', 'Flujo', 'Soporte', 'Drivers') { . (Join-Path $raizScripts "lib\$lib.ps1") }
     foreach ($m in 'calor', 'lento', 'archivos', 'revision') { . (Join-Path $raizScripts "motivos\$m.ps1") }
     Initialize-Contexto -RaizScripts $raizScripts
     Initialize-Privacidad

@@ -19,8 +19,10 @@ param(
     [double]$ReposoMin = 5,
     [switch]$SinCalor,
     [string]$Destino,
-    [string]$Codigo     # el código que Isaac le dio al cliente (lo pasa la ventana de bienvenida)
+    [string]$Codigo,    # el código que Isaac le dio al cliente (lo pasa la ventana de bienvenida; "-" = sin código)
+    [string]$Consentimiento   # 'acepto' o 'acepto_anual' (lo pasa la ventana de bienvenida); '-' = paquete sin texto
 )
+if ($Codigo -eq '-') { $Codigo = '' }
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -74,6 +76,13 @@ if ($claveCod) {
     $cli = Test-CodigoCliente -Codigo $Codigo -Clave $claveCod
     if (-not $cli.Ok) { Write-Host " $($cli.Motivo)" -ForegroundColor Red; exit 4 }
     Write-Host " Código de $($cli.Nombre): válido hasta el $($cli.Vence.ToString('dd-MM-yyyy'))." -ForegroundColor Green
+}
+# Consentimiento (Ley 21.719): si el paquete trae el texto, sin "Acepto" en la ventana no se hace nada.
+$ctRuta = Join-Path $scripts 'config\consentimiento.json'
+$ctTexto = if ([IO.File]::Exists($ctRuta)) { [IO.File]::ReadAllText($ctRuta, [Text.Encoding]::UTF8) | ConvertFrom-Json } else { $null }
+if ($ctTexto -and $Consentimiento -notmatch '^acepto(_anual)?$') {
+    Write-Host ' Falta tu aceptación del uso de datos: abre DIAGNOSTICO.cmd con doble clic y marca "Acepto".' -ForegroundColor Yellow
+    exit 5
 }
 
 # Un ZIP bajado de internet o WhatsApp marca cada archivo; sin quitar esa marca, OCCT o HWiNFO pueden quedar
@@ -138,6 +147,7 @@ $res = Get-ChildItem -LiteralPath (Join-Path $trabajo 'diagnostico') -Recurse -F
 if ($res) { $lineas.Add(''); $lineas.Add('--- resumen del diagnóstico ---'); foreach ($l in [IO.File]::ReadAllLines($res.FullName)) { $lineas.Add($l) } }
 [IO.File]::WriteAllLines((Join-Path $trabajo 'RESUMEN.txt'), $lineas, (New-Object Text.UTF8Encoding $true))
 # De quién es: Isaac lo usa como nombre del cliente al abrirlo.
+if ($ctTexto) { [IO.File]::WriteAllText((Join-Path $trabajo 'consentimiento.json'), ([ordered]@{ fecha = (Get-Date).ToString('yyyy-MM-dd'); version = "$($ctTexto.version)"; aviso_anual = ($Consentimiento -eq 'acepto_anual') } | ConvertTo-Json), (New-Object Text.UTF8Encoding $false)) }
 if ($cli) { [IO.File]::WriteAllText((Join-Path $trabajo 'codigo.json'), ([ordered]@{ cliente = $cli.Nombre; codigo = $cli.Codigo; vence = $cli.Vence.ToString('yyyy-MM-dd') } | ConvertTo-Json), (New-Object Text.UTF8Encoding $false)) }
 
 # 4. ZIP + cifrado

@@ -1,4 +1,4 @@
-# Guía de atención paso a paso
+﻿# Guía de atención paso a paso
 
 Cómo atender un equipo con el kit: desde que lo recibes hasta que lo entregas y queda archivado en tu PC. El detalle técnico de cada parte está en `LEEME.md`.
 
@@ -21,6 +21,7 @@ Cómo atender un equipo con el kit: desde que lo recibes hasta que lo entregas y
    - Desde ahí, la **franja azul "Siguiente:"**, bajo los pasos, dice qué le falta a la atención (la ficha, el ANTES, el CSV, las condiciones, el trabajo, el DESPUÉS, los informes o la entrega) y su botón te lleva al panel. Puedes seguirla de principio a fin o moverte por los pasos a tu gusto.
 5. **① Ficha**, delante del cliente:
    - nombre, contacto (WhatsApp o correo) y comuna. **Nada de RUT ni dirección**: la ficha los rechaza;
+   - **consentimiento de datos (Ley 21.719)**: pasa el mouse sobre la casilla, léele o muéstrale el texto y márcala si acepta (obligatoria para los informes). Si quiere el aviso de la revisión anual gratuita, marca también esa casilla;
    - síntoma, con sus palabras, y estado físico (golpes, piezas sueltas, bisagras);
    - si tiene respaldo de sus archivos y si confirmó la clave de recuperación de BitLocker;
    - **checklist funcional**: prueba cada cosa con él (enciende, pantalla, teclado, touchpad, USB, carga, batería, wifi, audio, cámara);
