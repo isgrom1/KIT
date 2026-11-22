@@ -183,7 +183,7 @@
         if (parpadea(ms, 350)) Tc('DIAGNOSTICO A DISTANCIA', W / 2, 104, C.cian);
       }
     } },
-    { d: 6000, txt: '1. En esta página, haz clic en «Descargar el diagnóstico».', f: function (t, ms) {
+    { d: 6000, txt: '1. En esta página, haz clic en «Descargar» (pesa menos de 1 MB).', f: function (t, ms) {
       escritorio(ms);
       ventana(14, 6, 164, 98, 'NAVEGADOR');
       R(17, 19, 158, 9, C.blanco); R(17, 19, 158, 1, C.grisO); T('ISGROM1.GITHUB.IO/KIT', 20, 20, C.marino);
@@ -245,7 +245,7 @@
       var p = t < 0.55 ? mover(170, 112, 26, 74, tramo(t, 0.3, 0.48)) : mover(26, 74, 140, 93, tramo(t, 0.55, 0.78));
       cursor(p[0], p[1]); clic(26, 74, tramo(t, 0.48, 0.58)); clic(140, 93, tramo(t, 0.8, 0.9));
     } },
-    { d: 6000, txt: '5. Windows te pide permiso de administrador: haz clic en «Sí». Es normal.', f: function (t, ms) {
+    { d: 6000, txt: '5. Solo si eliges la prueba de temperatura, Windows te pide permiso: haz clic en «Sí». Es normal.', f: function (t, ms) {
       escritorio(ms);
       for (var y = 0; y < H; y++) for (var x = y % 2; x < W; x += 2) R(x, y, 1, 1, 'rgba(0,0,0,.55)');
       R(24, 22, 144, 72, C.negro); R(25, 23, 142, 70, C.blanco);
@@ -257,7 +257,7 @@
       var p = mover(170, 112, 80, 82, tramo(t, 0.15, 0.55));
       cursor(p[0], p[1]); clic(p[0], p[1], tramo(t, 0.62, 0.74));
     } },
-    { d: 8500, txt: '6. Espera unos 20 minutos sin usar el computador. Se abren dos programas de medición: no los cierres.', f: function (t, ms) {
+    { d: 8500, txt: '6. La revisión rápida tarda unos 3 minutos. La prueba de temperatura, unos 20: ahí no cierres los programas de medición.', f: function (t, ms) {
       escritorio(ms);
       ventana(6, 6, 104, 62, 'HWINFO');
       R(9, 18, 98, 47, C.negro);

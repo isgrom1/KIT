@@ -5,204 +5,288 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Diagnóstico a distancia · ISGROM</title>
-<meta name="description" content="Diagnóstico a distancia de tu computador: revisa cómo está, sin instalar nada, y le manda a ISGROM un archivo cifrado.">
+<meta name="color-scheme" content="light">
+<title>ISGROM · Diagnóstico a distancia</title>
+<meta name="description" content="¿Tu PC anda lento? Diagnóstico a distancia en 3 minutos, sin instalar nada y sin que nadie se meta a tu computador. ISGROM, servicio técnico en Santiago.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 8 64 46'%3E%3Cpath d='M3 38 A29 7.5 0 0 1 61 38' fill='none' stroke='%2306b6d4' stroke-width='2' opacity='.4'/%3E%3Cpath d='M10 38 A22 22 0 0 1 54 38 Z' fill='%23e2e8f0' stroke='%2364748b'/%3E%3Cpath d='M3 38 A29 7.5 0 0 0 61 38' fill='none' stroke='%237c3aed' stroke-width='3'/%3E%3C/svg%3E">
 <style>
 :root {
-  --fondo:#f8fafc; --tinta:#0f172a; --suave:#475569; --linea:#e2e8f0; --tarjeta:rgba(255,255,255,.82);
-  --cian:#06b6d4; --violeta:#7c3aed; --verde:#10b981; --rojo:#e5484d; --ambar:#b45309;
-  --f-tit:'Segoe UI Variable Display','Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
-  --f-mono:'Cascadia Mono',Consolas,'SFMono-Regular',Menlo,monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --fondo:#0b1120; --tinta:#e2e8f0; --suave:#94a3b8; --linea:#1e293b; --tarjeta:rgba(15,23,42,.78); }
+  --papel:#f3ead7; --hoja:#fffdf6; --tinta:#1f2a44; --suave:#5c6680; --rojo:#d63a2f; --cuadro:rgba(70,110,170,.16);
+  --postit:#ffe866; --menta:#c8f2dc; --rosa:#ffd6d1; --cian:#0e7490; --violeta:#6d28d9;
+  --mano:'Ink Free','Segoe Print','Bradley Hand','Chalkboard SE','Comic Neue','Comic Sans MS',cursive;
+  --texto:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+  --mono:'Cascadia Mono',Consolas,Menlo,monospace;
 }
 * { box-sizing:border-box; }
 html, body { margin:0; overflow-x:hidden; }
-body { font-family:var(--f-tit); color:var(--tinta); background:var(--fondo); line-height:1.55;
-  background-image:linear-gradient(var(--linea) 1px,transparent 1px),linear-gradient(90deg,var(--linea) 1px,transparent 1px); background-size:40px 40px; }
-main { max-width:920px; margin:0 auto; padding:28px 16px 60px; }
-.tarjeta { background:var(--tarjeta); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); border:1px solid var(--linea); border-radius:24px; padding:26px; box-shadow:0 24px 60px rgba(15,23,42,.08); margin-top:18px; }
-.cabeza { display:flex; align-items:center; gap:16px; }
-.marca { font-size:12px; letter-spacing:3px; text-transform:uppercase; font-weight:700; background:linear-gradient(90deg,#2563eb,var(--violeta),var(--cian)); -webkit-background-clip:text; background-clip:text; color:transparent; }
-h1 { font-size:clamp(30px,6vw,46px); font-weight:300; margin:6px 0 0; letter-spacing:-.5px; }
-h2 { font-size:20px; margin:0 0 12px; }
-.lead { color:var(--suave); font-size:17px; max-width:640px; }
-.boton { display:inline-flex; align-items:center; gap:10px; padding:15px 26px; border-radius:999px; color:#fff; text-decoration:none; font-weight:700; font-size:17px;
-  background:linear-gradient(90deg,var(--cian),var(--violeta)); box-shadow:0 14px 34px rgba(124,58,237,.30); transition:transform .2s ease, box-shadow .2s ease; }
-.boton:hover { transform:translateY(-2px); box-shadow:0 18px 40px rgba(124,58,237,.38); }
-.boton2 { display:inline-flex; align-items:center; gap:8px; padding:12px 22px; border-radius:999px; text-decoration:none; font-weight:700; font-size:16px; color:var(--violeta); border:1.5px solid var(--violeta); background:transparent; }
-.boton2:hover { background:rgba(124,58,237,.08); }
-@media (prefers-color-scheme: dark) { .boton2 { color:#c4b5fd; border-color:#a78bfa; } }
-.boton[aria-disabled="true"] { opacity:.5; pointer-events:none; }
-.peso { color:var(--suave); font-size:14px; margin-left:12px; }
-.firma { font-family:var(--f-mono); font-size:12px; color:var(--verde); white-space:nowrap; }
-.codigo { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; border:1.5px solid var(--verde); background:rgba(16,185,129,.07); }
-.codigo b.cod { font-family:var(--f-mono); font-size:clamp(22px,5vw,30px); background:#0f172a; color:#5eead4; padding:10px 18px; border-radius:14px; white-space:nowrap; }
-.grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
-.pasos { counter-reset:p; list-style:none; padding:0; margin:0; }
-.pasos li { counter-increment:p; position:relative; padding:4px 0 18px 104px; min-height:58px; }
-.pasos li::before { content:"0" counter(p); position:absolute; left:0; top:12px; font-family:var(--f-mono); font-weight:700; font-size:20px; background:linear-gradient(135deg,var(--cian),var(--violeta)); -webkit-background-clip:text; background-clip:text; color:transparent; }
-.pasos li b:first-of-type { display:block; }
-.ico, .ico-h { display:inline-flex; align-items:center; justify-content:center; border-radius:14px; background:linear-gradient(135deg,rgba(6,182,212,.14),rgba(124,58,237,.14)); border:1px solid var(--linea); }
-.ico { position:absolute; left:38px; top:0; width:50px; height:50px; }
-.ico-h { width:34px; height:34px; border-radius:10px; margin-right:10px; vertical-align:middle; }
-.ico svg, .ico-h svg { width:26px; height:26px; fill:none; stroke:var(--violeta); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-.ico-h svg { width:20px; height:20px; stroke:var(--verde); }
-@media (prefers-color-scheme: dark) { .ico svg { stroke:#a78bfa; } }
-.guia-cuerpo { display:grid; grid-template-columns:minmax(0,340px) 1fr; gap:22px; align-items:center; }
-.guia-marco { background:#0b0d17; border-radius:14px; padding:8px; box-shadow:inset 0 0 0 3px #2a2f45, 0 18px 40px rgba(15,23,42,.18); }
-#guia-lienzo { display:block; width:100%; height:auto; aspect-ratio:192/120; image-rendering:pixelated; image-rendering:crisp-edges; border-radius:6px; }
-.guia-texto { min-height:4.8em; font-size:15.5px; margin:0 2px 10px; font-weight:600; }
+body { background:var(--papel); color:var(--tinta); font-family:var(--texto); line-height:1.6; font-size:17px;
+  background-image:linear-gradient(var(--cuadro) 1.5px,transparent 1.5px),linear-gradient(90deg,var(--cuadro) 1.5px,transparent 1.5px);
+  background-size:36px 36px; }
+body::before { content:""; position:fixed; left:62px; top:0; bottom:0; width:3px; background:rgba(214,58,47,.35); pointer-events:none; }
+main { max-width:960px; margin:0 auto; padding:26px 16px 70px 92px; }
+.mano { font-family:var(--mano); }
+a { color:var(--cian); }
+
+/* encabezado */
+.marca { display:flex; align-items:center; gap:12px; font-family:var(--mano); font-size:20px; color:var(--suave); }
+.marca b { color:var(--tinta); font-size:24px; letter-spacing:1px; }
+.hero { display:grid; grid-template-columns:1.25fr .9fr; gap:18px; align-items:center; margin-top:18px; }
+.pregunta { font-family:var(--mano); color:var(--rojo); font-size:28px; transform:rotate(-3deg); display:inline-block; }
+h1 { font-family:var(--mano); font-size:clamp(52px,8.5vw,92px); line-height:1.02; margin:6px 0 0; font-weight:700; }
+.lento { position:relative; display:inline-block; padding:0 .12em; }
+.lento svg { position:absolute; left:-6%; top:-12%; width:112%; height:124%; overflow:visible; }
+.bajada { font-size:19px; color:var(--tinta); max-width:540px; margin:18px 0 0; }
+.checks { list-style:none; padding:0; margin:18px 0 0; font-family:var(--mano); font-size:24px; }
+.checks li { display:flex; align-items:center; gap:12px; margin:4px 0; }
+.caja-check { width:26px; height:26px; flex:0 0 26px; }
+.paciente { width:100%; max-width:360px; justify-self:center; }
+
+/* post-it con la descarga */
+.postit { position:relative; background:var(--postit); padding:30px 28px 26px; margin:34px 0 10px; max-width:600px; transform:rotate(-1.4deg);
+  box-shadow:8px 14px 24px rgba(0,0,0,.14); }
+.cinta { position:absolute; width:170px; height:38px; background:rgba(240,225,170,.78); top:-18px; left:50%; transform:translateX(-50%) rotate(-3deg); box-shadow:0 2px 4px rgba(0,0,0,.08); }
+.postit h2 { font-family:var(--mano); font-size:34px; margin:0; line-height:1.1; }
+.postit .datos { font-family:var(--mano); font-size:21px; margin:8px 0 18px; }
+.boton { display:inline-flex; align-items:center; gap:10px; background:var(--tinta); color:#fff; text-decoration:none; font-family:var(--mano); font-weight:700; font-size:26px;
+  padding:12px 26px; border-radius:14px 18px 12px 20px; box-shadow:4px 5px 0 var(--rojo); transition:transform .15s ease, box-shadow .15s ease; }
+.boton:hover { transform:translate(-2px,-2px); box-shadow:6px 7px 0 var(--rojo); }
+.boton:focus-visible { outline:3px dashed var(--rojo); outline-offset:4px; }
+.postit .luego { font-size:15px; margin:16px 0 0; }
+.agenda { display:inline-block; margin-top:14px; font-family:var(--mano); font-size:21px; color:var(--tinta); }
+
+/* timbre */
+.timbre { display:inline-block; border:3px solid var(--cian); color:var(--cian); border-radius:10px; padding:6px 14px; font-family:var(--mono); font-weight:700;
+  letter-spacing:1px; transform:rotate(-6deg); background:rgba(255,255,255,.35); box-shadow:inset 0 0 0 2px rgba(14,116,144,.25); text-align:center; line-height:1.25; }
+.timbre small { display:block; font-family:var(--mano); font-size:14px; letter-spacing:0; font-weight:400; }
+.timbre-fila { display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin:22px 0 0; }
+
+/* hojas */
+.hoja { position:relative; background:var(--hoja); border-radius:4px 10px 6px 12px; padding:28px 30px 24px; margin:38px 0 0; box-shadow:0 1px 0 rgba(0,0,0,.05), 6px 10px 22px rgba(60,40,10,.10); }
+.hoja::before { content:""; position:absolute; width:120px; height:30px; top:-14px; left:28px; background:rgba(240,225,170,.75); transform:rotate(-4deg); }
+.hoja h2 { font-family:var(--mano); font-size:34px; margin:0 0 10px; line-height:1.15; }
+.subrayado { background:linear-gradient(transparent 62%, rgba(255,232,102,.9) 62%); padding:0 4px; }
+ul.ticks, ul.cruces { list-style:none; padding:0; margin:8px 0 0; }
+ul.ticks li, ul.cruces li { position:relative; padding-left:36px; margin:9px 0; }
+ul.ticks li::before { content:"✔"; position:absolute; left:4px; top:-3px; color:var(--rojo); font-family:var(--mano); font-size:24px; font-weight:700; }
+ul.cruces li::before { content:"✘"; position:absolute; left:4px; top:-3px; color:var(--suave); font-family:var(--mano); font-size:22px; }
+.dos { display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:38px; }
+.nota { padding:24px 24px 18px; box-shadow:6px 10px 20px rgba(60,40,10,.12); }
+.nota h2 { font-family:var(--mano); font-size:30px; margin:0 0 6px; }
+.nota.menta { background:var(--menta); transform:rotate(-1deg); }
+.nota.rosa { background:var(--rosa); transform:rotate(1.2deg); }
+
+/* pasos */
+ol.pasos { list-style:none; padding:0; margin:10px 0 0; counter-reset:p; }
+ol.pasos li { counter-increment:p; position:relative; padding:4px 0 14px 64px; }
+ol.pasos li::before { content:counter(p); position:absolute; left:4px; top:-2px; width:44px; height:44px; border:3px solid var(--rojo); border-radius:50% 45% 52% 48%;
+  font-family:var(--mano); font-weight:700; font-size:26px; color:var(--rojo); display:flex; align-items:center; justify-content:center; transform:rotate(-6deg); }
+ol.pasos li b:first-child { font-family:var(--mano); font-size:22px; display:block; }
+.aviso { border:2px dashed var(--rojo); border-radius:12px; padding:12px 16px; background:rgba(214,58,47,.05); margin-top:10px; }
+
+/* guía pixel art como polaroid */
+.guia-cuerpo { display:grid; grid-template-columns:minmax(0,340px) 1fr; gap:24px; align-items:center; }
+.polaroid { background:#fff; padding:12px 12px 40px; box-shadow:6px 10px 22px rgba(0,0,0,.16); transform:rotate(-2deg); position:relative; }
+.polaroid::after { content:"así se hace"; position:absolute; bottom:8px; left:0; right:0; text-align:center; font-family:var(--mano); font-size:20px; color:var(--suave); }
+#guia-lienzo { display:block; width:100%; height:auto; aspect-ratio:192/120; image-rendering:pixelated; image-rendering:crisp-edges; background:#0b0d17; }
+.guia-texto { min-height:4.6em; font-family:var(--mano); font-size:22px; margin:0 0 10px; }
 .guia-controles { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.guia-controles button { font:inherit; font-size:15px; min-width:44px; min-height:40px; border-radius:12px; border:1px solid var(--linea); background:var(--tarjeta); color:var(--tinta); cursor:pointer; }
-.guia-controles button:hover { border-color:var(--violeta); }
+.guia-controles button { font:inherit; font-size:16px; min-width:44px; min-height:40px; border-radius:10px 14px 10px 12px; border:2px solid var(--tinta); background:#fff; color:var(--tinta); cursor:pointer; }
+.guia-controles button:hover { background:var(--postit); }
 .guia-puntos { display:flex; gap:6px; margin-left:6px; flex-wrap:wrap; }
-.guia-puntos button { min-width:12px; min-height:12px; width:12px; height:12px; padding:0; border-radius:3px; background:var(--linea); border:0; }
-.guia-puntos button.activo { background:linear-gradient(135deg,var(--cian),var(--violeta)); }
-@media (max-width:720px) { .guia-cuerpo { grid-template-columns:1fr; gap:12px; } .guia-marco { width:100%; max-width:340px; margin:0 auto; box-sizing:border-box; } }
-@media (max-width:520px) { .pasos li { padding-left:62px; min-height:84px; } .ico { left:0; width:46px; height:46px; } .pasos li::before { top:52px; left:12px; font-size:15px; } }
-ul.si, ul.no { list-style:none; padding:0; margin:0; }
-ul.si li, ul.no li { padding-left:26px; position:relative; margin-bottom:8px; }
-ul.si li::before { content:"✓"; color:var(--verde); position:absolute; left:0; font-weight:700; }
-ul.no li::before { content:"✕"; color:var(--rojo); position:absolute; left:0; font-weight:700; }
-.aviso { border-left:4px solid var(--ambar); background:rgba(180,83,9,.07); padding:12px 16px; border-radius:12px; color:var(--tinta); }
-.chico { font-size:13px; color:var(--suave); }
-code { font-family:var(--f-mono); font-size:12.5px; word-break:break-all; }
-footer { text-align:center; color:var(--suave); font-size:13px; margin-top:30px; }
-footer a { color:inherit; }
-a { color:#0891b2; } @media (prefers-color-scheme: dark) { a { color:#5eead4; } }
-@media (max-width:720px) { .grid { grid-template-columns:1fr; } .tarjeta { padding:20px; } .peso { display:block; margin:10px 0 0; } }
+.guia-puntos button { min-width:12px; min-height:12px; width:12px; height:12px; padding:0; border-radius:50%; background:rgba(31,42,68,.2); border:0; }
+.guia-puntos button.activo { background:var(--rojo); }
+
+.chico { font-size:14.5px; color:var(--suave); }
+ol.pasos li, .hoja p, .nota li { overflow-wrap:anywhere; }
+#ver-tabla { width:100%; table-layout:fixed; }
+#ver-tabla td, #ver-tabla th { overflow-wrap:anywhere; vertical-align:top; }
+code { font-family:var(--mono); font-size:13px; word-break:break-all; }
+#ver-txt { width:100%; max-width:520px; padding:10px 12px; border:2px solid var(--tinta); border-radius:10px 14px 10px 12px; font:16px var(--mono); background:#fff; }
+#ver-res { font-weight:700; min-height:1.4em; }
+footer { text-align:center; font-family:var(--mano); font-size:20px; color:var(--suave); margin-top:40px; }
+footer .planeta { display:block; margin:0 auto 6px; }
+
+@media (max-width:820px) {
+  body::before { left:22px; }
+  main { padding:20px 16px 60px 40px; }
+  .hero { grid-template-columns:1fr; }
+  .paciente { max-width:280px; }
+  .dos, .guia-cuerpo { grid-template-columns:1fr; }
+  .polaroid { max-width:340px; margin:0 auto; }
+  .hoja { padding:24px 18px 20px; }
+}
+@media (max-width:420px) { .checks { font-size:21px; } .postit { padding:26px 18px 22px; } .boton { font-size:22px; padding:11px 18px; } .postit h2 { font-size:29px; } }
+@media (prefers-reduced-motion: reduce) { .boton { transition:none; } }
 </style>
 </head>
 <body>
 <main>
-  <section class="tarjeta">
-    <div class="cabeza">
-      <svg width="86" height="62" viewBox="0 8 64 46" aria-hidden="true">
-        <defs><linearGradient id="d" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#b8c4d4"/></linearGradient>
-        <linearGradient id="a" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#06b6d4"/><stop offset="1" stop-color="#7c3aed"/></linearGradient>
-        <clipPath id="c"><path d="M10 38 A22 22 0 0 1 54 38 Z"/></clipPath></defs>
-        <ellipse cx="32" cy="50" rx="20" ry="2.6" fill="#0f172a" opacity=".1"/>
-        <path d="M3 38 A29 7.5 0 0 1 61 38" fill="none" stroke="url(#a)" stroke-width="2" opacity=".38"/>
-        <path d="M10 38 A22 22 0 0 1 54 38 Z" fill="url(#d)" stroke="#64748b"/>
-        <g clip-path="url(#c)" fill="none" stroke="#94a3b8" stroke-width=".8"><path d="M10 38 L21 27 L32 38 L43 27 L54 38 M13 27 L51 27 M32 27 L32 38 M21 27 L27 18 L32 27 L37 18 L43 27 M27 18 L37 18 M27 18 L16 23 M37 18 L48 23 M27 18 L32 15 L37 18"/></g>
-        <path d="M3 38 A29 7.5 0 0 0 61 38" fill="none" stroke="url(#a)" stroke-width="2.6" stroke-linecap="round"/>
-        <circle cx="57.6" cy="41.6" r="2.3" fill="#06b6d4" stroke="#fff"/>
-      </svg>
-      <div>
-        <div class="marca">ISGROM · servicio técnico de notebooks y PC</div>
-        <h1>Diagnóstico a distancia</h1>
-      </div>
+  <header class="marca">
+    <svg class="planeta" width="70" height="50" viewBox="0 8 64 46" aria-hidden="true">
+      <defs><linearGradient id="d" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#b8c4d4"/></linearGradient>
+      <linearGradient id="a" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#06b6d4"/><stop offset="1" stop-color="#7c3aed"/></linearGradient>
+      <clipPath id="c"><path d="M10 38 A22 22 0 0 1 54 38 Z"/></clipPath></defs>
+      <path d="M3 38 A29 7.5 0 0 1 61 38" fill="none" stroke="url(#a)" stroke-width="2" opacity=".38"/>
+      <path d="M10 38 A22 22 0 0 1 54 38 Z" fill="url(#d)" stroke="#64748b"/>
+      <g clip-path="url(#c)" fill="none" stroke="#94a3b8" stroke-width=".8"><path d="M10 38 L21 27 L32 38 L43 27 L54 38 M13 27 L51 27 M32 27 L32 38 M21 27 L27 18 L32 27 L37 18 L43 27 M27 18 L37 18 M27 18 L16 23 M37 18 L48 23 M27 18 L32 15 L37 18"/></g>
+      <path d="M3 38 A29 7.5 0 0 0 61 38" fill="none" stroke="url(#a)" stroke-width="2.6" stroke-linecap="round"/>
+      <circle cx="57.6" cy="41.6" r="2.3" fill="#06b6d4" stroke="#fff"/>
+    </svg>
+    <span><b>ISGROM</b> · servicio técnico de notebooks y PC</span>
+  </header>
+
+  <section class="hero">
+    <div>
+      <span class="pregunta">oye, una pregunta...</span>
+      <h1>¿Tu PC anda <span class="lento">LENTO?<svg viewBox="0 0 640 260" preserveAspectRatio="none" aria-hidden="true"><path d="M40 140 C30 50, 300 10, 520 30 C640 45, 650 170, 560 215 C430 270, 120 250, 60 200 C20 168, 50 120, 110 95" fill="none" stroke="#d63a2f" stroke-width="10" stroke-linecap="round"/></svg></span></h1>
+      <ul class="checks">
+        <li><svg class="caja-check" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="3" width="21" height="21" rx="4" fill="none" stroke="#1f2a44" stroke-width="2.5"/><path d="M7 14 L11 19 L21 6" fill="none" stroke="#d63a2f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>tarda años en prender</li>
+        <li><svg class="caja-check" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="3" width="21" height="21" rx="4" fill="none" stroke="#1f2a44" stroke-width="2.5"/><path d="M7 14 L11 19 L21 6" fill="none" stroke="#d63a2f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>se calienta o suena como avión</li>
+        <li><svg class="caja-check" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="3" width="21" height="21" rx="4" fill="none" stroke="#1f2a44" stroke-width="2.5"/><path d="M7 14 L11 19 L21 6" fill="none" stroke="#d63a2f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>se pega jugando o con apps</li>
+        <li><svg class="caja-check" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="3" width="21" height="21" rx="4" fill="none" stroke="#1f2a44" stroke-width="2.5"/><path d="M7 14 L11 19 L21 6" fill="none" stroke="#d63a2f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>se apaga solito</li>
+      </ul>
     </div>
-    <p class="lead">Un programa que revisa cómo está tu computador y prueba su temperatura, sin instalar nada. Al final te muestra un informe para ti y deja un archivo cifrado que le mandas a ISGROM. Con eso te dice qué tiene tu equipo y qué conviene hacer.</p>
-    <p>
-      <a class="boton" id="descargar-rapido" href="Diagnostico_rapido.zip" download>Paso 1 · Revisión rápida ▸</a>
-      <span class="peso">ZIP · menos de 1 MB · unos 3 minutos · <b>no pide permiso de administrador</b> · <span class="firma" title="Al abrirlo, arriba a la derecha debe decir ✓ Paquete de ISGROM · 54A8-32F4. Si dice otro código o que fue modificado, no sigas.">✓ firmado · 54A8-32F4</span></span>
-    </p>
-    <p class="chico" style="margin-top:4px"><b>Paso 2 · Prueba de temperatura</b> (solo si después de la revisión te la pido: por calor, ruido o apagones): <a id="descargar" href="#" aria-disabled="true">descargar</a> · ZIP · 208 MB · unos 20 minutos · pide permiso de administrador para leer los sensores.</p>
-    <p><a class="boton2" href="https://calendar.app.google/J48B85ZHgLaqf2bj7" rel="noopener">📅 Agendar una hora con ISGROM</a></p>
+    <!-- el paciente: PC con suero, termómetro y parche -->
+    <svg class="paciente" viewBox="0 0 400 470" role="img" aria-label="Dibujo de un computador enfermo con suero, termómetro y parche">
+      <g fill="none" stroke="#1f2a44" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M340 40 L338 420"/><path d="M312 42 C326 38, 352 38, 368 42"/><path d="M300 424 C320 420, 356 420, 376 424"/><circle cx="304" cy="436" r="9"/><circle cx="372" cy="436" r="9"/>
+      </g>
+      <path d="M318 52 C316 90, 316 118, 324 134 L356 134 C364 118, 364 90, 362 52 Z" fill="#d0ebff" stroke="#1f2a44" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M322 96 C330 92, 350 92, 358 96 L356 130 L324 130 Z" fill="#74c0fc" opacity=".55"/>
+      <rect x="332" y="138" width="16" height="24" rx="4" fill="#fff" stroke="#1f2a44" stroke-width="4"/>
+      <path d="M340 162 C340 230, 300 230, 262 238" fill="none" stroke="#868e96" stroke-width="4" stroke-linecap="round"/>
+      <rect x="246" y="230" width="22" height="16" rx="3" fill="#fff" stroke="#1f2a44" stroke-width="3"/>
+      <g fill="none" stroke="#1f2a44" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M28 160 C95 154, 175 156, 248 162 L244 300 C160 306, 90 304, 32 298 Z" fill="#fffdf6"/>
+        <path d="M54 184 L222 186 L220 278 L56 276 Z" stroke-width="5"/>
+        <path d="M124 302 L118 338 M156 302 L162 338 M80 344 C122 340, 172 340, 206 346"/>
+        <path d="M92 210 l16 12 M108 210 l-16 12 M158 208 l16 12 M174 208 l-16 12"/>
+        <path d="M102 262 C120 250, 140 250, 152 258"/>
+      </g>
+      <path d="M146 256 L214 226" stroke="#adb5bd" stroke-width="10" stroke-linecap="round"/><path d="M146 256 L176 243" stroke="#e03131" stroke-width="5" stroke-linecap="round"/><circle cx="146" cy="256" r="7" fill="#e03131"/>
+      <g transform="rotate(-28 70 170)"><rect x="34" y="158" width="78" height="26" rx="12" fill="#f4c27a" stroke="#c08a3e" stroke-width="3"/><rect x="62" y="160" width="22" height="22" fill="#f8d9a6"/></g>
+      <g fill="#4dabf7"><path d="M236 104 c-10 16 -10 26 0 30 c10 -4 10 -14 0 -30z"/><path d="M14 196 c-7 12 -7 19 0 22 c7 -3 7 -10 0 -22z"/></g>
+      <g transform="rotate(8 230 110)"><rect x="186" y="84" width="96" height="52" rx="6" fill="#fff" stroke="#e03131" stroke-width="4"/><text x="234" y="122" text-anchor="middle" font-family="Ink Free, Segoe Print, Bradley Hand, cursive" font-size="36" font-weight="bold" fill="#e03131">98°</text></g>
+      <path d="M14 390 L92 390 L108 358 L126 426 L142 390 L222 390" fill="none" stroke="#2f9e44" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M250 382 c-8 -14 -28 -10 -28 6 c0 14 28 28 28 28 c0 0 28 -14 28 -28 c0 -16 -20 -20 -28 -6z" fill="#e03131"/>
+    </svg>
   </section>
 
-  <section class="tarjeta" id="confianza">
-    <h2><span class="ico-h" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span>¿Cómo sé que esto no es una estafa?</h2>
+  <p class="bajada">Te digo qué tiene tu computador y qué conviene hacer, <b>a distancia y sin instalar nada</b>: solo lo dejas prendido un ratito. Nadie se conecta a tu PC ni mueve tu mouse.</p>
+
+  <div class="postit">
+    <span class="cinta" aria-hidden="true"></span>
+    <h2>Revisión rápida de tu PC</h2>
+    <p class="datos">un solo archivo · menos de 1 MB · unos 3 minutos · <b>no pide permisos</b></p>
+    <a class="boton" id="descargar-rapido" href="Diagnostico_rapido.zip" download>Descargar ▸</a>
+    <p class="luego">Al terminar te ofrece, si quieres, la <b>prueba de temperatura</b> (unos 20 minutos; esa sí pide permiso de administrador, para leer los sensores). ¿Te pedí la prueba aparte? <a id="descargar" href="#" aria-disabled="true">Bájala aquí</a>.</p>
+  </div>
+  <a class="agenda" href="https://calendar.app.google/J48B85ZHgLaqf2bj7" rel="noopener">📅 o agenda una hora conmigo →</a>
+
+  <div class="timbre-fila">
+    <span class="timbre">ISGROM · 54A8-32F4<small>mi código: tiene que salir igual en la ventana</small></span>
+    <span class="chico">Cada paquete va firmado. Si la ventana muestra otro código, no sigas y avísame.</span>
+  </div>
+
+  <section class="hoja" id="confianza">
+    <h2>¿Cómo sé que esto <span class="subrayado">no es una estafa</span>?</h2>
     <p>Es bueno que te lo preguntes: hay muchas estafas que se parecen a esto. Así trabajo yo, siempre:</p>
-    <ul class="si">
+    <ul class="ticks">
       <li><b>Yo no te escribo primero.</b> Si alguien te contacta diciendo que es ISGROM, no soy yo.</li>
       <li><b>Nunca te pido el mouse:</b> no uso AnyDesk, TeamViewer ni ningún control remoto. Nadie ve tu pantalla.</li>
       <li><b>Nunca te pido claves</b>, códigos del banco ni que entres a ninguna cuenta.</li>
       <li><b>Nunca te pido pegar comandos</b> en Windows ni apagar el antivirus. Si Windows te advierte algo y tienes dudas, para y escríbeme.</li>
       <li><b>El programa se puede leer:</b> es texto con comentarios en español. Si conoces a alguien que sepa de computadores, muéstraselo antes de abrirlo. Me parece perfecto.</li>
-      <li><b>Mis paquetes llevan el código 54A8-32F4.</b> Tiene que salir igual en la ventana del programa, en el mensaje que te mando y aquí abajo. Si no calza, no lo abras.</li>
+      <li><b>Mis paquetes llevan el código 54A8-32F4.</b> Tiene que salir igual en la ventana del programa, en el mensaje que te mando y aquí. Si no calza, no lo abras.</li>
     </ul>
   </section>
 
-  <section class="tarjeta guia" aria-labelledby="guia-titulo">
-    <h2 id="guia-titulo"><span class="ico-h" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M10 8.5l5 2.5-5 2.5z"/></svg></span>Mira cómo se hace</h2>
+  <section class="hoja guia" aria-labelledby="guia-titulo">
+    <h2 id="guia-titulo">Mira cómo se hace</h2>
     <div class="guia-cuerpo">
-    <div class="guia-marco">
-      <canvas id="guia-lienzo" width="192" height="120" role="img" aria-label="Animación en pixel art con los 8 pasos del diagnóstico: descargar, abrir el ZIP, abrir DIAGNOSTICO.cmd, aceptar y empezar, dar permiso, esperar, ver el informe y enviar el archivo a ISGROM."></canvas>
-    </div>
-    <div class="guia-lado">
-    <p id="guia-texto" class="guia-texto" aria-live="polite"></p>
-    <div class="guia-controles">
-      <button type="button" id="guia-ant" aria-label="Paso anterior">◀</button>
-      <button type="button" id="guia-play" aria-label="Pausar">❚❚</button>
-      <button type="button" id="guia-sig" aria-label="Paso siguiente">▶</button>
-      <span id="guia-puntos" class="guia-puntos"></span>
-    </div>
-    </div>
+      <div class="polaroid">
+        <canvas id="guia-lienzo" width="192" height="120" role="img" aria-label="Animación en pixel art con los pasos del diagnóstico: descargar, abrir el ZIP, abrir DIAGNOSTICO.cmd, aceptar y empezar, esperar, ver el informe y enviar el archivo a ISGROM."></canvas>
+      </div>
+      <div class="guia-lado">
+        <p id="guia-texto" class="guia-texto" aria-live="polite"></p>
+        <div class="guia-controles">
+          <button type="button" id="guia-ant" aria-label="Paso anterior">◀</button>
+          <button type="button" id="guia-play" aria-label="Pausar">❚❚</button>
+          <button type="button" id="guia-sig" aria-label="Paso siguiente">▶</button>
+          <span id="guia-puntos" class="guia-puntos"></span>
+        </div>
+      </div>
     </div>
   </section>
 
-  <section class="tarjeta">
-    <h2>Instrucciones</h2>
+  <section class="hoja">
+    <h2>Paso a paso</h2>
     <ol class="pasos">
-      <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg></span><b>Descarga el archivo.</b> Descarga el ZIP y ábrelo con doble clic: adentro hay un solo archivo. No hace falta extraerlo.</li>
-      <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4M9 8.5l6 5M15 8.5l-6 5"/></svg></span><b>Prepara el computador.</b> Cierra todos los programas abiertos (juegos, navegador, Word, Spotify, etc.). Si es un notebook, conéctalo al cargador.</li>
-      <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M10 11l4 2-4 2z"/></svg></span><b>Abre el programa.</b> Haz doble clic en <b>DIAGNOSTICO.cmd</b> (la primera vez demora unos segundos en abrir). Se abrirá una ventana que explica qué hace el programa y qué no.</li>
-      <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><b>Inicia el diagnóstico.</b> Revisa que arriba a la derecha diga <b>✓ Paquete de ISGROM · 54A8-32F4</b>, escribe tu nombre, marca <b>Acepto</b> y haz clic en <b>Empezar</b>. La revisión rápida no pide permisos; solo la prueba de temperatura (paso 2) pide permiso de administrador, para leer los sensores y los discos. La revisión rápida dura unos 3 minutos. La prueba de temperatura dura unos 20: ahí no uses el computador y no cierres los dos programas de medición que se abren solos (HWiNFO y OCCT).</li>
-      <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/></svg></span><b>Envía el resultado.</b> Al terminar se abrirá tu informe en el navegador y quedará un archivo llamado <b>Diagnostico_para_ISGROM_….kitdiag</b>. El programa te ofrece enviárselo a ISGROM en ese momento (escribe <b>SI</b>); si prefieres, mándaselo por WhatsApp o correo.</li>
+      <li><b>Descarga el archivo.</b> Ábrelo con doble clic: adentro hay un solo archivo, <b>DIAGNOSTICO.cmd</b>. No hace falta extraerlo.</li>
+      <li><b>Ábrelo.</b> Doble clic en DIAGNOSTICO.cmd. Se abre una ventana mía que explica qué hace y qué no.</li>
+      <li><b>Revisa el código y empieza.</b> Arriba a la derecha tiene que decir <b>✓ Paquete de ISGROM · 54A8-32F4</b>. Escribe tu nombre, marca <b>Acepto</b> y aprieta <b>Empezar</b>. Son unos 3 minutos y no pide permisos.</li>
+      <li><b>Mándame el resultado.</b> Al final se abre tu informe en el navegador y queda un archivo <b>Diagnostico_para_ISGROM_….kitdiag</b>. El programa te ofrece enviármelo (escribe <b>SI</b>), o me lo mandas por WhatsApp.</li>
+      <li><b>Si quieres, la prueba de temperatura.</b> La misma ventana te la ofrece: unos 20 minutos, baja dos programas de medición (HWiNFO y OCCT) y pide permiso de administrador. Durante la prueba no uses el computador.</li>
     </ol>
-    <div class="aviso"><b>Si aparece el aviso “Windows protegió su PC”:</b> haz clic en <i>Más información</i> y luego en <i>Ejecutar de todas formas</i>. Windows muestra este aviso con los programas que no provienen de una gran empresa; la autenticidad del paquete se comprueba con el sello ✓ 54A8-32F4 de la ventana.</div>
+    <div class="aviso"><b>Si aparece el aviso “Windows protegió su PC”:</b> haz clic en <i>Más información</i> y luego en <i>Ejecutar de todas formas</i>. Windows lo muestra con programas que no son de una gran empresa; lo que asegura que es mío es el código <b>54A8-32F4</b> de la ventana.</div>
   </section>
 
-  <section class="grid">
-    <div class="tarjeta">
+  <section class="dos">
+    <div class="nota menta">
       <h2>Qué hace</h2>
-      <ul class="si">
-        <li>Revisa disco, memoria, batería, temperatura, inicio de Windows, seguridad y estabilidad.</li>
-        <li>Prueba la temperatura con carga (HWiNFO y OCCT, programas conocidos de diagnóstico).</li>
+      <ul class="ticks">
+        <li>Revisa disco, memoria, batería, inicio de Windows, seguridad y estabilidad.</li>
+        <li>Si quieres, prueba la temperatura con carga (HWiNFO y OCCT, programas conocidos de diagnóstico).</li>
         <li>Te deja un informe con gráficos que explica cada número.</li>
-        <li>Deja un archivo cifrado que solo ISGROM puede abrir.</li>
+        <li>Deja un archivo cifrado que solo yo puedo abrir.</li>
       </ul>
     </div>
-    <div class="tarjeta">
+    <div class="nota rosa">
       <h2>Qué no hace</h2>
-      <ul class="no">
+      <ul class="cruces">
         <li>No instala programas ni cambia la configuración de Windows.</li>
         <li>No mira tus documentos, fotos, contraseñas ni historial.</li>
-        <li>No usa internet durante la revisión. Al final te pregunta si quieres enviarle el archivo a ISGROM (va cifrado); si no, se lo mandas tú.</li>
-        <li>No cobra nada por sí solo: lo que sigue se conversa con ISGROM.</li>
+        <li>Solo usa internet si tú quieres: para enviarme el archivo o para bajar la prueba de temperatura.</li>
+        <li>No cobra nada por sí solo: lo que sigue lo conversamos.</li>
         <li>Si después te propongo un trabajo a distancia, lo corres tú: cubre los cambios de la lista y deshacerlos; no cubre archivos que estén solo en la nube, programas que ya venían dañados o con virus, ni fallas de piezas.</li>
       </ul>
     </div>
   </section>
 
-  <section class="tarjeta" id="privacidad">
-    <h2><span class="ico-h" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>Privacidad y tus datos</h2>
-    <p class="chico" style="font-size:14.5px">Antes de empezar, la ventana te muestra este texto y solo sigue si marcas <b>Acepto</b> (Ley 21.719 de protección de datos personales):</p>
-    <ul class="si">
-      <li>Se registran datos del equipo (modelo, número de serie, componentes, temperatura, espacio en disco, programas que arrancan con Windows y estado de seguridad) y, solo si se los das a ISGROM, tu nombre, forma de contacto y comuna.</li>
+  <section class="hoja" id="privacidad">
+    <h2>Privacidad y tus datos</h2>
+    <p class="chico" style="font-size:15.5px">Antes de empezar, la ventana te muestra este texto y solo sigue si marcas <b>Acepto</b> (Ley 21.719 de protección de datos personales):</p>
+    <ul class="ticks">
+      <li>Se registran datos del equipo (modelo, número de serie, componentes, temperatura, espacio en disco, programas que arrancan con Windows y estado de seguridad) y, solo si me los das, tu nombre, forma de contacto y comuna.</li>
       <li>Se usan solo para diagnosticar y atender tu equipo. No se venden ni se comparten con nadie.</li>
       <li>Con todos los equipos revisados saco estadísticas generales, sin nombres, series ni modelos (por ejemplo, cuántos de cada 10 equipos tienen el disco casi lleno). Solo cifras de 5 equipos o más.</li>
       <li>Se guardan <b>18 meses</b> desde tu última atención. Después se borran o quedan sin datos que te identifiquen.</li>
-      <li>Si eliges enviar el archivo por internet, pasa por el Drive de ISGROM (Google), siempre cifrado: solo él lo puede abrir.</li>
-      <li>Puedes pedir ver tus datos, corregirlos o borrarlos, escribiéndole a ISGROM por el mismo medio por el que lo contactaste.</li>
+      <li>Si eliges enviarme el archivo por internet, pasa por mi Drive (Google), siempre cifrado: solo yo lo puedo abrir.</li>
+      <li>Puedes pedir ver tus datos, corregirlos o borrarlos, escribiéndome por el mismo medio por el que me contactaste.</li>
     </ul>
-    <ul class="no" style="margin-top:8px">
+    <ul class="cruces" style="margin-top:8px">
       <li>No se registran tus documentos, fotos, contraseñas, historial de navegación ni el contenido de tus archivos.</li>
     </ul>
     <p class="chico">El aviso para la revisión anual gratuita es opcional: va en una casilla aparte.</p>
   </section>
 
-  <section class="tarjeta">
-    <h2>Para los que quieren revisar más</h2>
-    <p class="chico">Cada paquete viene firmado por ISGROM: la ventana lo comprueba sola y muestra arriba, en chico, <b>✓ Paquete de ISGROM · 54A8-32F4</b>. Si en cambio dice que el paquete fue modificado, no sigas y avísale.</p>
-    <p class="chico">Los scripts son texto y se pueden leer: van dentro del paquete (carpeta <code>motor</code>), con comentarios en español. Cada paquete trae <code>motor\manifiesto.json</code> con la huella SHA-256 de cada archivo, firmada con la llave RSA-3072 de ISGROM; el código de ISGROM son los primeros 8 caracteres del SHA-256 del módulo de esa llave.</p>
-    <div class="verificar" id="verificar">
-      <h3 style="margin:14px 0 6px;font-size:16px">¿Este paquete es de verdad?</h3>
-      <p class="chico">Escribe el código que te muestra la ventana (arriba a la derecha) o pega la huella SHA-256 del ZIP que bajaste.</p>
-      <input id="ver-txt" type="text" autocomplete="off" spellcheck="false" placeholder="Ej.: 54A8-32F4" style="width:100%;max-width:520px;padding:9px 11px;border:1px solid #cbd5e1;border-radius:10px;font:15px Consolas,monospace">
-      <p id="ver-res" class="chico" aria-live="polite" style="font-weight:600;min-height:1.4em"></p>
-      <p class="chico">¿Te mostraron un <b>pasaporte del equipo</b> (historial de mantenciones firmado por ISGROM)? Compruébalo en <a href="verificar.html">verificar.html</a>.</p>
-      <details><summary class="chico">Paquetes publicados</summary><table class="chico" id="ver-tabla" style="border-collapse:collapse;margin-top:6px"></table></details>
-    </div>
-    <p class="chico">Huella SHA-256 del ZIP publicado:<br><code id="huella">7699f20c192468fb01fbe4430fee033d32b429637fdbc5aafa58e56fc6ea1716</code></p>
+  <section class="hoja" id="verificar">
+    <h2>¿Este paquete es de verdad?</h2>
+    <p class="chico">Escribe el código que te muestra la ventana (arriba a la derecha) o pega la huella SHA-256 del ZIP que bajaste.</p>
+    <input id="ver-txt" type="text" autocomplete="off" spellcheck="false" placeholder="Ej.: 54A8-32F4" aria-label="Código o huella del paquete">
+    <p id="ver-res" class="chico" aria-live="polite"></p>
+    <p class="chico">¿Te mostraron un <b>pasaporte del equipo</b> (historial de mantenciones firmado por mí)? Compruébalo en <a href="verificar.html">verificar.html</a>.</p>
+    <details><summary class="chico">Para los que quieren revisar más</summary>
+      <p class="chico">Cada paquete trae <code>motor\manifiesto.json</code> con la huella SHA-256 de cada archivo, firmada con mi llave RSA-3072; el código son los primeros 8 caracteres del SHA-256 del módulo de esa llave. Los scripts son texto y se pueden leer dentro del paquete (carpeta <code>motor</code>), con comentarios en español.</p>
+      <p class="chico">Huella SHA-256 del último ZIP publicado:<br><code id="huella">—</code></p>
+      <table class="chico" id="ver-tabla" style="border-collapse:collapse;margin-top:6px"></table>
+    </details>
   </section>
 
-  <footer>¿Dudas? Escríbele a ISGROM por el mismo WhatsApp desde donde te llegó este link.</footer>
+  <footer>
+    <svg class="planeta" width="56" height="40" viewBox="0 8 64 46" aria-hidden="true"><path d="M3 38 A29 7.5 0 0 1 61 38" fill="none" stroke="#0e7490" stroke-width="2" opacity=".4"/><path d="M10 38 A22 22 0 0 1 54 38 Z" fill="#fffdf6" stroke="#5c6680"/><path d="M3 38 A29 7.5 0 0 0 61 38" fill="none" stroke="#6d28d9" stroke-width="2.6" stroke-linecap="round"/></svg>
+    ¿Dudas? Escríbeme por el mismo WhatsApp desde donde te llegó este link.<br>ISGROM · Santiago
+  </footer>
 </main>
 <script src="pagina.js"></script>
 <script src="guia.js" defer></script>
