@@ -1,9 +1,4 @@
 // Scripts de la página (fuera del HTML para que la política de seguridad solo permita scripts de este sitio).
-  // Link de descarga (Drive). Vacío mientras no esté publicado el ZIP.
-  var DESCARGA = 'https://drive.google.com/file/d/1TCOkMSqL-Zxz9qUz79uobWepj-yh-6QY/view?usp=sharing';
-  var b = document.getElementById('descargar');
-  if (b && DESCARGA) { b.href = DESCARGA; b.removeAttribute('aria-disabled'); b.setAttribute('rel', 'noopener'); }
-  else if (b) { b.textContent = 'Descarga disponible pronto'; }
 
   // Verificador del sello: compara con los paquetes publicados (paquetes.json, lo escribe armar_paquete.ps1).
   (function () {
