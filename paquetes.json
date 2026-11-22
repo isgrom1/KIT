@@ -1,0 +1,19 @@
+{
+    "_leeme":  "Paquetes publicados del diagnóstico a distancia (lo actualiza remoto\\armar_paquete.ps1). La página lo usa para verificar el código y la huella.",
+    "codigo":  "54A8-32F4",
+    "llave":  {
+                  "kty":  "RSA",
+                  "n":  "2HLU3dSTOMreovhMi0Bc1x5JIzv5UVURzM2WmArqyg88lAptsaOfi_UnqOyN6cuuFVIHQU6Qj-EFm9GotKJ0XYe1buoT9M4u-D2i_mX66o_Jwf3nlw1ePDQcOFIGdRCRh6sBQIumD2S9aEP0lj_eudmINKvJp8lFBMQpLw5QHutcc_t0mi-qzgapnSBrZRXnDpLnFbpcBRq2R6ZEDa6ja-7om0ZZ5XcYVPBpQ2ERktiYZwmd4fpI7wmQijqJL6BE-qAVrJkCmmknh6K8VwYqUTUXTA2BUVc3r7E--dgJDSroeE70C1-yljH6WNkNz1e69mokfrKsG4ZKzwmFoxu4j7Xd1IgCjy74S9nOtzm3EKNUBYQ9fMou1bGLA-bXRnmmEU7Tw_jf8Jlk2P6VVp6QHtK5-I9jjlkBjCTjDXjdO_Rw7eLvh2EPbLwGUXvonYynx_Tjf7cKHw_6fWDbbHuGgdAQBbyn7DfogOAZkGRGpzwcJjcJX3wCUpx8rDQuIfXV",
+                  "e":  "AQAB",
+                  "alg":  "RS256"
+              },
+    "paquetes":  [
+                     {
+                         "fecha":  "2026-11-22",
+                         "archivo":  "Diagnostico_remoto_20261122.zip",
+                         "sha256":  "7699f20c192468fb01fbe4430fee033d32b429637fdbc5aafa58e56fc6ea1716",
+                         "codigo":  "54A8-32F4",
+                         "mb":  208
+                     }
+                 ]
+}

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verificar pasaporte · ISGROM</title>
+<style>
+  :root { --tinta:#0f172a; --suave:#64748b; --borde:#e2e8f0; }
+  body { font-family:"Segoe UI",Arial,sans-serif; color:var(--tinta); background:#f8fafc; margin:0; padding:24px 16px; }
+  main { max-width:720px; margin:auto; }
+  .tarjeta { background:#fff; border:1px solid var(--borde); border-radius:18px; padding:22px; margin-bottom:16px; }
+  h1 { margin:0 0 6px; font-size:24px; }
+  p { line-height:1.5; }
+  .zona { border:2px dashed #94a3b8; border-radius:14px; padding:34px 16px; text-align:center; color:var(--suave); cursor:pointer; }
+  .zona.encima { border-color:#06b6d4; background:#ecfeff; }
+  .ok { color:#047857; } .mal { color:#b91c1c; }
+  #res { font-weight:600; font-size:17px; min-height:1.4em; }
+  a { color:#2563eb; }
+</style>
+</head>
+<body>
+<main>
+  <section class="tarjeta">
+    <div style="color:var(--suave);font-size:13px">ISGROM · servicio técnico de notebooks y PC</div>
+    <h1>Verificar un pasaporte del equipo</h1>
+    <p>El pasaporte es el historial de mantenciones de un equipo, firmado por ISGROM. Si te lo mostraron al comprar un equipo usado, aquí compruebas que es auténtico y que nadie lo cambió. Todo se revisa en tu navegador: el archivo no se sube a ninguna parte.</p>
+    <label class="zona" id="zona">Arrastra aquí el archivo <b>Pasaporte_….html</b> o haz clic para elegirlo
+      <input type="file" id="archivo" accept=".html,.htm" style="display:none">
+    </label>
+    <p id="res" aria-live="polite"></p>
+    <div id="detalle" style="font-size:14px;color:var(--suave)"></div>
+  </section>
+  <p style="font-size:13px;color:var(--suave)"><a href="./">← Volver a la página de ISGROM</a></p>
+</main>
+<script src="verificar.js"></script>
+</body>
+</html>

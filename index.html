@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diagnóstico a distancia · ISGROM</title>
+<meta name="description" content="Diagnóstico a distancia de tu computador: revisa cómo está, sin instalar nada, y le manda a ISGROM un archivo cifrado.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 8 64 46'%3E%3Cpath d='M3 38 A29 7.5 0 0 1 61 38' fill='none' stroke='%2306b6d4' stroke-width='2' opacity='.4'/%3E%3Cpath d='M10 38 A22 22 0 0 1 54 38 Z' fill='%23e2e8f0' stroke='%2364748b'/%3E%3Cpath d='M3 38 A29 7.5 0 0 0 61 38' fill='none' stroke='%237c3aed' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+:root {
+  --fondo:#f8fafc; --tinta:#0f172a; --suave:#475569; --linea:#e2e8f0; --tarjeta:rgba(255,255,255,.82);
+  --cian:#06b6d4; --violeta:#7c3aed; --verde:#10b981; --rojo:#e5484d; --ambar:#b45309;
+  --f-tit:'Segoe UI Variable Display','Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+  --f-mono:'Cascadia Mono',Consolas,'SFMono-Regular',Menlo,monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --fondo:#0b1120; --tinta:#e2e8f0; --suave:#94a3b8; --linea:#1e293b; --tarjeta:rgba(15,23,42,.78); }
+}
+* { box-sizing:border-box; }
+html, body { margin:0; overflow-x:hidden; }
+body { font-family:var(--f-tit); color:var(--tinta); background:var(--fondo); line-height:1.55;
+  background-image:linear-gradient(var(--linea) 1px,transparent 1px),linear-gradient(90deg,var(--linea) 1px,transparent 1px); background-size:40px 40px; }
+main { max-width:920px; margin:0 auto; padding:28px 16px 60px; }
+.tarjeta { background:var(--tarjeta); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); border:1px solid var(--linea); border-radius:24px; padding:26px; box-shadow:0 24px 60px rgba(15,23,42,.08); margin-top:18px; }
+.cabeza { display:flex; align-items:center; gap:16px; }
+.marca { font-size:12px; letter-spacing:3px; text-transform:uppercase; font-weight:700; background:linear-gradient(90deg,#2563eb,var(--violeta),var(--cian)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+h1 { font-size:clamp(30px,6vw,46px); font-weight:300; margin:6px 0 0; letter-spacing:-.5px; }
+h2 { font-size:20px; margin:0 0 12px; }
+.lead { color:var(--suave); font-size:17px; max-width:640px; }
+.boton { display:inline-flex; align-items:center; gap:10px; padding:15px 26px; border-radius:999px; color:#fff; text-decoration:none; font-weight:700; font-size:17px;
+  background:linear-gradient(90deg,var(--cian),var(--violeta)); box-shadow:0 14px 34px rgba(124,58,237,.30); transition:transform .2s ease, box-shadow .2s ease; }
+.boton:hover { transform:translateY(-2px); box-shadow:0 18px 40px rgba(124,58,237,.38); }
+.boton2 { display:inline-flex; align-items:center; gap:8px; padding:12px 22px; border-radius:999px; text-decoration:none; font-weight:700; font-size:16px; color:var(--violeta); border:1.5px solid var(--violeta); background:transparent; }
+.boton2:hover { background:rgba(124,58,237,.08); }
+@media (prefers-color-scheme: dark) { .boton2 { color:#c4b5fd; border-color:#a78bfa; } }
+.boton[aria-disabled="true"] { opacity:.5; pointer-events:none; }
+.peso { color:var(--suave); font-size:14px; margin-left:12px; }
+.firma { font-family:var(--f-mono); font-size:12px; color:var(--verde); white-space:nowrap; }
+.codigo { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; border:1.5px solid var(--verde); background:rgba(16,185,129,.07); }
+.codigo b.cod { font-family:var(--f-mono); font-size:clamp(22px,5vw,30px); background:#0f172a; color:#5eead4; padding:10px 18px; border-radius:14px; white-space:nowrap; }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.pasos { counter-reset:p; list-style:none; padding:0; margin:0; }
+.pasos li { counter-increment:p; position:relative; padding:4px 0 18px 104px; min-height:58px; }
+.pasos li::before { content:"0" counter(p); position:absolute; left:0; top:12px; font-family:var(--f-mono); font-weight:700; font-size:20px; background:linear-gradient(135deg,var(--cian),var(--violeta)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.pasos li b:first-of-type { display:block; }
+.ico, .ico-h { display:inline-flex; align-items:center; justify-content:center; border-radius:14px; background:linear-gradient(135deg,rgba(6,182,212,.14),rgba(124,58,237,.14)); border:1px solid var(--linea); }
+.ico { position:absolute; left:38px; top:0; width:50px; height:50px; }
+.ico-h { width:34px; height:34px; border-radius:10px; margin-right:10px; vertical-align:middle; }
+.ico svg, .ico-h svg { width:26px; height:26px; fill:none; stroke:var(--violeta); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.ico-h svg { width:20px; height:20px; stroke:var(--verde); }
+@media (prefers-color-scheme: dark) { .ico svg { stroke:#a78bfa; } }
+.guia-cuerpo { display:grid; grid-template-columns:minmax(0,340px) 1fr; gap:22px; align-items:center; }
+.guia-marco { background:#0b0d17; border-radius:14px; padding:8px; box-shadow:inset 0 0 0 3px #2a2f45, 0 18px 40px rgba(15,23,42,.18); }
+#guia-lienzo { display:block; width:100%; height:auto; aspect-ratio:192/120; image-rendering:pixelated; image-rendering:crisp-edges; border-radius:6px; }
+.guia-texto { min-height:4.8em; font-size:15.5px; margin:0 2px 10px; font-weight:600; }
+.guia-controles { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.guia-controles button { font:inherit; font-size:15px; min-width:44px; min-height:40px; border-radius:12px; border:1px solid var(--linea); background:var(--tarjeta); color:var(--tinta); cursor:pointer; }
+.guia-controles button:hover { border-color:var(--violeta); }
+.guia-puntos { display:flex; gap:6px; margin-left:6px; flex-wrap:wrap; }
+.guia-puntos button { min-width:12px; min-height:12px; width:12px; height:12px; padding:0; border-radius:3px; background:var(--linea); border:0; }
+.guia-puntos button.activo { background:linear-gradient(135deg,var(--cian),var(--violeta)); }
+@media (max-width:720px) { .guia-cuerpo { grid-template-columns:1fr; gap:12px; } .guia-marco { width:100%; max-width:340px; margin:0 auto; box-sizing:border-box; } }
+@media (max-width:520px) { .pasos li { padding-left:62px; min-height:84px; } .ico { left:0; width:46px; height:46px; } .pasos li::before { top:52px; left:12px; font-size:15px; } }
+ul.si, ul.no { list-style:none; padding:0; margin:0; }
+ul.si li, ul.no li { padding-left:26px; position:relative; margin-bottom:8px; }
+ul.si li::before { content:"✓"; color:var(--verde); position:absolute; left:0; font-weight:700; }
+ul.no li::before { content:"✕"; color:var(--rojo); position:absolute; left:0; font-weight:700; }
+.aviso { border-left:4px solid var(--ambar); background:rgba(180,83,9,.07); padding:12px 16px; border-radius:12px; color:var(--tinta); }
+.chico { font-size:13px; color:var(--suave); }
+code { font-family:var(--f-mono); font-size:12.5px; word-break:break-all; }
+footer { text-align:center; color:var(--suave); font-size:13px; margin-top:30px; }
+footer a { color:inherit; }
+a { color:#0891b2; } @media (prefers-color-scheme: dark) { a { color:#5eead4; } }
+@media (max-width:720px) { .grid { grid-template-columns:1fr; } .tarjeta { padding:20px; } .peso { display:block; margin:10px 0 0; } }
+</style>
+</head>
+<body>
+<main>
+  <section class="tarjeta">
+    <div class="cabeza">
+      <svg width="86" height="62" viewBox="0 8 64 46" aria-hidden="true">
+        <defs><linearGradient id="d" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#b8c4d4"/></linearGradient>
+        <linearGradient id="a" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#06b6d4"/><stop offset="1" stop-color="#7c3aed"/></linearGradient>
+        <clipPath id="c"><path d="M10 38 A22 22 0 0 1 54 38 Z"/></clipPath></defs>
+        <ellipse cx="32" cy="50" rx="20" ry="2.6" fill="#0f172a" opacity=".1"/>
+        <path d="M3 38 A29 7.5 0 0 1 61 38" fill="none" stroke="url(#a)" stroke-width="2" opacity=".38"/>
+        <path d="M10 38 A22 22 0 0 1 54 38 Z" fill="url(#d)" stroke="#64748b"/>
+        <g clip-path="url(#c)" fill="none" stroke="#94a3b8" stroke-width=".8"><path d="M10 38 L21 27 L32 38 L43 27 L54 38 M13 27 L51 27 M32 27 L32 38 M21 27 L27 18 L32 27 L37 18 L43 27 M27 18 L37 18 M27 18 L16 23 M37 18 L48 23 M27 18 L32 15 L37 18"/></g>
+        <path d="M3 38 A29 7.5 0 0 0 61 38" fill="none" stroke="url(#a)" stroke-width="2.6" stroke-linecap="round"/>
+        <circle cx="57.6" cy="41.6" r="2.3" fill="#06b6d4" stroke="#fff"/>
+      </svg>
+      <div>
+        <div class="marca">ISGROM · servicio técnico de notebooks y PC</div>
+        <h1>Diagnóstico a distancia</h1>
+      </div>
+    </div>
+    <p class="lead">Un programa que revisa cómo está tu computador y prueba su temperatura, sin instalar nada. Al final te muestra un informe para ti y deja un archivo cifrado que le mandas a ISGROM. Con eso te dice qué tiene tu equipo y qué conviene hacer.</p>
+    <p>
+      <a class="boton" id="descargar" href="#" aria-disabled="true">Descargar el diagnóstico ▸</a>
+      <span class="peso">ZIP · 208 MB · Windows 10 y 11 · <span class="firma" title="Al abrirlo, arriba a la derecha debe decir ✓ Paquete de ISGROM · 54A8-32F4. Si dice otro código o que fue modificado, no sigas.">✓ firmado · 54A8-32F4</span></span>
+    </p>
+    <p><a class="boton2" href="https://calendar.app.google/J48B85ZHgLaqf2bj7" rel="noopener">📅 Agendar una hora con ISGROM</a></p>
+  </section>
+
+  <section class="tarjeta" id="confianza">
+    <h2><span class="ico-h" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span>¿Cómo sé que esto no es una estafa?</h2>
+    <p>Es bueno que te lo preguntes: hay muchas estafas que se parecen a esto. Así trabajo yo, siempre:</p>
+    <ul class="si">
+      <li><b>Yo no te escribo primero.</b> Si alguien te contacta diciendo que es ISGROM, no soy yo.</li>
+      <li><b>Nunca te pido el mouse:</b> no uso AnyDesk, TeamViewer ni ningún control remoto. Nadie ve tu pantalla.</li>
+      <li><b>Nunca te pido claves</b>, códigos del banco ni que entres a ninguna cuenta.</li>
+      <li><b>Nunca te pido pegar comandos</b> en Windows ni apagar el antivirus. Si Windows te advierte algo y tienes dudas, para y escríbeme.</li>
+      <li><b>El programa se puede leer:</b> es texto con comentarios en español. Si conoces a alguien que sepa de computadores, muéstraselo antes de abrirlo. Me parece perfecto.</li>
+      <li><b>Mis paquetes llevan el código 54A8-32F4.</b> Tiene que salir igual en la ventana del programa, en el mensaje que te mando y aquí abajo. Si no calza, no lo abras.</li>
+    </ul>
+  </section>
+
+  <section class="tarjeta guia" aria-labelledby="guia-titulo">
+    <h2 id="guia-titulo"><span class="ico-h" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M10 8.5l5 2.5-5 2.5z"/></svg></span>Mira cómo se hace</h2>
+    <div class="guia-cuerpo">
+    <div class="guia-marco">
+      <canvas id="guia-lienzo" width="192" height="120" role="img" aria-label="Animación en pixel art con los 8 pasos del diagnóstico: descargar, abrir el ZIP, abrir DIAGNOSTICO.cmd, aceptar y empezar, dar permiso, esperar, ver el informe y enviar el archivo a ISGROM."></canvas>
+    </div>
+    <div class="guia-lado">
+    <p id="guia-texto" class="guia-texto" aria-live="polite"></p>
+    <div class="guia-controles">
+      <button type="button" id="guia-ant" aria-label="Paso anterior">◀</button>
+      <button type="button" id="guia-play" aria-label="Pausar">❚❚</button>
+      <button type="button" id="guia-sig" aria-label="Paso siguiente">▶</button>
+      <span id="guia-puntos" class="guia-puntos"></span>
+    </div>
+    </div>
+    </div>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Instrucciones</h2>
+    <ol class="pasos">
+      <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg></span><b>Descarga el archivo.</b> Descarga el ZIP y ábrelo con doble clic: adentro hay un solo archivo. No hace falta extraerlo.</li>
+      <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4M9 8.5l6 5M15 8.5l-6 5"/></svg></span><b>Prepara el computador.</b> Cierra todos los programas abiertos (juegos, navegador, Word, Spotify, etc.). Si es un notebook, conéctalo al cargador.</li>
+      <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M10 11l4 2-4 2z"/></svg></span><b>Abre el programa.</b> Haz doble clic en <b>DIAGNOSTICO.cmd</b> (la primera vez demora unos segundos en abrir). Se abrirá una ventana que explica qué hace el programa y qué no.</li>
+      <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><b>Inicia el diagnóstico.</b> Revisa que arriba a la derecha diga <b>✓ Paquete de ISGROM · 54A8-32F4</b>, marca <b>Acepto</b> y haz clic en <b>Empezar</b> y, cuando Windows lo solicite, autoriza el permiso de administrador (se necesita para leer los sensores y los discos). El proceso dura unos 20 minutos: durante ese tiempo no uses el computador. Se abrirán solos dos programas de medición, HWiNFO y OCCT; no los cierres.</li>
+      <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/></svg></span><b>Envía el resultado.</b> Al terminar se abrirá tu informe en el navegador y quedará un archivo llamado <b>Diagnostico_para_ISGROM_….kitdiag</b>. El programa te ofrece enviárselo a ISGROM en ese momento (escribe <b>SI</b>); si prefieres, mándaselo por WhatsApp o correo.</li>
+    </ol>
+    <div class="aviso"><b>Si aparece el aviso “Windows protegió su PC”:</b> haz clic en <i>Más información</i> y luego en <i>Ejecutar de todas formas</i>. Windows muestra este aviso con los programas que no provienen de una gran empresa; la autenticidad del paquete se comprueba con el sello ✓ 54A8-32F4 de la ventana.</div>
+  </section>
+
+  <section class="grid">
+    <div class="tarjeta">
+      <h2>Qué hace</h2>
+      <ul class="si">
+        <li>Revisa disco, memoria, batería, temperatura, inicio de Windows, seguridad y estabilidad.</li>
+        <li>Prueba la temperatura con carga (HWiNFO y OCCT, programas conocidos de diagnóstico).</li>
+        <li>Te deja un informe con gráficos que explica cada número.</li>
+        <li>Deja un archivo cifrado que solo ISGROM puede abrir.</li>
+      </ul>
+    </div>
+    <div class="tarjeta">
+      <h2>Qué no hace</h2>
+      <ul class="no">
+        <li>No instala programas ni cambia la configuración de Windows.</li>
+        <li>No mira tus documentos, fotos, contraseñas ni historial.</li>
+        <li>No usa internet durante la revisión. Al final te pregunta si quieres enviarle el archivo a ISGROM (va cifrado); si no, se lo mandas tú.</li>
+        <li>No cobra nada por sí solo: lo que sigue se conversa con ISGROM.</li>
+        <li>Si después te propongo un trabajo a distancia, lo corres tú: cubre los cambios de la lista y deshacerlos; no cubre archivos que estén solo en la nube, programas que ya venían dañados o con virus, ni fallas de piezas.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="tarjeta" id="privacidad">
+    <h2><span class="ico-h" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>Privacidad y tus datos</h2>
+    <p class="chico" style="font-size:14.5px">Antes de empezar, la ventana te muestra este texto y solo sigue si marcas <b>Acepto</b> (Ley 21.719 de protección de datos personales):</p>
+    <ul class="si">
+      <li>Se registran datos del equipo (modelo, número de serie, componentes, temperatura, espacio en disco, programas que arrancan con Windows y estado de seguridad) y, solo si se los das a ISGROM, tu nombre, forma de contacto y comuna.</li>
+      <li>Se usan solo para diagnosticar y atender tu equipo. No se venden ni se comparten con nadie.</li>
+      <li>Con todos los equipos revisados saco estadísticas generales, sin nombres, series ni modelos (por ejemplo, cuántos de cada 10 equipos tienen el disco casi lleno). Solo cifras de 5 equipos o más.</li>
+      <li>Se guardan <b>18 meses</b> desde tu última atención. Después se borran o quedan sin datos que te identifiquen.</li>
+      <li>Si eliges enviar el archivo por internet, pasa por el Drive de ISGROM (Google), siempre cifrado: solo él lo puede abrir.</li>
+      <li>Puedes pedir ver tus datos, corregirlos o borrarlos, escribiéndole a ISGROM por el mismo medio por el que lo contactaste.</li>
+    </ul>
+    <ul class="no" style="margin-top:8px">
+      <li>No se registran tus documentos, fotos, contraseñas, historial de navegación ni el contenido de tus archivos.</li>
+    </ul>
+    <p class="chico">El aviso para la revisión anual gratuita es opcional: va en una casilla aparte.</p>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Para los que quieren revisar más</h2>
+    <p class="chico">Cada paquete viene firmado por ISGROM: la ventana lo comprueba sola y muestra arriba, en chico, <b>✓ Paquete de ISGROM · 54A8-32F4</b>. Si en cambio dice que el paquete fue modificado, no sigas y avísale.</p>
+    <p class="chico">Los scripts son texto y se pueden leer: van dentro del paquete (carpeta <code>motor</code>), con comentarios en español. Cada paquete trae <code>motor\manifiesto.json</code> con la huella SHA-256 de cada archivo, firmada con la llave RSA-3072 de ISGROM; el código de ISGROM son los primeros 8 caracteres del SHA-256 del módulo de esa llave.</p>
+    <div class="verificar" id="verificar">
+      <h3 style="margin:14px 0 6px;font-size:16px">¿Este paquete es de verdad?</h3>
+      <p class="chico">Escribe el código que te muestra la ventana (arriba a la derecha) o pega la huella SHA-256 del ZIP que bajaste.</p>
+      <input id="ver-txt" type="text" autocomplete="off" spellcheck="false" placeholder="Ej.: 54A8-32F4" style="width:100%;max-width:520px;padding:9px 11px;border:1px solid #cbd5e1;border-radius:10px;font:15px Consolas,monospace">
+      <p id="ver-res" class="chico" aria-live="polite" style="font-weight:600;min-height:1.4em"></p>
+      <p class="chico">¿Te mostraron un <b>pasaporte del equipo</b> (historial de mantenciones firmado por ISGROM)? Compruébalo en <a href="verificar.html">verificar.html</a>.</p>
+      <details><summary class="chico">Paquetes publicados</summary><table class="chico" id="ver-tabla" style="border-collapse:collapse;margin-top:6px"></table></details>
+    </div>
+    <p class="chico">Huella SHA-256 del ZIP publicado:<br><code id="huella">7699f20c192468fb01fbe4430fee033d32b429637fdbc5aafa58e56fc6ea1716</code></p>
+  </section>
+
+  <footer>¿Dudas? Escríbele a ISGROM por el mismo WhatsApp desde donde te llegó este link.</footer>
+</main>
+<script src="pagina.js"></script>
+<script src="guia.js" defer></script>
+</body>
+</html>
