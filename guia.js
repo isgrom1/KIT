@@ -370,7 +370,7 @@
     new IntersectionObserver(function (es) { visible = es[0].isIntersecting; }, { threshold: 0.2 }).observe(cv);
   }
   // Para revisar los cuadros (pruebas): guiaKit.cuadro(escena, t) dibuja ese momento.
-  window.guiaKit = { escenas: ESCENAS.length, cuadro: function (i, t) { ESCENAS[i].f(t, 1000); lineas(); } };
+  window.guiaKit = { escenas: ESCENAS.length, info: ESCENAS.map(function (e) { return { d: e.d, txt: e.txt }; }), cuadro: function (i, t, ms) { ESCENAS[i].f(t, ms || 1000); lineas(); } };
   poner(!!reducido);
   ir(0);
   if (reducido) dibujar(performance.now());
