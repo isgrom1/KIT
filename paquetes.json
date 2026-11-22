@@ -14,6 +14,14 @@
                          "sha256":  "7699f20c192468fb01fbe4430fee033d32b429637fdbc5aafa58e56fc6ea1716",
                          "codigo":  "54A8-32F4",
                          "mb":  208
+                     },
+                     {
+                         "fecha":  "2026-11-22",
+                         "archivo":  "Diagnostico_rapido.zip",
+                         "tipo":  "revisión rápida (paso 1)",
+                         "sha256":  "db770430b1e135f50dfb3727faeb509d6d8fd9263666fd29847a0d1709cc90a7",
+                         "codigo":  "54A8-32F4",
+                         "mb":  0.2
                      }
                  ]
 }
