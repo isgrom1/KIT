@@ -19,15 +19,7 @@
                          "fecha":  "2026-11-22",
                          "archivo":  "Diagnostico_rapido.zip",
                          "tipo":  "revisión rápida (paso 1)",
-                         "sha256":  "db770430b1e135f50dfb3727faeb509d6d8fd9263666fd29847a0d1709cc90a7",
-                         "codigo":  "54A8-32F4",
-                         "mb":  0.2
-                     },
-                     {
-                         "fecha":  "2026-11-22",
-                         "archivo":  "Diagnostico_rapido.zip",
-                         "tipo":  "revisión rápida (paso 1)",
-                         "sha256":  "9ac39b4a26f972e6f4c754ac835a3f70292b53c417db65a1e07f6efcba8ae4c2",
+                         "sha256":  "2c20d106677c1364eca2f2de8e968cc7eaa6984a68479575fa77b95e01211f20",
                          "codigo":  "54A8-32F4",
                          "mb":  0.2
                      }
