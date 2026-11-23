@@ -7,6 +7,7 @@
                   "e":  "AQAB",
                   "alg":  "RS256"
               },
+    "contador":  "https://script.google.com/macros/s/AKfycbzq3SL47qResMrXQWFM-CwfGCzNM9ocUxsYdPtLYG2YHNKYMtkcL8fHh5RZULdGz23T/exec",
     "paquetes":  [
                      {
                          "fecha":  "2026-11-22",
@@ -20,6 +21,54 @@
                          "archivo":  "Diagnostico_rapido.zip",
                          "tipo":  "revisión rápida (paso 1)",
                          "sha256":  "5cf9b7440f8799c4f2097972e86a6df904c7baa233f1fe4cf49e9ba20a6efc60",
+                         "codigo":  "54A8-32F4",
+                         "mb":  0.2
+                     },
+                     {
+                         "fecha":  "2026-11-22",
+                         "archivo":  "Diagnostico_rapido.zip",
+                         "tipo":  "revisión rápida (paso 1)",
+                         "sha256":  "585ed613ffbbee5e7cda1458fed1335eb864f77e4979135d73e6e5628d23ae3b",
+                         "codigo":  "54A8-32F4",
+                         "mb":  0.2
+                     },
+                     {
+                         "fecha":  "2026-11-22",
+                         "archivo":  "Diagnostico_rapido.zip",
+                         "tipo":  "revisión rápida (paso 1)",
+                         "sha256":  "077a4d839fcf962a414637ac3ede698d9d1c6746fcc758b237544da2821b5e67",
+                         "codigo":  "54A8-32F4",
+                         "mb":  0.2
+                     },
+                     {
+                         "fecha":  "2026-11-22",
+                         "archivo":  "Diagnostico_rapido.zip",
+                         "tipo":  "revisión rápida (paso 1)",
+                         "sha256":  "3736fd489fec6e9ff16fab433cc9bc70e33443de06ae412ba72a8de07050e662",
+                         "codigo":  "54A8-32F4",
+                         "mb":  0.2
+                     },
+                     {
+                         "fecha":  "2026-11-23",
+                         "archivo":  "Diagnostico_rapido.zip",
+                         "tipo":  "revisión rápida (paso 1)",
+                         "sha256":  "219c3200b80bed7ac5388c917b12d02f272b41443ed926727b79a4eb9b340c4b",
+                         "codigo":  "54A8-32F4",
+                         "mb":  0.2
+                     },
+                     {
+                         "fecha":  "2026-11-23",
+                         "archivo":  "Diagnostico_rapido.zip",
+                         "tipo":  "revisión rápida (paso 1)",
+                         "sha256":  "e0ad1a22914cf5a2edf5b64e4fab4af6efaae5f68d28e2c9a78e89931c1cbbbe",
+                         "codigo":  "54A8-32F4",
+                         "mb":  0.2
+                     },
+                     {
+                         "fecha":  "2026-11-23",
+                         "archivo":  "Diagnostico_rapido.zip",
+                         "tipo":  "revisión rápida (paso 1)",
+                         "sha256":  "c49c3728f270fdf370aee4c6d2d081da75e2f9de5c2e47b6b4e0b7b417fde6b0",
                          "codigo":  "54A8-32F4",
                          "mb":  0.2
                      }

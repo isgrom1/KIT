@@ -223,7 +223,7 @@
       var p = mover(150, 110, 80, 32, tramo(t, 0.1, 0.45));
       cursor(p[0], p[1]); clic(p[0], p[1], tramo(t, 0.5, 0.6)); clic(p[0], p[1], tramo(t, 0.6, 0.7));
     } },
-    { d: 7500, txt: '4. Comprueba que arriba diga ✓ Paquete de ISGROM · 54A8-32F4, escribe tu nombre, marca «Acepto» y haz clic en «Empezar».', f: function (t, ms) {
+    { d: 7500, txt: '4. Comprueba que arriba diga ✓ Paquete de ISGROM · 54A8-32F4, elige rápida o con temperatura, escribe tu nombre, marca «Acepto» y haz clic en «Empezar».', f: function (t, ms) {
       escritorio(ms);
       ventana(14, 4, 164, 104, 'DIAGNOSTICO PARA ISGROM');
       R(17, 15, 158, 90, C.blanco);
@@ -257,7 +257,7 @@
       var p = mover(170, 112, 80, 82, tramo(t, 0.15, 0.55));
       cursor(p[0], p[1]); clic(p[0], p[1], tramo(t, 0.62, 0.74));
     } },
-    { d: 8500, txt: '6. La revisión rápida tarda unos 3 minutos. La prueba de temperatura, unos 20: ahí no cierres los programas de medición.', f: function (t, ms) {
+    { d: 8500, txt: '6. La revisión rápida tarda unos 3 minutos. La de temperatura, unos 25: ahí no cierres los programas de medición.', f: function (t, ms) {
       escritorio(ms);
       ventana(6, 6, 104, 62, 'HWINFO');
       R(9, 18, 98, 47, C.negro);

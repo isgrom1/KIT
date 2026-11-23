@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light">
@@ -85,6 +85,22 @@ ol.pasos li b:first-child { font-family:var(--mano); font-size:22px; display:blo
 
 /* guía pixel art como polaroid */
 .guia-cuerpo { display:grid; grid-template-columns:minmax(0,340px) 1fr; gap:24px; align-items:center; }
+/* arriba, en la portada: la guía apilada (polaroid y debajo el texto y los botones) */
+.hero > * { min-width:0; }
+.hero-guia { min-width:0; max-width:100%; }
+.hero-guia .guia-cuerpo { grid-template-columns:minmax(0,1fr); gap:10px; }
+.hero-guia .polaroid { max-width:100%; }
+.hero-guia .guia-texto { font-size:19px; min-height:3.6em; }
+.guia-mini { font-family:var(--mano); font-size:24px; color:var(--rojo); margin:0 0 6px; transform:rotate(-2deg); }
+/* el chequeo (PC con suero), más abajo */
+.chequeo-cuerpo { display:grid; grid-template-columns:minmax(0,260px) 1fr; gap:20px; align-items:center; }
+.chequeo-texto { font-family:var(--mano); font-size:22px; margin:0; }
+/* reseñas reales de Google (docs\resenas.json): la sección queda escondida mientras no haya */
+.resenas-lista { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin-top:10px; }
+.resena { background:#fff; border-radius:6px 12px 8px 10px; padding:14px 16px; box-shadow:2px 4px 10px rgba(60,40,10,.10); }
+.resena .estrellas { color:#e0a100; letter-spacing:2px; }
+.resena .quien { font-family:var(--mano); color:var(--suave); font-size:17px; margin-top:6px; }
+.contador-publico { text-align:center; font-family:var(--mano); font-size:19px; color:#5c6680; margin:6px 0 0; }
 .polaroid { background:#fff; padding:12px 12px 40px; box-shadow:6px 10px 22px rgba(0,0,0,.16); transform:rotate(-2deg); position:relative; }
 .polaroid::after { content:"así se hace"; position:absolute; bottom:8px; left:0; right:0; text-align:center; font-family:var(--mano); font-size:20px; color:var(--suave); }
 #guia-lienzo { display:block; width:100%; height:auto; aspect-ratio:192/120; image-rendering:pixelated; image-rendering:crisp-edges; background:#0b0d17; }
@@ -111,7 +127,7 @@ footer .planeta { display:block; margin:0 auto 6px; }
   main { padding:20px 16px 60px 40px; }
   .hero { grid-template-columns:1fr; }
   .paciente { max-width:280px; }
-  .dos, .guia-cuerpo { grid-template-columns:1fr; }
+  .dos, .guia-cuerpo, .chequeo-cuerpo { grid-template-columns:1fr; }
   .polaroid { max-width:340px; margin:0 auto; }
   .hoja { padding:24px 18px 20px; }
 }
@@ -146,30 +162,24 @@ footer .planeta { display:block; margin:0 auto 6px; }
         <li><svg class="caja-check" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="3" width="21" height="21" rx="4" fill="none" stroke="#1f2a44" stroke-width="2.5"/><path d="M7 14 L11 19 L21 6" fill="none" stroke="#d63a2f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>se apaga solito</li>
       </ul>
     </div>
-    <!-- el paciente: PC con suero, termómetro y parche -->
-    <svg class="paciente" viewBox="0 0 400 470" role="img" aria-label="Dibujo de un computador enfermo con suero, termómetro y parche">
-      <g fill="none" stroke="#1f2a44" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M340 40 L338 420"/><path d="M312 42 C326 38, 352 38, 368 42"/><path d="M300 424 C320 420, 356 420, 376 424"/><circle cx="304" cy="436" r="9"/><circle cx="372" cy="436" r="9"/>
-      </g>
-      <path d="M318 52 C316 90, 316 118, 324 134 L356 134 C364 118, 364 90, 362 52 Z" fill="#d0ebff" stroke="#1f2a44" stroke-width="5" stroke-linejoin="round"/>
-      <path d="M322 96 C330 92, 350 92, 358 96 L356 130 L324 130 Z" fill="#74c0fc" opacity=".55"/>
-      <rect x="332" y="138" width="16" height="24" rx="4" fill="#fff" stroke="#1f2a44" stroke-width="4"/>
-      <path d="M340 162 C340 230, 300 230, 262 238" fill="none" stroke="#868e96" stroke-width="4" stroke-linecap="round"/>
-      <rect x="246" y="230" width="22" height="16" rx="3" fill="#fff" stroke="#1f2a44" stroke-width="3"/>
-      <g fill="none" stroke="#1f2a44" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M28 160 C95 154, 175 156, 248 162 L244 300 C160 306, 90 304, 32 298 Z" fill="#fffdf6"/>
-        <path d="M54 184 L222 186 L220 278 L56 276 Z" stroke-width="5"/>
-        <path d="M124 302 L118 338 M156 302 L162 338 M80 344 C122 340, 172 340, 206 346"/>
-        <path d="M92 210 l16 12 M108 210 l-16 12 M158 208 l16 12 M174 208 l-16 12"/>
-        <path d="M102 262 C120 250, 140 250, 152 258"/>
-      </g>
-      <path d="M146 256 L214 226" stroke="#adb5bd" stroke-width="10" stroke-linecap="round"/><path d="M146 256 L176 243" stroke="#e03131" stroke-width="5" stroke-linecap="round"/><circle cx="146" cy="256" r="7" fill="#e03131"/>
-      <g transform="rotate(-28 70 170)"><rect x="34" y="158" width="78" height="26" rx="12" fill="#f4c27a" stroke="#c08a3e" stroke-width="3"/><rect x="62" y="160" width="22" height="22" fill="#f8d9a6"/></g>
-      <g fill="#4dabf7"><path d="M236 104 c-10 16 -10 26 0 30 c10 -4 10 -14 0 -30z"/><path d="M14 196 c-7 12 -7 19 0 22 c7 -3 7 -10 0 -22z"/></g>
-      <g transform="rotate(8 230 110)"><rect x="186" y="84" width="96" height="52" rx="6" fill="#fff" stroke="#e03131" stroke-width="4"/><text x="234" y="122" text-anchor="middle" font-family="Ink Free, Segoe Print, Bradley Hand, cursive" font-size="36" font-weight="bold" fill="#e03131">98°</text></g>
-      <path d="M14 390 L92 390 L108 358 L126 426 L142 390 L222 390" fill="none" stroke="#2f9e44" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M250 382 c-8 -14 -28 -10 -28 6 c0 14 28 28 28 28 c0 0 28 -14 28 -28 c0 -16 -20 -20 -28 -6z" fill="#e03131"/>
-    </svg>
+    <!-- la guía en pixel art, arriba: así se ve en 1 minuto cómo se hace -->
+    <div class="guia hero-guia" aria-labelledby="guia-titulo">
+      <h2 id="guia-titulo" class="guia-mini">mira cómo se hace</h2>
+      <div class="guia-cuerpo">
+        <div class="polaroid">
+          <canvas id="guia-lienzo" width="192" height="120" role="img" aria-label="Animación en pixel art con los pasos del diagnóstico: descargar, abrir el ZIP, abrir DIAGNOSTICO.cmd, aceptar y empezar, esperar, ver el informe y enviar el archivo a ISGROM."></canvas>
+        </div>
+        <div class="guia-lado">
+          <p id="guia-texto" class="guia-texto" aria-live="polite"></p>
+          <div class="guia-controles">
+            <button type="button" id="guia-ant" aria-label="Paso anterior">◀</button>
+            <button type="button" id="guia-play" aria-label="Pausar">❚❚</button>
+            <button type="button" id="guia-sig" aria-label="Paso siguiente">▶</button>
+            <span id="guia-puntos" class="guia-puntos"></span>
+          </div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <p class="bajada">Te digo qué tiene tu computador y qué conviene hacer, <b>a distancia y sin instalar nada</b>: solo lo dejas prendido un ratito. Nadie se conecta a tu PC ni mueve tu mouse.</p>
@@ -179,43 +189,64 @@ footer .planeta { display:block; margin:0 auto 6px; }
     <h2>Revisión rápida de tu PC</h2>
     <p class="datos">un solo archivo · menos de 1 MB · unos 3 minutos · <b>no pide permisos</b></p>
     <a class="boton" id="descargar-rapido" href="Diagnostico_rapido.zip" download>Descargar ▸</a>
-    <p class="luego">Al terminar te ofrece, si quieres, la <b>prueba de temperatura</b> (unos 20 minutos; esa sí pide permiso de administrador, para leer los sensores).</p>
+    <p class="luego">Al abrirlo eliges: la revisión rápida o, si se calienta, suena fuerte o se apaga solo, la <b>revisión con prueba de temperatura</b> (unos 25 minutos; esa sí pide permiso de administrador, para leer los sensores).</p>
   </div>
+  <p class="contador-publico" id="contador-publico" hidden></p>
   <a class="agenda" href="https://calendar.app.google/J48B85ZHgLaqf2bj7" rel="noopener">📅 o agenda una hora conmigo →</a>
 
   <div class="timbre-fila">
-    <span class="timbre">ISGROM · 54A8-32F4<small>mi código: tiene que salir igual en la ventana</small></span>
-    <span class="chico">Cada paquete va firmado. Si la ventana muestra otro código, no sigas y avísame.</span>
+    <span class="timbre">ISGROM · 54A8-32F4<small>bájalo solo desde esta página</small></span>
+    <span class="chico">Nunca te mando el archivo por WhatsApp ni por correo: te mando <b>este link</b>. El código de la ventana ayuda, pero un falso podría copiarlo; la prueba segura es <a href="#verificar">la huella del ZIP</a>.</span>
   </div>
 
   <section class="hoja" id="confianza">
-    <h2>¿Cómo sé que esto <span class="subrayado">no es una estafa</span>?</h2>
-    <p>Es bueno que te lo preguntes: hay muchas estafas que se parecen a esto. Así trabajo yo, siempre:</p>
+    <h2>¿Por qué es <span class="subrayado">seguro</span>?</h2>
+    <p>Porque tú tienes el control en todo momento. Así trabajo yo, siempre:</p>
     <ul class="ticks">
       <li><b>Yo no te escribo primero.</b> Si alguien te contacta diciendo que es ISGROM, no soy yo.</li>
       <li><b>Nunca te pido el mouse:</b> no uso AnyDesk, TeamViewer ni ningún control remoto. Nadie ve tu pantalla.</li>
       <li><b>Nunca te pido claves</b>, códigos del banco ni que entres a ninguna cuenta.</li>
       <li><b>Nunca te pido pegar comandos</b> en Windows ni apagar el antivirus. Si Windows te advierte algo y tienes dudas, para y escríbeme.</li>
       <li><b>El programa se puede leer:</b> es texto con comentarios en español. Si conoces a alguien que sepa de computadores, muéstraselo antes de abrirlo. Me parece perfecto.</li>
-      <li><b>Mis paquetes llevan el código 54A8-32F4.</b> Tiene que salir igual en la ventana del programa, en el mensaje que te mando y aquí. Si no calza, no lo abras.</li>
+      <li><b>Solo se baja desde esta página.</b> Si alguien te manda el archivo por WhatsApp o correo, aunque diga ISGROM, no lo abras. El código 54A8-32F4 que sale en la ventana es una ayuda, pero cualquiera podría copiarlo en una ventana falsa: lo que no se puede falsificar es la <a href="#verificar">huella del ZIP</a> que bajaste de aquí.</li>
     </ul>
   </section>
 
-  <section class="hoja guia" aria-labelledby="guia-titulo">
-    <h2 id="guia-titulo">Mira cómo se hace</h2>
-    <div class="guia-cuerpo">
-      <div class="polaroid">
-        <canvas id="guia-lienzo" width="192" height="120" role="img" aria-label="Animación en pixel art con los pasos del diagnóstico: descargar, abrir el ZIP, abrir DIAGNOSTICO.cmd, aceptar y empezar, esperar, ver el informe y enviar el archivo a ISGROM."></canvas>
-      </div>
-      <div class="guia-lado">
-        <p id="guia-texto" class="guia-texto" aria-live="polite"></p>
-        <div class="guia-controles">
-          <button type="button" id="guia-ant" aria-label="Paso anterior">◀</button>
-          <button type="button" id="guia-play" aria-label="Pausar">❚❚</button>
-          <button type="button" id="guia-sig" aria-label="Paso siguiente">▶</button>
-          <span id="guia-puntos" class="guia-puntos"></span>
-        </div>
-      </div>
+  <section class="hoja" id="resenas" aria-labelledby="resenas-titulo" hidden>
+    <h2 id="resenas-titulo">Lo que dicen de ISGROM</h2>
+    <p class="chico">Reseñas reales de clientes en Google.</p>
+    <div class="resenas-lista" id="resenas-lista"></div>
+    <p class="chico" style="margin-top:10px"><a id="resenas-ver" href="#" rel="noopener" hidden>Ver todas en Google</a> <a id="resenas-dejar" href="#" rel="noopener" hidden>· Déjame tu reseña</a></p>
+  </section>
+
+  <section class="hoja chequeo" aria-labelledby="chequeo-titulo">
+    <h2 id="chequeo-titulo">Un chequeo médico, pero para tu PC</h2>
+    <div class="chequeo-cuerpo">
+      <!-- el paciente: PC con suero, termómetro y parche -->
+      <svg class="paciente" viewBox="0 0 400 470" role="img" aria-label="Dibujo de un computador enfermo con suero, termómetro y parche">
+        <g fill="none" stroke="#1f2a44" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M340 40 L338 420"/><path d="M312 42 C326 38, 352 38, 368 42"/><path d="M300 424 C320 420, 356 420, 376 424"/><circle cx="304" cy="436" r="9"/><circle cx="372" cy="436" r="9"/>
+        </g>
+        <path d="M318 52 C316 90, 316 118, 324 134 L356 134 C364 118, 364 90, 362 52 Z" fill="#d0ebff" stroke="#1f2a44" stroke-width="5" stroke-linejoin="round"/>
+        <path d="M322 96 C330 92, 350 92, 358 96 L356 130 L324 130 Z" fill="#74c0fc" opacity=".55"/>
+        <rect x="332" y="138" width="16" height="24" rx="4" fill="#fff" stroke="#1f2a44" stroke-width="4"/>
+        <path d="M340 162 C340 230, 300 230, 262 238" fill="none" stroke="#868e96" stroke-width="4" stroke-linecap="round"/>
+        <rect x="246" y="230" width="22" height="16" rx="3" fill="#fff" stroke="#1f2a44" stroke-width="3"/>
+        <g fill="none" stroke="#1f2a44" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M28 160 C95 154, 175 156, 248 162 L244 300 C160 306, 90 304, 32 298 Z" fill="#fffdf6"/>
+          <path d="M54 184 L222 186 L220 278 L56 276 Z" stroke-width="5"/>
+          <path d="M124 302 L118 338 M156 302 L162 338 M80 344 C122 340, 172 340, 206 346"/>
+          <path d="M92 210 l16 12 M108 210 l-16 12 M158 208 l16 12 M174 208 l-16 12"/>
+          <path d="M102 262 C120 250, 140 250, 152 258"/>
+        </g>
+        <path d="M146 256 L214 226" stroke="#adb5bd" stroke-width="10" stroke-linecap="round"/><path d="M146 256 L176 243" stroke="#e03131" stroke-width="5" stroke-linecap="round"/><circle cx="146" cy="256" r="7" fill="#e03131"/>
+        <g transform="rotate(-28 70 170)"><rect x="34" y="158" width="78" height="26" rx="12" fill="#f4c27a" stroke="#c08a3e" stroke-width="3"/><rect x="62" y="160" width="22" height="22" fill="#f8d9a6"/></g>
+        <g fill="#4dabf7"><path d="M236 104 c-10 16 -10 26 0 30 c10 -4 10 -14 0 -30z"/><path d="M14 196 c-7 12 -7 19 0 22 c7 -3 7 -10 0 -22z"/></g>
+        <g transform="rotate(8 230 110)"><rect x="186" y="84" width="96" height="52" rx="6" fill="#fff" stroke="#e03131" stroke-width="4"/><text x="234" y="122" text-anchor="middle" font-family="Ink Free, Segoe Print, Bradley Hand, cursive" font-size="36" font-weight="bold" fill="#e03131">98°</text></g>
+        <path d="M14 390 L92 390 L108 358 L126 426 L142 390 L222 390" fill="none" stroke="#2f9e44" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M250 382 c-8 -14 -28 -10 -28 6 c0 14 28 28 28 28 c0 0 28 -14 28 -28 c0 -16 -20 -20 -28 -6z" fill="#e03131"/>
+      </svg>
+      <p class="chequeo-texto">Mido temperatura, disco, batería, memoria, encendido y seguridad. Te digo qué tiene, qué tan grave es y qué conviene hacer, <b>antes</b> de que pagues nada.</p>
     </div>
   </section>
 
@@ -224,9 +255,9 @@ footer .planeta { display:block; margin:0 auto 6px; }
     <ol class="pasos">
       <li><b>Descarga el archivo.</b> Ábrelo con doble clic: adentro hay un solo archivo, <b>DIAGNOSTICO.cmd</b>. No hace falta extraerlo.</li>
       <li><b>Ábrelo.</b> Doble clic en DIAGNOSTICO.cmd. Se abre una ventana mía que explica qué hace y qué no.</li>
-      <li><b>Revisa el código y empieza.</b> Arriba a la derecha tiene que decir <b>✓ Paquete de ISGROM · 54A8-32F4</b>. Escribe tu nombre, marca <b>Acepto</b> y aprieta <b>Empezar</b>. Son unos 3 minutos y no pide permisos.</li>
+      <li><b>Revisa el código y empieza.</b> Arriba a la derecha tiene que decir <b>✓ Paquete de ISGROM · 54A8-32F4</b>. Elige <b>revisión rápida</b> (unos 3 minutos, no pide permisos) o <b>con prueba de temperatura</b>, escribe tu nombre, marca <b>Acepto</b> y aprieta <b>Empezar</b>.</li>
       <li><b>Mándame el resultado.</b> Al final se abre tu informe en el navegador y queda un archivo <b>Diagnostico_para_ISGROM_….kitdiag</b>. El programa te ofrece enviármelo (escribe <b>SI</b>), o me lo mandas por WhatsApp.</li>
-      <li><b>Si quieres, la prueba de temperatura.</b> La misma ventana te la ofrece: unos 20 minutos, baja dos programas de medición (HWiNFO y OCCT) y pide permiso de administrador. Durante la prueba no uses el computador.</li>
+      <li><b>Si elegiste la prueba de temperatura:</b> son unos 25 minutos, baja dos programas de medición (HWiNFO y OCCT) y pide permiso de administrador. Durante la prueba no uses el computador. Si elegiste la rápida, al final igual te la ofrece por si la quieres.</li>
     </ol>
     <div class="aviso"><b>Si aparece el aviso “Windows protegió su PC”:</b> haz clic en <i>Más información</i> y luego en <i>Ejecutar de todas formas</i>. Windows lo muestra con programas que no son de una gran empresa; lo que asegura que es mío es el código <b>54A8-32F4</b> de la ventana.</div>
   </section>
@@ -268,6 +299,7 @@ footer .planeta { display:block; margin:0 auto 6px; }
       <li>No se registran tus documentos, fotos, contraseñas, historial de navegación ni el contenido de tus archivos.</li>
     </ul>
     <p class="chico">El aviso para la revisión anual gratuita es opcional: va en una casilla aparte.</p>
+    <p class="chico">Esta página no usa cookies ni guarda nada en tu navegador. Solo cuenta cuántas veces se abre y cuántas veces se descarga el diagnóstico: una cifra por día; no se guarda tu IP ni ningún dato tuyo.</p>
   </section>
 
   <section class="hoja" id="verificar">
