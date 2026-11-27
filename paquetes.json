@@ -71,6 +71,22 @@
                          "sha256":  "c49c3728f270fdf370aee4c6d2d081da75e2f9de5c2e47b6b4e0b7b417fde6b0",
                          "codigo":  "54A8-32F4",
                          "mb":  0.2
+                     },
+                     {
+                         "fecha":  "2026-11-24",
+                         "archivo":  "Diagnostico_remoto_20261124.zip",
+                         "tipo":  "prueba de temperatura (paso 2)",
+                         "sha256":  "35fab9fab9af6c700e75f4dc31bbba98465ff4379ed797d3a43afa70dc8756d8",
+                         "codigo":  "54A8-32F4",
+                         "mb":  208.1
+                     },
+                     {
+                         "fecha":  "2026-11-27",
+                         "archivo":  "Diagnostico_rapido.zip",
+                         "tipo":  "revisión rápida (paso 1)",
+                         "sha256":  "652f014521094b327d0002f1f0d72f8fa77afac979a22b571778cd90560a5ba5",
+                         "codigo":  "54A8-32F4",
+                         "mb":  0.2
                      }
                  ]
 }

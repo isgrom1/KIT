@@ -201,7 +201,7 @@
       var p = mover(160, 112, 98, 72, tramo(t, 0.1, 0.48));
       cursor(p[0], p[1]); clic(p[0], p[1], tramo(t, 0.5, 0.62));
     } },
-    { d: 6000, txt: '2. Abre el ZIP que bajaste con doble clic. No hace falta extraerlo.', f: function (t, ms) {
+    { d: 6000, txt: '2. Extrae el ZIP que bajaste: clic derecho → Extraer todo → Extraer.', f: function (t, ms) {
       escritorio(ms);
       carpeta(40, 58, true); etiqueta('DIAGNOSTICO.ZIP', 48, 77);
       if (t > 0.62 && t < 0.95) brillo(58, 58, ms);
@@ -209,7 +209,7 @@
       cursor(p[0], p[1]);
       clic(48, 64, tramo(t, 0.4, 0.5)); clic(48, 64, tramo(t, 0.5, 0.6));
     } },
-    { d: 6000, txt: '3. Adentro hay un solo archivo: haz doble clic en DIAGNOSTICO.cmd.', f: function (t, ms) {
+    { d: 6000, txt: '3. En la carpeta que se abre hay un solo archivo: doble clic en DIAGNOSTICO.cmd.', f: function (t, ms) {
       escritorio(ms);
       ventana(24, 10, 144, 90, 'DIAGNOSTICO.ZIP');
       R(27, 23, 138, 74, C.blanco);
@@ -298,7 +298,7 @@
       T('LO QUE SIGUE:', 58, 78, C.violeta); T('ENVIALO A ISGROM', 58, 88, C.marino);
       if (t > 0.55) { kitdiag(16, 40); Tc('KITDIAG', 22, 58, C.blanco); if (t < 0.9) brillo(28, 38, ms); }
     } },
-    { d: 7500, txt: '8. El programa te ofrece enviárselo a ISGROM (escribe SI); o mándalo tú por WhatsApp. ¡Listo! Él te responde con lo que tiene tu equipo.', f: function (t, ms) {
+    { d: 7500, txt: '8. Si dejaste marcada la casilla del envío, a ISGROM le llega solo; si no, mándalo tú por WhatsApp. ¡Listo! Él te responde con lo que tiene tu equipo.', f: function (t, ms) {
       escritorio(ms);
       kitdiag(20, 34); Tc('KITDIAG', 26, 52, C.blanco);
       // teléfono
