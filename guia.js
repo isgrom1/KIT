@@ -203,15 +203,33 @@
     } },
     { d: 6000, txt: '2. Extrae el ZIP que bajaste: clic derecho → Extraer todo → Extraer.', f: function (t, ms) {
       escritorio(ms);
+      // Clic DERECHO en el ZIP → «Extraer todo…» → «Extraer» (no doble clic: abierto adentro del ZIP no funciona).
       carpeta(40, 58, true); etiqueta('DIAGNOSTICO.ZIP', 48, 77);
-      if (t > 0.62 && t < 0.95) brillo(58, 58, ms);
-      var p = mover(150, 100, 48, 64, tramo(t, 0.05, 0.35));
+      var p;
+      if (t < 0.62) {
+        p = mover(150, 100, 48, 64, tramo(t, 0.05, 0.3));
+        if (t > 0.35) {
+          R(64, 30, 98, 36, C.negro); R(64, 30, 97, 35, C.blanco);
+          T('ABRIR', 68, 33, C.grisO);
+          if (t > 0.5) R(65, 42, 95, 11, C.azul);
+          T('EXTRAER TODO...', 68, 44, t > 0.5 ? C.blanco : C.negro);
+          T('COPIAR', 68, 56, C.grisO);
+        }
+        if (t > 0.42) p = mover(48, 64, 90, 47, tramo(t, 0.42, 0.52));
+      } else {
+        ventana(30, 20, 150, 70, 'EXTRAER');
+        R(33, 33, 144, 54, C.blanco); T('SE CREA LA CARPETA', 37, 38, C.negro); T('DIAGNOSTICO', 37, 49, C.marino);
+        var ap = t > 0.85;
+        R(124, 70, 50, 13, ap ? C.violeta : C.azul); Tc('EXTRAER', 149, 73, C.blanco);
+        if (t > 0.92) brillo(149, 60, ms);
+        p = mover(90, 47, 149, 76, tramo(t, 0.62, 0.8));
+      }
       cursor(p[0], p[1]);
-      clic(48, 64, tramo(t, 0.4, 0.5)); clic(48, 64, tramo(t, 0.5, 0.6));
+      clic(48, 64, tramo(t, 0.3, 0.38)); clic(149, 76, tramo(t, 0.82, 0.9));
     } },
     { d: 6000, txt: '3. En la carpeta que se abre hay un solo archivo: doble clic en DIAGNOSTICO.cmd.', f: function (t, ms) {
       escritorio(ms);
-      ventana(24, 10, 144, 90, 'DIAGNOSTICO.ZIP');
+      ventana(24, 10, 144, 90, 'DIAGNOSTICO');
       R(27, 23, 138, 74, C.blanco);
       var filas = [['cmd', 'DIAGNOSTICO.CMD']];
       filas.forEach(function (f, i) {
